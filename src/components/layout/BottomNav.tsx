@@ -11,7 +11,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusCircle, Bell, User } from 'lucide-react';
+import { Home, Search, PlusCircle, Bell, User, Shield } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 
@@ -27,7 +27,7 @@ export default function BottomNav() {
     { label: 'Create', path: '/create', icon: PlusCircle },
     { label: 'Notifications', path: '/notifications', icon: Bell, badge: true },
     { label: 'Profile', path: user ? `/profile/${user.username}` : '/login', icon: User },
-    ...(user?.role === 'admin' ? [{ label: 'Admin', path: '/admin', icon: Home }] : []),
+    ...(user?.role === 'admin' ? [{ label: 'Admin', path: '/admin/dashboard', icon: Shield }] : []),
   ];
 
   return (
