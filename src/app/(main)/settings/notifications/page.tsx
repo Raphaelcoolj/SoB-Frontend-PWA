@@ -51,6 +51,15 @@ export default function NotificationSettingsPage() {
     setPushError(null);
 
     try {
+      // Debug checks
+      console.log('SW supported:', 'serviceWorker' in navigator);
+      console.log('Notification supported:', 'Notification' in window);
+      if ('serviceWorker' in navigator) {
+        const swReg = await navigator.serviceWorker.getRegistration();
+        console.log('SW registration:', swReg);
+      }
+      console.log('VAPID key:', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+
       // Step 1: Check browser support
       if (!('Notification' in window)) {
         throw new Error('Push notifications are not supported in this browser');
@@ -109,7 +118,7 @@ export default function NotificationSettingsPage() {
       if (meRes.ok) setUser(meData.data.user);
 
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to enable push notifications';
+      const message = error instanceof Error ? error.message : String(error);
       setPushError(message);
       toast.error(message);
       console.error('Push notification error:', error);
