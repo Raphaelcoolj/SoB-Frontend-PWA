@@ -22,7 +22,11 @@ import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { fetchWithAuth } from '../../../../lib/api';
 
-const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
+const fetcher = async (url: string) => {
+  const res = await fetchWithAuth(url.replace(process.env.NEXT_PUBLIC_API_URL || '', ''));
+  const d = await res.json();
+  return d.data;
+};
 
 export default function AdminFieldsPage() {
   const { accessToken } = useAuthStore();
