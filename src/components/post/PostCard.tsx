@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -23,16 +23,19 @@ interface PostCardProps {
   post: Post;
   onCommentClick?: (postId: string) => void;
   fullView?: boolean;
+  onDelete?: (postId: string) => void;
 }
 
-export default function PostCard({ post, onCommentClick, fullView = false }: PostCardProps) {
+export default function PostCard({ post, onCommentClick, fullView = false, onDelete }: PostCardProps) {
   const { user, accessToken } = useAuthStore();
 
   const userId = user?._id || '';
+  const isAuthor = post.author._id === userId;
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [isLiked, setIsLiked] = useState(post.likes.includes(userId));
   const [isBookmarked, setIsBookmarked] = useState(post.bookmarks.includes(userId));
   const [commentCount, setCommentCount] = useState(post.comments.length);
+  const [showOptions, setShowOptions] = useState(false);
 
   const handleLike = async () => {
     if (!accessToken) return;
@@ -85,6 +88,20 @@ export default function PostCard({ post, onCommentClick, fullView = false }: Pos
     }
   };
 
+  const handleDelete = async () => {
+    if (!accessToken || !isAuthor) return;
+    try {
+      const res = await fetchWithAuth(`/api/posts/${post._id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        onDelete?.(post._id);
+      }
+    } catch {
+      // silent
+    }
+  };
+
   const field = post.field as Field;
   const isArticle = post.contentType === 'article';
 
@@ -96,21 +113,40 @@ export default function PostCard({ post, onCommentClick, fullView = false }: Pos
           <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+          <div className="flex justify-between items-start gap-2">
             <Link
               href={`/profile/${post.author.username}`}
               className="font-medium text-sm text-foreground hover:text-accent transition-colors truncate"
             >
               {post.author.name}
             </Link>
-            <span className="text-muted-foreground text-xs">@{post.author.username}</span>
-            <span className="text-muted-foreground text-xs">·</span>
-            <span className="text-muted-foreground text-xs">{formatDistanceToNow(post.createdAt)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
+              {isAuthor && (
+                <div className="relative">
+                  <button onClick={() => setShowOptions(!showOptions)} className="text-muted-foreground hover:text-foreground">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                  {showOptions && (
+                    <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1">
+                      <button
+                        onClick={handleDelete}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+          <div className="text-muted-foreground text-xs">@{post.author.username}</div>
           {field && <div className="mt-1"><FieldBadge field={field} /></div>}
         </div>
         {isArticle && (
-          <span className="text-[10px] font-medium uppercase tracking-wider text-accent border border-accent/30 rounded-full px-2 py-0.5 flex-shrink-0">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-accent border border-accent/30 rounded-full px-2 py-0.5 flex-shrink-0 ml-2">
             Article
           </span>
         )}
