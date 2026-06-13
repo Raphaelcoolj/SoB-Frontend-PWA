@@ -51,15 +51,6 @@ export default function NotificationSettingsPage() {
     setPushError(null);
 
     try {
-      // Debug checks
-      console.log('SW supported:', 'serviceWorker' in navigator);
-      console.log('Notification supported:', 'Notification' in window);
-      if ('serviceWorker' in navigator) {
-        const swReg = await navigator.serviceWorker.getRegistration();
-        console.log('SW registration:', swReg);
-      }
-      console.log('VAPID key:', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
-
       // Step 1: Check browser support
       if (!('Notification' in window)) {
         throw new Error('Push notifications are not supported in this browser');
@@ -81,11 +72,21 @@ export default function NotificationSettingsPage() {
         throw new Error('Push notification permission denied');
       }
 
-      // Step 3: Wait for service worker with timeout
-      const registration = await Promise.race([
+      // Step 3: Resilient service worker registration/waiting
+      if (!('serviceWorker' in navigator)) {
+        throw new Error('Service workers are not supported in this browser');
+      }
+      
+      let registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        registration = await navigator.serviceWorker.register('/sw.js');
+      }
+      
+      // Wait for readiness with timeout
+      await Promise.race([
         navigator.serviceWorker.ready,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Service worker not ready')), 10000)
+          setTimeout(() => reject(new Error('Service worker registration timed out')), 10000)
         )
       ]);
 
@@ -93,7 +94,7 @@ export default function NotificationSettingsPage() {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) throw new Error('VAPID public key not configured');
 
-      const subscription = await registration.pushManager.subscribe({
+      const subscription = await (registration as ServiceWorkerRegistration).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
