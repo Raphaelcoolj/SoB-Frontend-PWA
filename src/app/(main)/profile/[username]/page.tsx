@@ -112,20 +112,22 @@ export default function ProfilePage() {
           <UserAvatar avatar={profile.avatar} name={profile.name} size="lg" className="w-20 h-20 text-2xl" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-semibold text-foreground truncate">{profile.name}</h1>
+              <h1 className="text-lg text-foreground truncate">{profile.name}</h1>
               {profile.role === 'admin' && (
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-destructive/15 text-destructive border border-destructive/30 rounded-full px-2 py-0.5">
+                <span className="text-[10px] uppercase tracking-wider bg-destructive/15 text-destructive border border-destructive/30 rounded-full px-2 py-0.5">
                   Admin
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">@{profile.username}</p>
+            <p className="text-sm text-muted-foreground mb-2">@{profile.username}</p>
             {profile.bio && (
-              <p className="text-sm text-foreground/90 mt-1.5 leading-snug">{profile.bio}</p>
+              <div className="bg-card p-3 rounded-xl border border-border">
+                <p className="text-sm text-foreground/90 leading-snug">{profile.bio}</p>
+              </div>
             )}
             {/* Priority fields badges */}
             {Array.isArray(profile.priorityFields) && profile.priorityFields.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1 mt-3">
                 {(profile.priorityFields as Field[]).map((f, i) => (
                   typeof f === 'object' ? <FieldBadge key={i} field={f} /> : null
                 ))}
