@@ -27,6 +27,7 @@ export default function BottomNav() {
     { label: 'Create', path: '/create', icon: PlusCircle },
     { label: 'Notifications', path: '/notifications', icon: Bell, badge: true },
     { label: 'Profile', path: user ? `/profile/${user.username}` : '/login', icon: User },
+    ...(user?.role === 'admin' ? [{ label: 'Admin', path: '/admin', icon: Home }] : []),
   ];
 
   return (

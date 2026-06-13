@@ -42,7 +42,7 @@ export const usePushNotifications = () => {
 
       if (!accessToken) throw new Error('Not authenticated');
 
-      const res = await api.post('/api/users/push-subscription', subscription, accessToken);
+      const res = await api.post('/api/users/push-subscription', { subscription }, accessToken);
       
       if (res.ok) {
         toast.success('Push notifications enabled!');
