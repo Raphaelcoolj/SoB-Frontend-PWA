@@ -119,21 +119,25 @@ export default function ProfilePage() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mb-2">@{profile.username}</p>
-            {profile.bio && (
-              <div className="bg-card p-3 rounded-xl border border-border">
-                <p className="text-sm text-foreground/90 leading-snug">{profile.bio}</p>
-              </div>
-            )}
-            {/* Priority fields badges */}
-            {Array.isArray(profile.priorityFields) && profile.priorityFields.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-3">
-                {(profile.priorityFields as Field[]).map((f, i) => (
-                  typeof f === 'object' ? <FieldBadge key={i} field={f} /> : null
-                ))}
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground">@{profile.username}</p>
           </div>
+        </div>
+
+        {/* Bio and Fields section spanning full width */}
+        <div className="w-full">
+          {profile.bio && (
+            <div className="bg-card p-3 rounded-xl border border-border">
+              <p className="text-sm text-foreground/90 leading-snug">{profile.bio}</p>
+            </div>
+          )}
+          {/* Priority fields badges */}
+          {Array.isArray(profile.priorityFields) && profile.priorityFields.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {(profile.priorityFields as Field[]).map((f, i) => (
+                typeof f === 'object' ? <FieldBadge key={i} field={f} /> : null
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Stats row */}
