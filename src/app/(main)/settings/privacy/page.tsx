@@ -13,7 +13,7 @@ import { ArrowLeft, ShieldCheck, UserX, Globe, Lock, Info, AlertTriangle } from 
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { UserAvatar } from '../../../../components/user/UserAvatar';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 
 const fetcher = (url: string, token: string) => 
   fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -36,7 +36,10 @@ export default function PrivacySettingsPage() {
     if (!accessToken) return;
     setToggling(true);
     try {
-      const res = await api.put('/api/users/me/privacy', {}, accessToken);
+      const res = await fetchWithAuth('/api/users/me/privacy', { 
+        method: 'PUT', 
+        body: JSON.stringify({}) 
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update privacy');
       
@@ -53,7 +56,10 @@ export default function PrivacySettingsPage() {
   const handleUnblock = async (userId: string) => {
     if (!accessToken) return;
     try {
-      const res = await api.post(`/api/users/${userId}/block`, {}, accessToken);
+      const res = await fetchWithAuth(`/api/users/${userId}/block`, { 
+        method: 'POST', 
+        body: JSON.stringify({}) 
+      });
       if (res.ok) {
         mutateBlocked(); // Refresh list
       }
@@ -184,4 +190,3 @@ export default function PrivacySettingsPage() {
     </div>
   );
 }
-

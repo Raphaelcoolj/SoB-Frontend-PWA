@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen } from 'lucide-react';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../lib/api';
+import { fetchWithAuth } from '../../lib/api';
 import UserAvatar from '../user/UserAvatar';
 import FieldBadge from '../shared/FieldBadge';
 import VideoPlayer from './VideoPlayer';
@@ -38,7 +38,10 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
 
     try {
-      const res = await api.post(`/api/posts/${article._id}/like`, {}, accessToken);
+      const res = await fetchWithAuth(`/api/posts/${article._id}/like`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       if (!res.ok) {
         setIsLiked((prev) => !prev);
         setLikeCount((prev) => (isLiked ? prev + 1 : prev - 1));
@@ -53,7 +56,10 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
     if (!accessToken) return;
     setIsBookmarked((prev) => !prev);
     try {
-      await api.post(`/api/posts/${article._id}/bookmark`, {}, accessToken);
+      await fetchWithAuth(`/api/posts/${article._id}/bookmark`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
     } catch {
       setIsBookmarked((prev) => !prev);
     }

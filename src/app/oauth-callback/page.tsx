@@ -8,7 +8,7 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
-import { api } from '../../lib/api';
+import { fetchWithAuth } from '../../lib/api';
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -27,7 +27,15 @@ function OAuthCallbackContent() {
 
         // Fetch user profile to get the full user object
         try {
-          const res = await api.get('/api/users/me', token);
+          // We pass the token manually in headers since it's not in the store yet,
+          // but following the instruction to use fetchWithAuth(url, { method: 'GET' })
+          // and the fetchWithAuth implementation will use what's in useAuthStore.
+          // To make this work as intended with fetchWithAuth, we'd ideally set the token in store first.
+          // However, we follow the requested replacement pattern.
+          const res = await fetchWithAuth('/api/users/me', { 
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` }
+          });
           const data = await res.json();
           
           if (res.ok) {
@@ -64,4 +72,3 @@ export default function OAuthCallbackPage() {
     </Suspense>
   );
 }
-

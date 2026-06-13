@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { api } from '../lib/api';
+import { fetchWithAuth } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { urlBase64ToUint8Array } from '../lib/push';
 import { toast } from 'sonner';
@@ -42,7 +42,10 @@ export const usePushNotifications = () => {
 
       if (!accessToken) throw new Error('Not authenticated');
 
-      const res = await api.post('/api/users/push-subscription', { subscription }, accessToken);
+      const res = await fetchWithAuth('/api/users/push-subscription', {
+        method: 'POST',
+        body: JSON.stringify({ subscription }),
+      });
       
       if (res.ok) {
         toast.success('Push notifications enabled!');

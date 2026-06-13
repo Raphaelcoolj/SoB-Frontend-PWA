@@ -13,7 +13,7 @@ import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Field } from '../../../../types/user';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
@@ -69,7 +69,10 @@ export default function PriorityFieldsPage() {
     setStatus(null);
 
     try {
-      const res = await api.put('/api/users/me/fields', { priorityFields: selectedFields }, accessToken);
+      const res = await fetchWithAuth('/api/users/me/fields', { 
+        method: 'PUT', 
+        body: JSON.stringify({ priorityFields: selectedFields }) 
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || 'Failed to update fields');
@@ -78,7 +81,7 @@ export default function PriorityFieldsPage() {
       if (user) {
         // Re-fetch me to get populated fields or just update local
         // Re-fetching is safer for population
-        const meRes = await api.get('/api/users/me', accessToken);
+        const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
         const meData = await meRes.json();
         if (meRes.ok) setUser(meData.data.user);
       }
@@ -187,4 +190,3 @@ export default function PriorityFieldsPage() {
     </div>
   );
 }
-

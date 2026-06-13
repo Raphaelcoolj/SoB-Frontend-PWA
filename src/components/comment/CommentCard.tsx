@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { Heart, Reply, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { UserAvatar } from '../user/UserAvatar';
-import { api } from '../../lib/api';
+import { fetchWithAuth } from '../../lib/api';
 import { formatDistanceToNow } from '../../lib/utils';
 
 interface CommentCardProps {
@@ -32,7 +32,10 @@ export default function CommentCard({ comment, postId, onReply, onDelete }: Comm
     setIsLiked(!isLiked);
     setLikeCount((prev: number) => (isLiked ? prev - 1 : prev + 1));
     try {
-      await api.post(`/api/comments/${comment._id}/like`, {}, accessToken);
+      await fetchWithAuth(`/api/comments/${comment._id}/like`, { 
+        method: 'POST', 
+        body: JSON.stringify({}) 
+      });
     } catch {
       setIsLiked(isLiked);
       setLikeCount((prev: number) => (isLiked ? prev + 1 : prev - 1));
@@ -105,4 +108,3 @@ export default function CommentCard({ comment, postId, onReply, onDelete }: Comm
     </div>
   );
 }
-

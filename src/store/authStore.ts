@@ -1,43 +1,61 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { User } from '../types/user';
 
 /**
  * @file authStore.ts
  * @description Zustand store for managing user authentication state.
- * Persists the user object and access token to localStorage.
+ * Persists the user object and tokens to localStorage and a cookie for middleware.
  */
 
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isLoading: boolean;
-  setAuth: (user: User, token: string) => void;
+  setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
-  setAccessToken: (token: string) => void;
-  logout: () => void;
+  clearAuth: () => void;
   setLoading: (loading: boolean) => void;
 }
 
+const setAuthCookie = (accessToken: string | null, refreshToken: string | null, user: User | null) => {
+  if (typeof document !== 'undefined') {
+    if (accessToken) {
+      document.cookie = `sob-auth=${JSON.stringify({
+        state: { accessToken, refreshToken, user }
+      })}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    } else {
+      document.cookie = 'sob-auth=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
-      isLoading: true, // Default to true until checked
+      refreshToken: null,
+      isLoading: true,
 
-      setAuth: (user, token) => set({ user, accessToken: token, isLoading: false }),
-      setUser: (user) => set({ user }),
-      setAccessToken: (token) => set({ accessToken: token }),
-      setLoading: (loading) => set({ isLoading: loading }),
-      
-      logout: () => {
-        set({ user: null, accessToken: null, isLoading: false });
-        localStorage.removeItem('sob-auth-storage'); // Explicit clear if needed
+      setTokens: (accessToken, refreshToken) => {
+        set({ accessToken, refreshToken });
+        setAuthCookie(accessToken, refreshToken, get().user);
       },
+      setUser: (user) => {
+        set({ user });
+        setAuthCookie(get().accessToken, get().refreshToken, user);
+      },
+      clearAuth: () => {
+        set({ user: null, accessToken: null, refreshToken: null, isLoading: false });
+        setAuthCookie(null, null, null);
+      },
+      setLoading: (loading) => set({ isLoading: loading }),
     }),
     {
       name: 'sob-auth-storage',
+      storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         if (state) state.setLoading(false);
       },

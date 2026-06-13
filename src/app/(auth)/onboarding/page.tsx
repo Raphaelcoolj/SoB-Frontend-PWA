@@ -14,7 +14,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
 import { UserAvatar } from '../../../components/user/UserAvatar';
-import { api } from '../../../lib/api';
+import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
@@ -66,11 +66,14 @@ export default function OnboardingPage() {
       if (!accessToken) return;
 
       // 1. Update basic info (username/bio)
-      await api.post('/api/auth/complete-onboarding', {
-        username: formData.username,
-        bio: formData.bio,
-        priorityFields: selectedFields
-      }, accessToken);
+      await fetchWithAuth('/api/auth/complete-onboarding', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: formData.username,
+          bio: formData.bio,
+          priorityFields: selectedFields
+        })
+      });
 
       // 2. Upload avatar if selected
       if (avatar) {
@@ -84,7 +87,7 @@ export default function OnboardingPage() {
       }
 
       // 3. Final fetch to refresh user data
-      const res = await api.get('/api/users/me', accessToken);
+      const res = await fetchWithAuth('/api/users/me', { method: 'GET' });
       const data = await res.json();
       if (res.ok) {
         setUser(data.data.user);
@@ -145,4 +148,3 @@ export default function OnboardingPage() {
     </div>
   );
 }
-

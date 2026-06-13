@@ -9,7 +9,7 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { api } from '../../../lib/api';
+import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 
 export default function VerifyEmailPage() {
@@ -36,7 +36,10 @@ export default function VerifyEmailPage() {
 
     setLoading(true);
     try {
-      const res = await api.post('/api/auth/verify-email', { code });
+      const res = await fetchWithAuth('/api/auth/verify-email', { 
+        method: 'POST', 
+        body: JSON.stringify({ code }) 
+      });
       const data = await res.json();
       if (res.ok) {
         toast.success('Email verified successfully!');
@@ -73,4 +76,3 @@ export default function VerifyEmailPage() {
     </form>
   );
 }
-

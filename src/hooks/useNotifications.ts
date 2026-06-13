@@ -9,7 +9,7 @@ import useSWR from 'swr';
 import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
-import { api } from '../lib/api';
+import { fetchWithAuth } from '../lib/api';
 import { Notification } from '../types/notification';
 
 const createFetcher = (token: string) => async (url: string) => {
@@ -45,7 +45,10 @@ export const useNotifications = () => {
   const markAllAsRead = async () => {
     if (!accessToken) return;
     try {
-      await api.put('/api/notifications/read-all', {}, accessToken);
+      await fetchWithAuth('/api/notifications/read-all', {
+        method: 'PUT',
+        body: JSON.stringify({}),
+      });
       markAllRead();
     } catch (err) {
       console.error('Failed to mark all as read:', err);
@@ -58,7 +61,10 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     if (!accessToken) return;
     try {
-      await api.put(`/api/notifications/${notificationId}/read`, {}, accessToken);
+      await fetchWithAuth(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        body: JSON.stringify({}),
+      });
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }

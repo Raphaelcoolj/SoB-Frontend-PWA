@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../lib/api';
+import { fetchWithAuth } from '../../lib/api';
 import { Button } from '../ui/Button';
 import { toast } from 'sonner';
 
@@ -35,7 +35,10 @@ export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange 
     setIsFollowing(!isFollowing);
 
     try {
-      const res = await api.post(`/api/users/${targetUserId}/follow`, {}, accessToken);
+      const res = await fetchWithAuth(`/api/users/${targetUserId}/follow`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       const data = await res.json();
       if (!res.ok) {
         // Revert on failure

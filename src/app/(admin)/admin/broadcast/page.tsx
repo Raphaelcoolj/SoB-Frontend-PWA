@@ -20,7 +20,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Label } from '../../../../components/ui/Label';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 
 export default function AdminBroadcastPage() {
   const { accessToken } = useAuthStore();
@@ -31,7 +31,7 @@ export default function AdminBroadcastPage() {
 
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !subject.trim() || !body.trim()) return;
+    if (!subject.trim() || !body.trim()) return;
 
     if (!confirm('This will send an email to ALL registered users. Are you sure you want to proceed?')) return;
 
@@ -39,7 +39,10 @@ export default function AdminBroadcastPage() {
     setStatus(null);
 
     try {
-      const res = await api.post('/api/admin/email/broadcast', { subject, body }, accessToken);
+      const res = await fetchWithAuth('/api/admin/email/broadcast', {
+        method: 'POST',
+        body: JSON.stringify({ subject, body }),
+      });
       const data = await res.json();
 
       if (res.ok) {

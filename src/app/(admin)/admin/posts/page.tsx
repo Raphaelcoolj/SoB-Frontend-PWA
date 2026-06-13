@@ -22,11 +22,10 @@ import { Skeleton } from '../../../../components/ui/Skeleton';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 
-const fetcher = (url: string, token: string) => 
-  fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-    .then(r => r.json());
+const fetcher = (url: string) => 
+  fetchWithAuth(url).then(r => r.json());
 
 export default function AdminPostsPage() {
   const { accessToken } = useAuthStore();
@@ -35,18 +34,18 @@ export default function AdminPostsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const { data, mutate, isLoading } = useSWR(
-    accessToken ? [`${process.env.NEXT_PUBLIC_API_URL}/api/admin/posts`, accessToken] : null,
-    ([url, token]) => fetcher(url, token)
+    accessToken ? `/api/admin/posts` : null,
+    fetcher
   );
 
   const posts = data?.data?.posts || [];
   const pagination = data?.meta || { page: 1, total: posts.length, limit: posts.length };
 
   const handleDeletePost = async (postId: string) => {
-    if (!accessToken || !confirm('Are you sure you want to delete this post? This cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) return;
     setActionLoading(postId);
     try {
-      const res = await api.delete(`/api/admin/posts/${postId}`, accessToken);
+      const res = await fetchWithAuth(`/api/admin/posts/${postId}`, { method: 'DELETE' });
       if (res.ok) mutate();
     } catch (err) {
       console.error(err);

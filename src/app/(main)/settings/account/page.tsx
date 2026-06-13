@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../../../store/authStore';
 import { useAuth } from '../../../../hooks/useAuth';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Label } from '../../../../components/ui/Label';
@@ -29,7 +29,7 @@ type PasswordValues = z.infer<typeof passwordSchema>;
 
 export default function AccountSettingsPage() {
   const router = useRouter();
-  const { user, accessToken } = useAuthStore();
+  const { user } = useAuthStore();
   const { logout } = useAuth();
   const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -38,11 +38,9 @@ export default function AccountSettingsPage() {
   const passwordForm = useForm<PasswordValues>({ resolver: zodResolver(passwordSchema) });
 
   const onPasswordSave = async (values: PasswordValues) => {
-    if (!accessToken) return;
     setPasswordStatus(null);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+    const res = await fetchWithAuth('/api/users/me', {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentPassword: values.currentPassword, password: values.newPassword }),
     });
     const data = await res.json();
@@ -51,11 +49,10 @@ export default function AccountSettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!accessToken) return;
     setDeleting(true);
-    const res = await api.delete('/api/users/me', accessToken);
+    const res = await fetchWithAuth('/api/users/me', { method: 'DELETE' });
     if (res.ok) {
-      useAuthStore.getState().logout();
+      useAuthStore.getState().clearAuth();
       router.replace('/register');
     }
     setDeleting(false);

@@ -10,7 +10,7 @@ import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { Send, X, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../lib/api';
+import { fetchWithAuth } from '../../lib/api';
 import { toast } from 'sonner';
 import CommentCard from './CommentCard';
 import { Button } from '../ui/Button';
@@ -42,12 +42,15 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post('/api/comments', {
-        post: postId,
-        body: commentText,
-        parentComment: replyTo?.id,
-        type: 'comment'
-      }, accessToken);
+      const res = await fetchWithAuth('/api/comments', {
+        method: 'POST',
+        body: JSON.stringify({
+          post: postId,
+          body: commentText,
+          parentComment: replyTo?.id,
+          type: 'comment'
+        })
+      });
 
       if (res.ok) {
         setCommentText('');
@@ -68,7 +71,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   const handleDelete = async (commentId: string) => {
     if (!accessToken) return;
     try {
-      const res = await api.delete(`/api/comments/${commentId}`, accessToken);
+      const res = await fetchWithAuth(`/api/comments/${commentId}`, { method: 'DELETE' });
       if (res.ok) {
         mutate();
       }
@@ -172,4 +175,3 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     </div>
   );
 }
-

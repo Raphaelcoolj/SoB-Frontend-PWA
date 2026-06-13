@@ -9,7 +9,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
-import { api } from '../lib/api';
+import { fetchWithAuth } from '../lib/api';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 
 export const useAuth = () => {
@@ -32,7 +32,10 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.post('/api/auth/login', credentials);
+      const res = await fetchWithAuth('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
 
@@ -52,7 +55,10 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.post('/api/auth/forgot-password', { email });
+      const res = await fetchWithAuth('/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to send reset code');
       return { success: true };
@@ -68,7 +74,10 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.post('/api/auth/reset-password', credentials);
+      const res = await fetchWithAuth('/api/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to reset password');
       return { success: true };
@@ -88,7 +97,10 @@ export const useAuth = () => {
     }
 
     try {
-      const res = await api.post('/api/auth/refresh', { refreshToken });
+      const res = await fetchWithAuth('/api/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
       const data = await res.json();
       
       if (res.ok) {
@@ -111,7 +123,7 @@ export const useAuth = () => {
     }
 
     try {
-      const res = await api.get('/api/users/me', accessToken);
+      const res = await fetchWithAuth('/api/users/me', { method: 'GET' });
       
       if (res.ok) {
         const data = await res.json();

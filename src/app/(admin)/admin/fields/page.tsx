@@ -20,7 +20,7 @@ import { Skeleton } from '../../../../components/ui/Skeleton';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
@@ -40,11 +40,14 @@ export default function AdminFieldsPage() {
 
   const handleCreateField = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !newName.trim()) return;
+    if (!newName.trim()) return;
 
     setSubmitting(true);
     try {
-      const res = await api.post('/api/fields', { name: newName }, accessToken);
+      const res = await fetchWithAuth('/api/fields', {
+        method: 'POST',
+        body: JSON.stringify({ name: newName }),
+      });
       if (res.ok) {
         setNewName('');
         mutate();
@@ -57,10 +60,10 @@ export default function AdminFieldsPage() {
   };
 
   const handleDeleteField = async (fieldId: string) => {
-    if (!accessToken || !confirm('Are you sure? This might affect users who have this as a priority field.')) return;
+    if (!confirm('Are you sure? This might affect users who have this as a priority field.')) return;
     setActionLoading(fieldId);
     try {
-      const res = await api.delete(`/api/fields/${fieldId}`, accessToken);
+      const res = await fetchWithAuth(`/api/fields/${fieldId}`, { method: 'DELETE' });
       if (res.ok) mutate();
     } catch (err) {
       console.error(err);

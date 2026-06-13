@@ -13,7 +13,7 @@ import { ArrowLeft, Mail, AlertTriangle, Bell } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Field } from '../../../../types/user';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 import { usePushNotifications } from '../../../../hooks/usePushNotifications';
 import { toast } from 'sonner';
 
@@ -57,12 +57,15 @@ export default function NotificationSettingsPage() {
 
     try {
       const finalFields = isEmailEnabled ? selectedFields : [];
-      const res = await api.put('/api/users/me/notifications', { emailNotifications: finalFields }, accessToken);
+      const res = await fetchWithAuth('/api/users/me/notifications', { 
+        method: 'PUT', 
+        body: JSON.stringify({ emailNotifications: finalFields }) 
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update preferences');
       
       // Refresh user state
-      const meRes = await api.get('/api/users/me', accessToken);
+      const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
       const meData = await meRes.json();
       if (meRes.ok) setUser(meData.data.user);
 

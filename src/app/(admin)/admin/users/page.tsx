@@ -24,11 +24,10 @@ import { Card } from '../../../../components/ui/Card';
 import { UserAvatar } from '../../../../components/user/UserAvatar';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import { api } from '../../../../lib/api';
+import { fetchWithAuth } from '../../../../lib/api';
 
-const fetcher = (url: string, token: string) => 
-  fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-    .then(r => r.json());
+const fetcher = (url: string) => 
+  fetchWithAuth(url).then(r => r.json());
 
 export default function AdminUsersPage() {
   const { accessToken, user: currentUser } = useAuthStore();
@@ -37,19 +36,21 @@ export default function AdminUsersPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const { data, mutate, isLoading } = useSWR(
-    accessToken ? [`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, accessToken] : null,
-    ([url, token]) => fetcher(url, token)
+    accessToken ? `/api/admin/users` : null,
+    fetcher
   );
 
   const users = data?.data?.users || [];
   const pagination = data?.meta || { page: 1, total: users.length, limit: users.length };
 
   const handleRoleToggle = async (userId: string, currentRole: string) => {
-    if (!accessToken) return;
     setActionLoading(userId);
     try {
       const newRole = currentRole === 'admin' ? 'user' : 'admin';
-      const res = await api.put(`/api/admin/users/${userId}/role`, { role: newRole }, accessToken);
+      const res = await fetchWithAuth(`/api/admin/users/${userId}/role`, {
+        method: 'PUT',
+        body: JSON.stringify({ role: newRole }),
+      });
       if (res.ok) mutate();
     } catch (err) {
       console.error(err);
@@ -59,10 +60,10 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!accessToken || !confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
     setActionLoading(userId);
     try {
-      const res = await api.delete(`/api/admin/users/${userId}`, accessToken);
+      const res = await fetchWithAuth(`/api/admin/users/${userId}`, { method: 'DELETE' });
       if (res.ok) mutate();
     } catch (err) {
       console.error(err);

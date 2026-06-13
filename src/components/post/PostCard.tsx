@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../lib/api';
+import { fetchWithAuth } from '../../lib/api';
 import { UserAvatar } from '../user/UserAvatar';
 import { FieldBadge } from '../shared/FieldBadge';
 import VideoPlayer from './VideoPlayer';
@@ -41,7 +41,10 @@ export default function PostCard({ post, onCommentClick, fullView = false }: Pos
     setLikeCount((prev: number) => (isLiked ? prev - 1 : prev + 1));
 
     try {
-      const res = await api.post(`/api/posts/${post._id}/like`, {}, accessToken);
+      const res = await fetchWithAuth(`/api/posts/${post._id}/like`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       if (!res.ok) {
         // Revert
         setIsLiked((prev) => !prev);
@@ -57,7 +60,10 @@ export default function PostCard({ post, onCommentClick, fullView = false }: Pos
     if (!accessToken) return;
     setIsBookmarked((prev) => !prev);
     try {
-      await api.post(`/api/posts/${post._id}/bookmark`, {}, accessToken);
+      await fetchWithAuth(`/api/posts/${post._id}/bookmark`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
     } catch {
       setIsBookmarked((prev) => !prev);
     }
@@ -65,7 +71,10 @@ export default function PostCard({ post, onCommentClick, fullView = false }: Pos
 
   const handleShare = async () => {
     try {
-      await api.post(`/api/posts/${post._id}/share`, {});
+      await fetchWithAuth(`/api/posts/${post._id}/share`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       if (navigator.share) {
         navigator.share({ title: post.title || 'SoB Post', url: window.location.href });
       } else {

@@ -14,7 +14,7 @@ import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { Label } from '../../../components/ui/Label';
 import Card, { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../../components/ui/Card';
-import { api } from '../../../lib/api';
+import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 
 const STEPS = ['Account', 'Username', 'Birthdate', 'Password'];
@@ -60,12 +60,15 @@ export default function RegisterPage() {
     
     setLoading(true);
     try {
-      const res = await api.post('/api/auth/register', {
-        name: formData.name,
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        dob: dob.toISOString()
+      const res = await fetchWithAuth('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          dob: dob.toISOString()
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -167,4 +170,3 @@ export default function RegisterPage() {
     </Card>
   );
 }
-
