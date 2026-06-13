@@ -46,83 +46,65 @@ export default function NotificationSettingsPage() {
     }
   }, [user]);
 
+  const togglePushNotifications = async (enabled: boolean) => {
+    if (enabled) {
+      await enablePushNotifications();
+    } else {
+      await disablePushNotifications();
+    }
+  };
+
   const enablePushNotifications = async () => {
     setIsPushLoading(true);
     setPushError(null);
-
     try {
-      // Step 1: Check browser support
-      if (!('Notification' in window)) {
-        throw new Error('Push notifications are not supported in this browser');
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        throw new Error('Push notifications not supported');
       }
 
-      if (!('serviceWorker' in navigator)) {
-        throw new Error('Service workers are not supported in this browser');
-      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') throw new Error('Permission denied');
 
-      // Step 2: Request permission with timeout
-      const permissionResult = await Promise.race([
-        Notification.requestPermission(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Permission request timed out')), 10000)
-        )
-      ]);
+      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      await navigator.serviceWorker.ready;
 
-      if (permissionResult !== 'granted') {
-        throw new Error('Push notification permission denied');
-      }
-
-      // Step 3: Resilient service worker registration/waiting
-      if (!('serviceWorker' in navigator)) {
-        throw new Error('Service workers are not supported in this browser');
-      }
-      
-      let registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        registration = await navigator.serviceWorker.register('/sw.js');
-      }
-      
-      // Wait for readiness with timeout
-      await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Service worker registration timed out')), 10000)
-        )
-      ]);
-
-      // Step 4: Subscribe to push
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) throw new Error('VAPID public key not configured');
+      if (!vapidKey) throw new Error('VAPID key not configured');
 
-      const subscription = await (registration as ServiceWorkerRegistration).pushManager.subscribe({
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
-      // Step 5: Send subscription to backend
       const response = await fetchWithAuth('/api/users/push-subscription', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscription.toJSON() }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to save push subscription');
-      }
-
+      if (!response.ok) throw new Error('Failed to save subscription');
       setIsPushEnabled(true);
       toast.success('Push notifications enabled!');
-
-      // Refresh user state
-      const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
-      const meData = await meRes.json();
-      if (meRes.ok) setUser(meData.data.user);
-
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPushError(message);
-      toast.error(message);
-      console.error('Push notification error:', error);
+      setPushError(error instanceof Error ? error.message : String(error));
+      setIsPushEnabled(false);
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const disablePushNotifications = async () => {
+    setIsPushLoading(true);
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) await subscription.unsubscribe();
+      }
+      await fetchWithAuth('/api/users/push-subscription', { method: 'DELETE' });
+      setIsPushEnabled(false);
+      toast.success('Push notifications disabled');
+    } catch (error) {
+      setPushError('Failed to disable notifications');
     } finally {
       setIsPushLoading(false);
     }
@@ -183,26 +165,17 @@ export default function NotificationSettingsPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={enablePushNotifications}
-            disabled={isPushLoading || isPushEnabled}
-            className={`px-4 py-2 rounded-full text-sm font-medium border transition-all
-              ${isPushEnabled
-                ? 'bg-blue-500 text-white border-blue-500 cursor-default'
-                : 'bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-700 hover:border-blue-500'
-              }`}
-          >
-            {isPushLoading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Enabling...
-              </span>
-            ) : isPushEnabled ? (
-              'Enabled ✓'
-            ) : (
-              'Enable'
-            )}
-          </button>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={isPushEnabled}
+              disabled={isPushLoading}
+              onChange={(e) => togglePushNotifications(e.target.checked)}
+            />
+            <div className={`w-11 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isPushLoading ? 'opacity-50' : ''} peer-checked:bg-blue-500`}></div>
+            {isPushLoading && <Loader2 className="w-4 h-4 animate-spin ml-2 text-blue-500" />}
+          </label>
         </div>
 
         {pushError && (
