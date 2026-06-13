@@ -22,6 +22,15 @@ export interface User {
   isOnboarded: boolean;
   isPrivate: boolean;
   blockedUsers: string[] | User[];
+  pushSubscription?: {
+    tokenType: 'web' | 'expo';
+    endpoint?: string | null;
+    keys?: {
+      p256dh: string | null;
+      auth: string | null;
+    } | null;
+    token?: string | null;
+  };
   createdAt: string;
   updatedAt: string;
 }
