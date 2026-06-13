@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Mail, AlertTriangle, Bell } from 'lucide-react';
+import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, X } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Field } from '../../../../types/user';
@@ -183,21 +183,38 @@ export default function NotificationSettingsPage() {
               </p>
             </div>
           </div>
-          <Button 
-            onClick={enablePushNotifications} 
-            loading={isPushLoading} 
-            variant={isPushEnabled ? "ghost" : "outline"} 
-            size="sm"
-            disabled={isPushEnabled}
+          <button
+            onClick={enablePushNotifications}
+            disabled={isPushLoading || isPushEnabled}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition-all
+              ${isPushEnabled
+                ? 'bg-blue-500 text-white border-blue-500 cursor-default'
+                : 'bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-700 hover:border-blue-500'
+              }`}
           >
-            {isPushEnabled ? 'Enabled' : 'Enable'}
-          </Button>
+            {isPushLoading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Enabling...
+              </span>
+            ) : isPushEnabled ? (
+              'Enabled ✓'
+            ) : (
+              'Enable'
+            )}
+          </button>
         </div>
 
         {pushError && (
-          <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20 animate-in fade-in slide-in-from-top-1">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            <span>{pushError}</span>
+          <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg mt-2">
+            <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-red-600 dark:text-red-400 flex-1">{pushError}</p>
+            <button
+              onClick={() => setPushError(null)}
+              className="text-red-400 hover:text-red-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
