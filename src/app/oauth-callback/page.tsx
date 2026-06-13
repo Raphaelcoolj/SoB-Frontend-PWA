@@ -39,7 +39,7 @@ function OAuthCallbackContent() {
           const data = await res.json();
           
           if (res.ok) {
-            setAuth(data.data.user, token);
+            setAuth(data.data.user, token, refreshToken);
             
             // Redirect based on onboarding status
             if (isOnboarded === 'false') {

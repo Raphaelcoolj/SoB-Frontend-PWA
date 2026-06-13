@@ -39,10 +39,13 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
 
-      setAuth(data.data.user, data.data.accessToken);
+      const { user: userData, accessToken: token, refreshToken: rt } = data.data;
+      setAuth(userData, token, rt);
 
-      connectSocket(data.data.accessToken);
-      return { success: true, user: data.data.user };
+      if (rt) localStorage.setItem('sob-refresh-token', rt);
+
+      connectSocket(token);
+      return { success: true, user: userData };
     } catch (err: any) {
       setError(err.message);
       return { success: false };

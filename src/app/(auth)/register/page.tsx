@@ -72,7 +72,9 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setAuth(data.data.user, data.data.accessToken);
+        const { user: userData, accessToken: token, refreshToken: rt } = data.data;
+        setAuth(userData, token, rt);
+        if (rt) localStorage.setItem('sob-refresh-token', rt);
         toast.success('Registration successful! Please check your email (and spam folder) for the verification code.');
         router.push('/verify-email');
       } else {
