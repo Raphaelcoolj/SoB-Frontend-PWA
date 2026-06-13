@@ -84,12 +84,18 @@ export default function NotificationSettingsPage() {
       });
 
       console.log('Subscription received, saving to backend...');
+      // Wrapping subscription inside { subscription: ... }
       const response = await fetchWithAuth('/api/users/push-subscription', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscription.toJSON() }),
       });
 
-      if (!response.ok) throw new Error('Failed to save subscription');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Backend error:', errorData);
+        throw new Error(errorData.message || 'Failed to save push subscription');
+      }
+
       setIsPushEnabled(true);
       toast.success('Push notifications enabled!');
     } catch (error) {
