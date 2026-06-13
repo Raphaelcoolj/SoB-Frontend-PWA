@@ -1,51 +1,66 @@
-import { Metadata, ResolvingMetadata } from 'next';
-import PostClientPage from './PostClientPage';
+'use client';
 
-// Server-side fetch for SEO
-async function getPost(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${id}`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data.post;
-}
+/**
+ * @file page.tsx (posts/[id])
+ * @description Full post view page.
+ */
 
-export async function generateMetadata(
-  { params }: { params: { id: string } },
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const post = await getPost(params.id);
+import React from 'react';
+import { useParams } from 'next/navigation';
+import useSWR from 'swr';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { api } from '../../../../lib/api';
+import PostCard from '../../../../components/post/PostCard';
+import CommentSection from '../../../../components/comment/CommentSection';
+import { Skeleton } from '../../../../components/ui/Skeleton';
 
-  if (!post) {
-    return { title: 'Post Not Found' };
+// Note: For actual SEO dynamic metadata in App Router,
+// generateMetadata must be in a separate Server Component file
+// or the page must be a Server Component. 
+// Given we use 'use client', dynamic metadata is limited.
+// This is a placeholder for standard metadata.
+
+const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
+
+export default function PostPage() {
+  const params = useParams();
+  const postId = params.id as string;
+
+  const { data, isLoading, error } = useSWR(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/posts/${postId}`,
+    fetcher
+  );
+
+  const post = data?.post;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 pt-4">
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    );
   }
 
-  const title = `${post.author.name} (@${post.author.username}) on SoB`;
-  const description = post.body ? post.body.substring(0, 150) + '...' : 'Check out this post on SoB';
-  
-  // Assuming post.image is the field for image, adjust based on your model
-  const imageUrl = post.image || `${process.env.NEXT_PUBLIC_URL}/api/og?title=${encodeURIComponent(post.author.username)}`;
+  if (error || !post) {
+    return (
+      <div className="py-20 text-center text-muted-foreground">Post not found</div>
+    );
+  }
 
-  return {
-    title: title,
-    description: description,
-    openGraph: {
-      title: title,
-      description: description,
-      images: [imageUrl],
-      type: 'article',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: title,
-      description: description,
-      images: [imageUrl],
-    },
-  };
-}
-
-export default async function Page({ params }: { params: { id: string } }) {
-  const post = await getPost(params.id);
-  return <PostClientPage initialPost={post} postId={params.id} />;
+  return (
+    <div className="space-y-6 pb-20 pt-4">
+      <Link href="/home" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-semibold transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Feed
+      </Link>
+      
+      <PostCard post={post} fullView={true} />
+      
+      <div className="bg-card border border-border rounded-xl">
+        <CommentSection postId={post._id} />
+      </div>
+    </div>
+  );
 }
