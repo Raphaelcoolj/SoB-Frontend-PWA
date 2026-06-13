@@ -164,7 +164,7 @@ export default function RegisterPage() {
       <CardFooter className="justify-center border-t border-border/40 py-4">
         <p className="text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="text-accent font-semibold hover:opacity-80">
+          <Link href="/login" className="text-blue-600 dark:text-accent font-semibold hover:opacity-80">
             Log In
           </Link>
         </p>

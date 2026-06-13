@@ -22,7 +22,9 @@ export function middleware(request: NextRequest) {
   );
 
   // Get auth token from cookies
-  const token = request.cookies.get('sob-auth')?.value;
+  const tokenCookie = request.cookies.get('sob-auth');
+  console.log('Middleware - Path:', pathname, 'Token Cookie Found:', !!tokenCookie);
+  const token = tokenCookie?.value;
 
   let isAuthenticated = false;
   let isAdmin = false;
@@ -30,11 +32,15 @@ export function middleware(request: NextRequest) {
   if (token) {
     try {
       const parsed = JSON.parse(token);
+      console.log('Middleware - Parsed State exists:', !!parsed?.state);
       isAuthenticated = !!parsed?.state?.accessToken;
       isAdmin = parsed?.state?.user?.role === 'admin';
-    } catch {
+    } catch (e) {
+      console.error('Middleware - Cookie Parse Error:', e);
       isAuthenticated = false;
     }
+  } else {
+    console.log('Middleware - No token cookie found for path:', pathname);
   }
 
   // Redirect unauthenticated users to login
