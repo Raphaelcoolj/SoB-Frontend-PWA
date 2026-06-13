@@ -78,12 +78,19 @@ export default function NotificationSettingsPage() {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) throw new Error('VAPID key not configured');
 
-      console.log('Subscribing to push manager...');
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey)
-      });
-      console.log('Subscription obtained:', subscription.toJSON());
+      // Check if subscription already exists
+      let subscription = await registration.pushManager.getSubscription();
+      
+      if (!subscription) {
+        console.log('No existing subscription, creating new one...');
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) throw new Error('VAPID key not configured');
+
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey)
+        });
+      }
 
       console.log('Sending to backend...');
       const response = await fetchWithAuth('/api/users/push-subscription', {
