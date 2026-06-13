@@ -1,35 +1,53 @@
-import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
+import withPWA from 'next-pwa';
 
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
+const pwaConfig = {
+  dest: 'public',
   register: true,
+  skipWaiting: true,
+  disable: false,
   sw: 'sw.js',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  workboxOptions: {
-    disableDevLogs: true,
-    skipWaiting: true,
-  },
-});
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  turbopack: {},
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
+  buildExcludes: [/middleware-manifest\.json$/],
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/sob-backend-api\.onrender\.com\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-cache',
+        networkTimeoutSeconds: 10,
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60,
+        },
       },
-      {
-        protocol: 'https',
-        hostname: 'stream.mux.com',
+    },
+    {
+      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'image-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
+        },
       },
-    ],
-  },
+    },
+    {
+      urlPattern: /\.(?:js|css)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+      },
+    },
+  ],
 };
 
-export default withPWA(nextConfig);
+const nextConfig = {
+  reactStrictMode: true,
+  turbopack: {},
+};
+
+export default withPWA(pwaConfig)(nextConfig);
