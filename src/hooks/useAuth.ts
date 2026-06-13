@@ -14,7 +14,7 @@ import { connectSocket, disconnectSocket } from '../lib/socket';
 
 export const useAuth = () => {
   const router = useRouter();
-  const { user, accessToken, setAuth, logout: storeLogout, setUser, setLoading } = useAuthStore();
+  const { user, accessToken, setAuth, logout: storeLogout, setUser, setLoading, setAccessToken } = useAuthStore();
   const [loading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +22,7 @@ export const useAuth = () => {
     storeLogout();
     disconnectSocket();
     localStorage.removeItem('sob-auth-storage');
+    localStorage.removeItem('sob-refresh-token');
     localStorage.removeItem('sob-theme-storage');
     localStorage.removeItem('sob-create-draft');
     router.push('/login');
@@ -79,6 +80,30 @@ export const useAuth = () => {
     }
   }, []);
 
+  const refreshAccessToken = useCallback(async () => {
+    const refreshToken = localStorage.getItem('sob-refresh-token');
+    if (!refreshToken) {
+      logout();
+      return null;
+    }
+
+    try {
+      const res = await api.post('/api/auth/refresh', { refreshToken });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setAccessToken(data.data.accessToken);
+        return data.data.accessToken;
+      } else {
+        throw new Error('Refresh failed');
+      }
+    } catch (err) {
+      console.error('Token refresh failed:', err);
+      logout();
+      return null;
+    }
+  }, [logout, setAccessToken]);
+
   const checkSession = useCallback(async () => {
     if (!accessToken) {
       setLoading(false);
@@ -87,11 +112,17 @@ export const useAuth = () => {
 
     try {
       const res = await api.get('/api/users/me', accessToken);
-      const data = await res.json();
       
       if (res.ok) {
+        const data = await res.json();
         setUser(data.data.user);
         connectSocket(accessToken);
+      } else if (res.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+            checkSession(); // Retry with new token
+            return;
+        }
       } else {
         logout();
       }
@@ -100,7 +131,7 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, setUser, logout, setLoading]);
+  }, [accessToken, setUser, logout, setLoading, refreshAccessToken]);
 
   return {
     user,
