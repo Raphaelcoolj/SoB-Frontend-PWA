@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useThemeStore, ACCENT_MAP } from '../store/themeStore';
+import { useThemeStore, ACCENT_MAP } from '../../store/themeStore';
 
 /**
  * @file ThemeInitializer.tsx
