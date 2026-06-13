@@ -14,7 +14,7 @@ import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Field } from '../../../../types/user';
 import { fetchWithAuth } from '../../../../lib/api';
-import { usePushNotifications } from '../../../../hooks/usePushNotifications';
+import { urlBase64ToUint8Array } from '../../../../lib/push';
 import { toast } from 'sonner';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -24,8 +24,9 @@ const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data
 export default function NotificationSettingsPage() {
   const { user, accessToken, setUser } = useAuthStore();
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const { enablePush, loading: pushLoading } = usePushNotifications();
+  const [isPushLoading, setIsPushLoading] = useState(false);
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
 
   // Form state
   const [isEmailEnabled, setIsEmailEnabled] = useState(false);
@@ -41,8 +42,81 @@ export default function NotificationSettingsPage() {
       setIsEmailEnabled(!!user.emailNotifications?.length);
       const userEmailFields = (user.emailNotifications || []).map(f => typeof f === 'string' ? f : f._id);
       setSelectedFields(userEmailFields);
+      setIsPushEnabled(!!user.pushSubscription?.endpoint);
     }
   }, [user]);
+
+  const enablePushNotifications = async () => {
+    setIsPushLoading(true);
+    setPushError(null);
+
+    try {
+      // Step 1: Check browser support
+      if (!('Notification' in window)) {
+        throw new Error('Push notifications are not supported in this browser');
+      }
+
+      if (!('serviceWorker' in navigator)) {
+        throw new Error('Service workers are not supported in this browser');
+      }
+
+      // Step 2: Request permission with timeout
+      const permissionResult = await Promise.race([
+        Notification.requestPermission(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Permission request timed out')), 10000)
+        )
+      ]);
+
+      if (permissionResult !== 'granted') {
+        throw new Error('Push notification permission denied');
+      }
+
+      // Step 3: Wait for service worker with timeout
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Service worker not ready')), 10000)
+        )
+      ]);
+
+      // Step 4: Subscribe to push
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) throw new Error('VAPID public key not configured');
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
+      });
+
+      // Step 5: Send subscription to backend
+      const response = await fetchWithAuth('/api/users/push-subscription', {
+        method: 'POST',
+        body: JSON.stringify({ subscription: subscription.toJSON() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to save push subscription');
+      }
+
+      setIsPushEnabled(true);
+      toast.success('Push notifications enabled!');
+
+      // Refresh user state
+      const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
+      const meData = await meRes.json();
+      if (meRes.ok) setUser(meData.data.user);
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to enable push notifications';
+      setPushError(message);
+      toast.error(message);
+      console.error('Push notification error:', error);
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
 
   const toggleField = (fieldId: string) => {
     setSelectedFields(prev =>
@@ -53,7 +127,6 @@ export default function NotificationSettingsPage() {
   const handleSave = async () => {
     if (!accessToken) return;
     setSaving(true);
-    setStatus(null);
 
     try {
       const finalFields = isEmailEnabled ? selectedFields : [];
@@ -93,15 +166,30 @@ export default function NotificationSettingsPage() {
             <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
               <Bell className="w-5 h-5 text-accent" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="font-medium text-foreground">Push Notifications</p>
-              <p className="text-xs text-muted-foreground">Receive updates in your browser.</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {isPushEnabled ? 'Notifications enabled' : 'Receive updates in your browser.'}
+              </p>
             </div>
           </div>
-          <Button onClick={enablePush} loading={pushLoading} variant="outline" size="sm">
-            Enable
+          <Button 
+            onClick={enablePushNotifications} 
+            loading={isPushLoading} 
+            variant={isPushEnabled ? "ghost" : "outline"} 
+            size="sm"
+            disabled={isPushEnabled}
+          >
+            {isPushEnabled ? 'Enabled' : 'Enable'}
           </Button>
         </div>
+
+        {pushError && (
+          <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20 animate-in fade-in slide-in-from-top-1">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>{pushError}</span>
+          </div>
+        )}
 
         {/* Master email toggle */}
         <div className="flex items-center justify-between pt-4 border-t border-border">
