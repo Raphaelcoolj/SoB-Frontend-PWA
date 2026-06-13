@@ -175,10 +175,10 @@ function ActivityItem({ icon: Icon, label, value, max, color }: any) {
   const percentage = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-1">
         <div className="flex items-center gap-2">
-          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-[10px] font-medium text-foreground">{label}</span>
+          <Icon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          <span className="text-[10px] font-medium text-foreground truncate">{label}</span>
         </div>
         <span className="text-[10px] font-semibold text-muted-foreground">{value}</span>
       </div>
