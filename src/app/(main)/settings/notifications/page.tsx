@@ -58,15 +58,22 @@ export default function NotificationSettingsPage() {
     setIsPushLoading(true);
     setPushError(null);
     try {
-      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        throw new Error('Push notifications not supported');
+      if (!('Notification' in window)) {
+        throw new Error('Browser does not support notifications');
+      }
+      if (!('serviceWorker' in navigator)) {
+        throw new Error('Browser does not support service workers');
       }
 
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') throw new Error('Permission denied');
 
+      console.log('Registering service worker...');
       const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      
+      console.log('Waiting for SW readiness...');
       await navigator.serviceWorker.ready;
+      console.log('SW ready.');
 
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) throw new Error('VAPID key not configured');
@@ -76,6 +83,7 @@ export default function NotificationSettingsPage() {
         applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
+      console.log('Subscription received, saving to backend...');
       const response = await fetchWithAuth('/api/users/push-subscription', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscription.toJSON() }),
@@ -85,7 +93,10 @@ export default function NotificationSettingsPage() {
       setIsPushEnabled(true);
       toast.success('Push notifications enabled!');
     } catch (error) {
-      setPushError(error instanceof Error ? error.message : String(error));
+      console.error('Push error:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      setPushError(message);
+      toast.error('Failed: ' + message);
       setIsPushEnabled(false);
     } finally {
       setIsPushLoading(false);
