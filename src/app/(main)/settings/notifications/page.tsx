@@ -78,13 +78,14 @@ export default function NotificationSettingsPage() {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) throw new Error('VAPID key not configured');
 
+      console.log('Subscribing to push manager...');
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
+      console.log('Subscription obtained:', subscription.toJSON());
 
-      console.log('Subscription received, saving to backend...');
-      // Wrapping subscription inside { subscription: ... }
+      console.log('Sending to backend...');
       const response = await fetchWithAuth('/api/users/push-subscription', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscription.toJSON() }),
@@ -92,17 +93,23 @@ export default function NotificationSettingsPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Backend error:', errorData);
-        throw new Error(errorData.message || 'Failed to save push subscription');
+        console.error('Backend rejected subscription:', errorData);
+        throw new Error(errorData.message || 'Failed to save subscription');
       }
 
+      console.log('Subscription saved successfully');
       setIsPushEnabled(true);
       toast.success('Push notifications enabled!');
+      
+      // Refresh user state
+      const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
+      const meData = await meRes.json();
+      if (meRes.ok) setUser(meData.data.user);
     } catch (error) {
       console.error('Push error:', error);
       const message = error instanceof Error ? error.message : String(error);
       setPushError(message);
-      toast.error('Failed: ' + message);
+      toast.error('Push failed: ' + message);
       setIsPushEnabled(false);
     } finally {
       setIsPushLoading(false);
