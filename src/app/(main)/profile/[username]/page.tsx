@@ -97,12 +97,12 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-        <div className="text-4xl">😕</div>
         <h3 className="font-bold text-foreground">User not found</h3>
         <p className="text-sm text-muted-foreground">@{username} doesn't seem to exist.</p>
       </div>
     );
   }
+
 
   return (
     <div className="space-y-5">
