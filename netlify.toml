@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Note: The Netlify Next.js Runtime automatically handles the Next.js build.
+# Ensure you configure your environment variables in the Netlify UI under:
+# Site settings > Build & deploy > Environment > Environment variables

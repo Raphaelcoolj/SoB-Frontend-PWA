@@ -57,7 +57,7 @@ export const useFeed = (feedType: FeedType = 'all') => {
 
   const { data, error, size, setSize, isValidating, mutate } = useSWRInfinite<FeedPage>(
     getKey,
-    accessToken ? createFetcher(accessToken) : () => Promise.resolve({ posts: [], nextCursor: null }),
+    accessToken ? createFetcher(accessToken) : () => Promise.resolve({ posts: [], nextCursor: null, hasMore: false }),
     {
       revalidateFirstPage: false,
       revalidateOnFocus: false,
