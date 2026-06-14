@@ -19,15 +19,17 @@ import { Skeleton } from '../ui/Skeleton';
 
 interface CommentSectionProps {
   postId: string;
+  contentType?: 'post' | 'article';
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
-export default function CommentSection({ postId }: CommentSectionProps) {
+export default function CommentSection({ postId, contentType }: CommentSectionProps) {
   const { user, accessToken } = useAuthStore();
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
+  const [commentType, setCommentType] = useState<'comment' | 'debate'>('comment');
 
   const { data: commentsData, mutate, error, isLoading } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/api/comments/post/${postId}`,
@@ -48,13 +50,14 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           post: postId,
           body: commentText,
           parentComment: replyTo?.id,
-          type: 'comment'
+          type: commentType
         })
       });
 
       if (res.ok) {
         setCommentText('');
         setReplyTo(null);
+        setCommentType('comment');
         mutate(); // Refresh comments
       } else {
         const data = await res.json();
@@ -155,8 +158,26 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           </div>
         )}
         <form onSubmit={handleSubmit} className="flex gap-2">
+        {contentType === 'article' && (
+          <div className="flex gap-2 mb-2 w-full">
+            <button 
+              type="button"
+              onClick={() => setCommentType('comment')}
+              className={`text-[10px] px-3 py-1 rounded-full border ${commentType === 'comment' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-muted-foreground'}`}
+            >
+              Comment
+            </button>
+            <button 
+              type="button"
+              onClick={() => setCommentType('debate')}
+              className={`text-[10px] px-3 py-1 rounded-full border ${commentType === 'debate' ? 'bg-accent text-white border-accent' : 'bg-background border-border text-muted-foreground'}`}
+            >
+              Debate
+            </button>
+          </div>
+        )}
           <Input
-            placeholder={accessToken ? "Add a comment..." : "Login to comment"}
+            placeholder={accessToken ? (commentType === 'debate' ? "Start a debate..." : "Add a comment...") : "Login to comment"}
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
             disabled={!accessToken || isSubmitting}

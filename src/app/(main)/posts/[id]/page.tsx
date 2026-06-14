@@ -59,7 +59,7 @@ export default function PostPage() {
       <PostCard post={post} fullView={true} />
       
       <div className="bg-card border border-border rounded-xl">
-        <CommentSection postId={post._id} />
+        <CommentSection postId={post._id} contentType={post.contentType} />
       </div>
     </div>
   );

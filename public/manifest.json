@@ -1,7 +1,7 @@
 {
   "name": "SoB",
   "short_name": "SoB",
-  "description": "Sphere of Brilliance — educational content platform",
+  "description": "SoB — an educational and social content platform.",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#00000000",

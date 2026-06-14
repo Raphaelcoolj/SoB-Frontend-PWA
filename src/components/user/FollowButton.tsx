@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { useSWRConfig } from 'swr'; // FIXED: import SWR config
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { Button } from '../ui/Button';
@@ -20,6 +21,7 @@ interface FollowButtonProps {
 
 export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange }: FollowButtonProps) => {
   const { accessToken, user } = useAuthStore();
+  const { mutate } = useSWRConfig(); // FIXED: use mutate
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +49,8 @@ export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange 
       } else {
         setIsFollowing(data.data.isFollowing);
         onFollowChange?.(data.data.isFollowing, data.data.followersCount);
+        // FIXED: Invalidate user search cache
+        mutate(key => typeof key === 'string' && key.includes('/api/search/users'));
       }
     } catch {
       setIsFollowing(previousState);
