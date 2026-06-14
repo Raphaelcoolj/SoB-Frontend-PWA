@@ -12,35 +12,10 @@ import { fetchWithAuth } from '../lib/api';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = async (url: string) => {
-  // Remote log: Fetch start
-  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: `[DEBUG] useSearch fetching: ${url}` }),
-  }).catch(() => {});
-
-  try {
-    const res = await fetchWithAuth(url);
-    const json = await res.json();
-    
-    // Remote log: Success
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `[DEBUG] useSearch API success` }),
-    }).catch(() => {});
-    
-    if (!res.ok) throw new Error(json.message || 'Search failed');
-    return json.data;
-  } catch (error) {
-    // Remote log: Failure
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `[DEBUG] useSearch API ERROR: ${error}` }),
-    }).catch(() => {});
-    throw error;
-  }
+  const res = await fetchWithAuth(url);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || 'Search failed');
+  return json.data;
 };
 
 export const useSearch = (debouncedQuery: string) => {

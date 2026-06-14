@@ -9,36 +9,7 @@ import PostCard from '../../../../components/post/PostCard';
 import CommentSection from '../../../../components/comment/CommentSection';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 
-const fetcher = async (url: string) => {
-  // Remote log: Fetch start
-  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: `[DEBUG] PostClient fetching: ${url}` }),
-  }).catch(() => {});
-
-  try {
-    const r = await fetchWithAuth(url);
-    const d = await r.json();
-    
-    // Remote log: Success
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `[DEBUG] PostClient API success` }),
-    }).catch(() => {});
-    
-    return d.data;
-  } catch (error) {
-    // Remote log: Failure
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `[DEBUG] PostClient API ERROR: ${error}` }),
-    }).catch(() => {});
-    throw error;
-  }
-};
+const fetcher = (url: string) => fetchWithAuth(url).then(r => r.json()).then(d => d.data);
 
 interface PostClientProps {
   postId: string;
