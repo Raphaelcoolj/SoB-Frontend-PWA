@@ -44,10 +44,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://sob-frontend.vercel.app',
+    url: 'https://sob-frontend.netlify.app',
     siteName: 'SoB',
-    title: 'SoB — Sphere of Brilliance',
-    description: 'Educational content platform for sharing and discovering knowledge.',
+    title: 'SoB',
+    description: 'Educational and social content platform for sharing and discovering knowledge.',
   },
 };
 

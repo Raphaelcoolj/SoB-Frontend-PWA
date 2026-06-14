@@ -19,8 +19,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     if (!post) {
       console.log('[generateMetadata] No post found, using fallback');
       return {
-        title: 'SoB — Sphere of Brilliance',
-        description: 'Educational content platform',
+        title: 'SoB ',
+        description: 'Educational and social content platform.',
       };
     }
 
@@ -54,8 +54,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   } catch (error) {
     console.error('Metadata generation error:', error);
     return {
-      title: 'SoB — Sphere of Brilliance',
-      description: 'Educational content platform',
+      title: 'SoB',
+      description: 'Educational and social content platform.',
     };
   }
 }

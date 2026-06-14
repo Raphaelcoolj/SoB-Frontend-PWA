@@ -7,11 +7,12 @@
 import useSWR from 'swr';
 import { Post } from '../types/post';
 import { User } from '../types/user';
+import { fetchWithAuth } from '../lib/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url, { credentials: 'include' });
+  const res = await fetchWithAuth(url);
   const json = await res.json();
   if (!res.ok) throw new Error(json.message || 'Search failed');
   return json.data;
