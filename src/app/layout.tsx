@@ -20,7 +20,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'SoB — A Social PlatforM',
+    default: 'SoB — A Social Platform',
     template: '%s | SoB',
   },
   description: 'SoB — an educational and social content platform.',
