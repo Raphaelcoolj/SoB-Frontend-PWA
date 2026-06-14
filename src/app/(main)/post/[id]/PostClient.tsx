@@ -17,7 +17,7 @@ interface PostClientProps {
 
 export default function PostClient({ postId }: PostClientProps) {
   const { data, isLoading, error } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/posts/${postId}`,
+    `/api/posts/${postId}`,
     fetcher
   );
 

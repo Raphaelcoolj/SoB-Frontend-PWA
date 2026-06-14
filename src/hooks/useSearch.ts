@@ -23,13 +23,13 @@ export const useSearch = (debouncedQuery: string) => {
   const shouldFetch = trimmedQuery.length >= 1;
 
   const { data: postData, isLoading: postsLoading } = useSWR(
-    shouldFetch ? `${BASE_URL}/api/search/posts?q=${encodeURIComponent(trimmedQuery)}&limit=8` : null,
+    shouldFetch ? `/api/search/posts?q=${encodeURIComponent(trimmedQuery)}&limit=8` : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
   const { data: userData, isLoading: usersLoading } = useSWR(
-    shouldFetch ? `${BASE_URL}/api/search/users?q=${encodeURIComponent(trimmedQuery)}&limit=5` : null,
+    shouldFetch ? `/api/search/users?q=${encodeURIComponent(trimmedQuery)}&limit=5` : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
