@@ -9,7 +9,12 @@ import PostCard from '../../../../components/post/PostCard';
 import CommentSection from '../../../../components/comment/CommentSection';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 
-const fetcher = (url: string) => fetchWithAuth(url).then(r => r.json()).then(d => d.data);
+const fetcher = async (url: string) => {
+  const r = await fetchWithAuth(url);
+  const d = await r.json();
+  console.log('[DEBUG] PostClient API response:', d);
+  return d.data;
+};
 
 interface PostClientProps {
   postId: string;
