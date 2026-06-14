@@ -10,9 +10,23 @@ import CommentSection from '../../../../components/comment/CommentSection';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 
 const fetcher = async (url: string) => {
+  // Remote log to backend to debug in production
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `[DEBUG] PostClient fetching: ${url}` }),
+  }).catch(() => {});
+
   const r = await fetchWithAuth(url);
   const d = await r.json();
-  console.log('[DEBUG] PostClient API response:', d);
+  
+  // Remote log response
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `[DEBUG] PostClient API response: ${JSON.stringify(d)}` }),
+  }).catch(() => {});
+
   return d.data;
 };
 
