@@ -21,9 +21,13 @@ export default function PostClient({ postId }: PostClientProps) {
     fetcher
   );
 
-  const post = data?.post; // FIXED: Access post directly based on backend API response structure
+  // FIXED: Access post directly based on backend API response structure:
+  // API returns: { success: true, data: { post: ... } }
+  // The fetcher currently does: .then(d => d.data)
+  // So 'data' here is { post: ... }
+  const post = data?.post; 
 
-  console.log('[PostClient] Post data:', data);
+  console.log('[PostClient] Post data (from fetcher.data):', data);
   console.log('[PostClient] Post object:', post);
 
   if (isLoading) {
