@@ -10,24 +10,34 @@ import CommentSection from '../../../../components/comment/CommentSection';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 
 const fetcher = async (url: string) => {
-  // Remote log to backend to debug in production
+  // Remote log: Fetch start
   fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: `[DEBUG] PostClient fetching: ${url}` }),
   }).catch(() => {});
 
-  const r = await fetchWithAuth(url);
-  const d = await r.json();
-  
-  // Remote log response
-  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: `[DEBUG] PostClient API response: ${JSON.stringify(d)}` }),
-  }).catch(() => {});
-
-  return d.data;
+  try {
+    const r = await fetchWithAuth(url);
+    const d = await r.json();
+    
+    // Remote log: Success
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `[DEBUG] PostClient API success` }),
+    }).catch(() => {});
+    
+    return d.data;
+  } catch (error) {
+    // Remote log: Failure
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `[DEBUG] PostClient API ERROR: ${error}` }),
+    }).catch(() => {});
+    throw error;
+  }
 };
 
 interface PostClientProps {
