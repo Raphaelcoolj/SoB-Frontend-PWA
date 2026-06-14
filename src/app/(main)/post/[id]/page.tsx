@@ -7,12 +7,17 @@ import PostClient from './PostClient';
  */
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  console.log('[generateMetadata] Fetching post preview:', params.id);
+
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${params.id}`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${params.id}/preview`);
+    console.log('[generateMetadata] Response status:', res.status);
+    
     const data = await res.json();
     const post = data?.data?.post;
 
     if (!post) {
+      console.log('[generateMetadata] No post found, using fallback');
       return {
         title: 'SoB — Sphere of Brilliance',
         description: 'Educational content platform',
@@ -26,6 +31,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     const description = post.body?.slice(0, 150) || 'Check out this post on SoB';
 
     const imageUrl = post.mediaUrls?.[0] || post.author.avatar || '/icons/icon-512.png';
+
+    console.log('[generateMetadata] Generated:', { title, description, imageUrl });
 
     return {
       title,
