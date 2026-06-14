@@ -9,6 +9,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { Sparkles, Crown } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import { FollowButton } from './FollowButton';
 
@@ -20,6 +21,8 @@ interface UserCardProps {
     avatar?: string;
     bio?: string;
     isFollowing?: boolean;
+    earlyAdopter?: boolean;
+    founderBadge?: boolean;
   };
   showFollowButton?: boolean;
 }
@@ -33,7 +36,20 @@ export default function UserCard({ user, showFollowButton = true }: UserCardProp
           <p className="font-medium text-sm text-foreground truncate group-hover:text-accent transition-colors">
             {user.name}
           </p>
-          <p className="text-[10px] text-muted-foreground truncate">@{user.username}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-[10px] text-muted-foreground truncate">@{user.username}</p>
+            {/* NEW: Badges in card */}
+            {user.earlyAdopter && (
+              <span title="Early Adopter">
+                <Sparkles className="w-2.5 h-2.5 text-emerald-500" />
+              </span>
+            )}
+            {user.founderBadge && (
+              <span title="Founding Member">
+                <Crown className="w-2.5 h-2.5 text-amber-500" />
+              </span>
+            )}
+          </div>
           {user.bio && (
             <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">
               {user.bio}

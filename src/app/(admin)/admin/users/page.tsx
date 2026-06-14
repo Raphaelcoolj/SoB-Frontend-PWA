@@ -16,7 +16,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Crown
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -24,6 +25,7 @@ import { Card } from '../../../../components/ui/Card';
 import { UserAvatar } from '../../../../components/user/UserAvatar';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
+import { Switch } from '../../../../components/ui/Switch';
 import { fetchWithAuth } from '../../../../lib/api';
 
 const fetcher = (url: string) => 
@@ -42,6 +44,21 @@ export default function AdminUsersPage() {
 
   const users = data?.data?.users || [];
   const pagination = data?.meta || { page: 1, total: users.length, limit: users.length };
+
+  const handleToggleFounderBadge = async (userId: string, current: boolean) => {
+    setActionLoading(userId);
+    try {
+      const res = await fetchWithAuth(`/api/admin/users/${userId}/founder-badge`, {
+        method: 'PUT',
+        body: JSON.stringify({ founderBadge: !current }),
+      });
+      if (res.ok) mutate();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleRoleToggle = async (userId: string, currentRole: string) => {
     setActionLoading(userId);
@@ -107,6 +124,7 @@ export default function AdminUsersPage() {
               <tr className="bg-muted/50 border-b border-border">
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">User</th>
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Role</th>
+                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Founder</th>
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Joined</th>
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground text-right">Actions</th>
               </tr>
@@ -145,6 +163,13 @@ export default function AdminUsersPage() {
                       }`}>
                         {u.role}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Switch
+                        checked={u.founderBadge}
+                        onCheckedChange={() => handleToggleFounderBadge(u._id, u.founderBadge)}
+                        disabled={actionLoading === u._id}
+                      />
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-xs text-muted-foreground">

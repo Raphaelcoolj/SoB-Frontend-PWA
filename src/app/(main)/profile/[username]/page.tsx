@@ -12,7 +12,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
-import { Settings2 } from 'lucide-react';
+import { Settings2, Sparkles, Crown } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import FollowButton from '../../../../components/user/FollowButton';
@@ -118,6 +118,25 @@ export default function ProfilePage() {
                   Admin
                 </span>
               )}
+              {/* NEW: Badge display */}
+              {profile.earlyAdopter && (
+                <span
+                  title="Early Adopter — joined in SoB's first 500 members"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  Early Adopter
+                </span>
+              )}
+              {profile.founderBadge && (
+                <span
+                  title="Founding Member of SoB"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800"
+                >
+                  <Crown className="w-2.5 h-2.5" />
+                  Founding Member
+                </span>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">@{profile.username}</p>
           </div>
@@ -170,7 +189,7 @@ export default function ProfilePage() {
             <div className="flex-1">
               <FollowButton
                 targetUserId={profile._id}
-                initialIsFollowing={Array.isArray(profile.followers) && profile.followers.includes(currentUser?._id || '')}
+                initialIsFollowing={!!profile.isFollowing}
                 onFollowChange={(isFollowing, newCount) => setFollowersCount(newCount)}
               />
             </div>

@@ -34,6 +34,7 @@ export default function AdminFieldsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [boostInputs, setBoostInputs] = useState<Record<string, number>>({});
 
   const { data: fieldsData, mutate, isLoading } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/api/fields`,
@@ -41,6 +42,23 @@ export default function AdminFieldsPage() {
   );
 
   const fields = fieldsData?.fields || fieldsData || [];
+
+  const handleBoostChange = async (fieldId: string, newBoost: number) => {
+    setActionLoading(fieldId);
+    try {
+      const response = await fetchWithAuth(`/api/admin/fields/${fieldId}/boost`, {
+        method: 'PUT',
+        body: JSON.stringify({ boostWeight: newBoost }),
+      });
+      if (response.ok) {
+        mutate();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleCreateField = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,15 +180,39 @@ export default function AdminFieldsPage() {
                       <p className="text-[10px] text-muted-foreground">slug: {f.slug}</p>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 w-8 p-0 rounded-lg border-destructive/30 text-destructive/60 hover:text-white hover:bg-destructive hover:border-destructive transition-all"
-                    onClick={() => handleDeleteField(f._id)}
-                    loading={actionLoading === f._id}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Boost:</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="5.0"
+                        value={boostInputs[f._id] ?? f.boostWeight ?? 1.0}
+                        onChange={(e) => setBoostInputs(prev => ({ ...prev, [f._id]: parseFloat(e.target.value) }))}
+                        className="w-14 h-7 px-2 rounded-lg border border-border bg-card text-xs focus:ring-1 focus:ring-accent outline-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-[10px] rounded-lg border-accent/30 text-accent hover:bg-accent hover:text-white"
+                        onClick={() => handleBoostChange(f._id, boostInputs[f._id] ?? f.boostWeight ?? 1.0)}
+                        loading={actionLoading === f._id}
+                        disabled={boostInputs[f._id] === undefined || boostInputs[f._id] === f.boostWeight}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-lg border-destructive/30 text-destructive/60 hover:text-white hover:bg-destructive hover:border-destructive transition-all"
+                      onClick={() => handleDeleteField(f._id)}
+                      loading={actionLoading === f._id}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
