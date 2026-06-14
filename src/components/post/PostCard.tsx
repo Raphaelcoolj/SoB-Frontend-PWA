@@ -114,6 +114,9 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   const field = post.field as Field;
   const isArticle = post.contentType === 'article';
 
+  // DEBUG: Inspect the post object to see why _id is undefined
+  console.log('[PostCard] Inspecting post object:', post);
+
   return (
     <article className="bg-card border border-border rounded-xl overflow-hidden transition-colors duration-200 group">
       {/* Author header */}

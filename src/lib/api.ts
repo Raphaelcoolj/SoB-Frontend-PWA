@@ -29,6 +29,8 @@ export const fetchWithAuth = async (
   options: RequestInit = {}
 ): Promise<Response> => {
   const { accessToken, refreshToken, setTokens } = useAuthStore.getState()
+  
+  console.log(`[fetchWithAuth] Making request to ${endpoint}. AccessToken present:`, !!accessToken);
 
   const makeRequest = (token: string | null) =>
     fetch(`${BASE_URL}${endpoint}`, {
