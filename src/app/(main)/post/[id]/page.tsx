@@ -6,11 +6,14 @@ import PostClient from './PostClient';
  * @description Server component for post detail page that generates dynamic metadata.
  */
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  console.log('[generateMetadata] Fetching post preview:', params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id: postId } = await params;
+  console.log('[generateMetadata] Received params:', { id: postId });
+  console.log('[generateMetadata] Fetching post preview for ID:', postId);
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${params.id}/preview`);
+    if (!postId) throw new Error('No post ID found in params');
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${postId}/preview`);
     console.log('[generateMetadata] Response status:', res.status);
     
     const data = await res.json();
@@ -60,6 +63,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default function PostPage({ params }: { params: { id: string } }) {
-  return <PostClient postId={params.id} />;
+export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <PostClient postId={id} />;
 }
