@@ -25,9 +25,12 @@ export default function PostClient({ postId }: PostClientProps) {
   // API returns: { success: true, data: { post: ... } }
   // The fetcher currently does: .then(d => d.data)
   // So 'data' here is { post: ... }
+  
+  // Debug: Log the structure
+  console.log('[DEBUG] Full data object from fetcher:', data);
+  
   const post = data?.post; 
 
-  console.log('[PostClient] Post data (from fetcher.data):', data);
   console.log('[PostClient] Post object:', post);
 
   if (isLoading) {
