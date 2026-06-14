@@ -4,11 +4,12 @@ import React from 'react';
 import useSWR from 'swr';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { fetchWithAuth } from '../../../../lib/api';
 import PostCard from '../../../../components/post/PostCard';
 import CommentSection from '../../../../components/comment/CommentSection';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 
-const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
+const fetcher = (url: string) => fetchWithAuth(url).then(r => r.json()).then(d => d.data);
 
 interface PostClientProps {
   postId: string;
@@ -20,7 +21,10 @@ export default function PostClient({ postId }: PostClientProps) {
     fetcher
   );
 
-  const post = data?.post;
+  const post = data?.post; // FIXED: Access post directly based on backend API response structure
+
+  console.log('[PostClient] Post data:', data);
+  console.log('[PostClient] Post object:', post);
 
   if (isLoading) {
     return (
