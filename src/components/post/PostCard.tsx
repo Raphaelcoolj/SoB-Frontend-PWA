@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -73,15 +74,23 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   };
 
   const handleShare = async () => {
+    // FIXED: Use correct post URL for sharing
+    const shareUrl = `${window.location.origin}/post/${post._id}`;
+
     try {
       await fetchWithAuth(`/api/posts/${post._id}/share`, {
         method: 'POST',
         body: JSON.stringify({}),
       });
       if (navigator.share) {
-        navigator.share({ title: post.title || 'SoB Post', url: window.location.href });
+        navigator.share({ 
+          title: post.contentType === 'article' ? post.title : `${post.author.name} on SoB`, 
+          text: post.body?.slice(0, 100),
+          url: shareUrl 
+        });
       } else {
-        navigator.clipboard.writeText(window.location.origin + `/posts/${post._id}`);
+        navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard!');
       }
     } catch {
       // silent
@@ -153,7 +162,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
       </div>
 
       {/* Content body */}
-      <Link href={`/posts/${post._id}`} className="block px-4 pb-3">
+      <Link href={`/post/${post._id}`} className="block px-4 pb-3">
         {isArticle && post.title && (
           <h2 className={`font-semibold text-foreground mb-1.5 leading-snug hover:text-accent transition-colors ${fullView ? 'text-2xl' : 'text-base'}`}>
             {post.title}

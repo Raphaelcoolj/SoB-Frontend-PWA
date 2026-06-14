@@ -103,7 +103,7 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
               </>
             )}
           </div>
-          <Link href={`/posts/${article._id}`}>
+          <Link href={`/post/${article._id}`}>
             <h2 className="text-xl font-semibold text-foreground leading-tight group-hover:text-accent transition-colors">
               {article.title || 'Untitled Article'}
             </h2>

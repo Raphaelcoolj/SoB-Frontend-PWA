@@ -28,6 +28,9 @@ interface UserCardProps {
 }
 
 export default function UserCard({ user, showFollowButton = true }: UserCardProps) {
+  // DEBUG: Log props received by UserCard
+  console.log('[UserCard] user prop:', user.username, 'isFollowing:', user.isFollowing);
+
   return (
     <div className="flex items-center justify-between p-4 bg-card border border-border rounded-2xl hover:border-accent/30 transition-all duration-200 group">
       <Link href={`/profile/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0">

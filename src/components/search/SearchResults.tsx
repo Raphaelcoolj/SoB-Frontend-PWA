@@ -20,6 +20,9 @@ interface SearchResultsProps {
 }
 
 export default function SearchResults({ query, users, posts, isLoading }: SearchResultsProps) {
+  // DEBUG: Log raw user data from API
+  console.log('[SearchResults] Received users:', users.map(u => ({ username: u.username, isFollowing: u.isFollowing })));
+
   if (isLoading) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
