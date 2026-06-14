@@ -86,12 +86,24 @@ export const fetchWithAuth = async (
     processQueue(null, newAccessToken)
 
     return makeRequest(newAccessToken)
-  } catch (error) {
-    processQueue(error, null)
-    forceLogout()
-    throw error
   } finally {
     isRefreshing = false
   }
 }
+
+// FIXED: Re-added api object for backward compatibility
+export const api = {
+  get: (endpoint: string) => fetchWithAuth(endpoint, { method: 'GET' }),
+  post: (endpoint: string, body: unknown) =>
+    fetchWithAuth(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  put: (endpoint: string, body: unknown) =>
+    fetchWithAuth(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  delete: (endpoint: string) => fetchWithAuth(endpoint, { method: 'DELETE' }),
+};
 
