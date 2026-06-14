@@ -12,6 +12,7 @@ import { fetchWithAuth } from '../lib/api';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = async (url: string) => {
+  console.log('[DEBUG] useSearch: attempting to fetch:', url);
   const res = await fetchWithAuth(url);
   const json = await res.json();
   if (!res.ok) throw new Error(json.message || 'Search failed');
