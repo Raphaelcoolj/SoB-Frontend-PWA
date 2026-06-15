@@ -97,7 +97,7 @@ function FieldPostsFeed({ fieldId }: { fieldId: string }) {
       isLoadingInitial={isLoadingInitial}
       isLoadingMore={isLoadingMore}
       hasMore={hasMore}
-      isEmpty={isEmpty}
+      isEmpty={!!isEmpty}
       loadMore={loadMore}
     />
   );
