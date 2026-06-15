@@ -18,23 +18,20 @@ const fetcher = async (url: string): Promise<FeedPage> => {
   const endpoint = url.replace(BASE_URL || '', '');
   const res = await fetchWithAuth(endpoint);
   
-  const text = await res.text();
-  console.log('[DEBUG] Raw Response Text:', text);
-  
-  const json = JSON.parse(text);
+  const json = await res.json().catch(() => ({}));
   
   if (!res.ok) {
     throw new Error(json.message || 'Failed to fetch discover feed');
   }
   
-  console.log('[DEBUG] Discover Feed Data:', json.data);
-  return json.data;
+  // The API returns the data directly, not wrapped in a 'data' key
+  return json as FeedPage;
 };
 
 export const useDiscoverFeed = (fieldId: string | null) => {
   const getKey = (pageIndex: number, previousPageData: FeedPage | null) => {
     if (!fieldId) return null;
-    if (previousPageData && !previousPageData.nextCursor) return null;
+    if (previousPageData && previousPageData.nextCursor === null) return null;
 
     const cursor = previousPageData ? previousPageData.nextCursor : 0;
     return `${BASE_URL}/api/feed/discover/${fieldId}?cursor=${cursor}`;
@@ -49,10 +46,10 @@ export const useDiscoverFeed = (fieldId: string | null) => {
     }
   );
 
-  const posts = data ? data.flatMap((page) => page.posts) : [];
+  const posts = data ? data.flatMap((page) => page.posts || []) : [];
   const isLoadingInitial = !data && !error;
   const isLoadingMore = isValidating && size > 1;
-  const isEmpty = data?.[0]?.posts.length === 0;
+  const isEmpty = data && data.length > 0 && (!data[0].posts || data[0].posts.length === 0);
   const hasMore = !!data?.[data.length - 1]?.nextCursor;
 
   return {
