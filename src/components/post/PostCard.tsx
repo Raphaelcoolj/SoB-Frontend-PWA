@@ -32,10 +32,10 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
 
   const userId = user?._id || '';
   const isAuthor = post.author._id === userId;
-  const [likeCount, setLikeCount] = useState(post.likes.length);
-  const [isLiked, setIsLiked] = useState(post.likes.includes(userId));
-  const [isBookmarked, setIsBookmarked] = useState(post.bookmarks.includes(userId));
-  const [commentCount, setCommentCount] = useState(post.comments.length);
+  const [likeCount, setLikeCount] = useState((post.likes || []).length);
+  const [isLiked, setIsLiked] = useState((post.likes || []).includes(userId));
+  const [isBookmarked, setIsBookmarked] = useState((post.bookmarks || []).includes(userId));
+  const [commentCount, setCommentCount] = useState((post.comments || []).length);
   const [showOptions, setShowOptions] = useState(false);
 
   const handleLike = async () => {
