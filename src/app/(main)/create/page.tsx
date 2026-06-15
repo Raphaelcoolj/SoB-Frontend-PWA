@@ -41,14 +41,17 @@ export default function CreatePage() {
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldSearch, setFieldSearch] = useState('');
+  const [showFieldDropdown, setShowFieldDropdown] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: fieldsData } = useSWR(`${BASE_URL}/api/fields`, fetcher, { revalidateOnFocus: false });
   const fields: any[] = fieldsData?.fields || fieldsData || [];
 
+  const filteredFields = fields.filter(f => f.name.toLowerCase().includes(fieldSearch.toLowerCase()));
   const schema = mode === 'post' ? postSchema : articleSchema;
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<any>({
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(schema),
     defaultValues: { body: '', field: '', title: '' },
   });
@@ -95,11 +98,11 @@ export default function CreatePage() {
       <div className="flex gap-1 bg-muted p-1 rounded-xl">
         {(['post', 'article'] as ContentMode[]).map((m) => (
           <button
-            key={m}
-            onClick={() => { setMode(m); reset(); setImages([]); setImagePreviews([]); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
-              mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-            }`}
+          key={m}
+          onClick={() => { setMode(m); reset(); setImages([]); setImagePreviews([]); setFieldSearch(''); }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
+            mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+          }`}
           >
             {m === 'post' ? <MessageSquare className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
             {m.charAt(0).toUpperCase() + m.slice(1)}
@@ -111,15 +114,42 @@ export default function CreatePage() {
         {mode === 'article' && (
           <>
             <Input id="title" placeholder="Article title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
-            <select
-              {...register('field')}
-              className="w-full bg-background border border-border rounded-lg p-2 text-sm text-foreground focus:outline-none"
-            >
-              <option value="">Select a field</option>
-              {fields.map((f: any) => (
-                <option key={f._id} value={f._id}>{f.name}</option>
-              ))}
-            </select>
+            
+            <div className="relative">
+              <Input
+                placeholder="Search field..."
+                value={fieldSearch}
+                onChange={(e) => {
+                  setFieldSearch(e.target.value);
+                  setShowFieldDropdown(true);
+                }}
+                onFocus={() => setShowFieldDropdown(true)}
+                className="w-full"
+              />
+              {showFieldDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-md max-h-48 overflow-y-auto">
+                  {filteredFields.length > 0 ? (
+                    filteredFields.map((f: any) => (
+                      <button
+                        key={f._id}
+                        type="button"
+                        onClick={() => {
+                          setValue('field', f._id);
+                          setFieldSearch(f.name);
+                          setShowFieldDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                      >
+                        {f.name}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">No fields found</div>
+                  )}
+                </div>
+              )}
+            </div>
+            <input type="hidden" {...register('field')} />
             {errors.field && <p className="text-xs text-destructive">{errors.field.message as string}</p>}
           </>
         )}
