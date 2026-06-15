@@ -157,9 +157,9 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
             </button>
           </div>
         )}
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         {contentType === 'article' && (
-          <div className="flex gap-2 mb-2 w-full">
+          <div className="flex gap-2 w-full">
             <button 
               type="button"
               onClick={() => setCommentType('comment')}
@@ -176,21 +176,23 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
             </button>
           </div>
         )}
-          <Input
-            placeholder={accessToken ? (commentType === 'debate' ? "Start a debate..." : "Add a comment...") : "Login to comment"}
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            disabled={!accessToken || isSubmitting}
-            className="h-10 text-xs rounded-xl"
-          />
-          <Button 
-            type="submit" 
-            size="sm" 
-            disabled={!accessToken || isSubmitting || !commentText.trim()}
-            className="rounded-xl h-10 w-10 p-0 flex-shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+          <div className="flex gap-2">
+            <textarea
+              placeholder={accessToken ? (commentType === 'debate' ? "Start a debate..." : "Add a comment...") : "Login to comment"}
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              disabled={!accessToken || isSubmitting}
+              className="w-full h-24 p-3 text-xs rounded-xl border border-border bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <Button 
+              type="submit" 
+              size="sm" 
+              disabled={!accessToken || isSubmitting || !commentText.trim()}
+              className="rounded-xl h-24 w-10 p-0 flex-shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </form>
       </div>
     </div>
