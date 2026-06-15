@@ -31,7 +31,7 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
 
   const getLink = () => {
     if (notification.type === 'follow') return `/profile/${notification.sender.username}`;
-    if (notification.post) return `/posts/${notification.post._id || notification.post}`;
+    if (notification.post) return `/post/${notification.post._id || notification.post}`;
     return '#';
   };
 

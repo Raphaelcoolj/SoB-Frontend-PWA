@@ -4,7 +4,7 @@
  */
 
 import useSWRInfinite from 'swr/infinite';
-import { useAuthStore } from '../store/authStore';
+import { fetchWithAuth } from '../lib/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -14,26 +14,23 @@ interface FeedPage {
   hasMore: boolean;
 }
 
-const createFetcher = (token: string) => async (url: string): Promise<FeedPage> => {
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
+const fetcher = async (url: string): Promise<FeedPage> => {
+  const endpoint = url.replace(BASE_URL || '', '');
+  const res = await fetchWithAuth(endpoint);
+  
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.message || 'Failed to fetch discover feed');
+  }
+  
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || 'Failed to fetch discover feed');
   return json.data;
 };
 
 export const useDiscoverFeed = (fieldId: string | null) => {
-  const { accessToken } = useAuthStore();
-
   const getKey = (pageIndex: number, previousPageData: FeedPage | null) => {
     if (!fieldId) return null;
     if (previousPageData && !previousPageData.nextCursor) return null;
-    if (!accessToken) return null;
 
     const cursor = previousPageData ? previousPageData.nextCursor : 0;
     return `${BASE_URL}/api/feed/discover/${fieldId}?cursor=${cursor}`;
@@ -41,7 +38,7 @@ export const useDiscoverFeed = (fieldId: string | null) => {
 
   const { data, error, size, setSize, isValidating, mutate } = useSWRInfinite<FeedPage>(
     getKey,
-    accessToken ? createFetcher(accessToken) : () => Promise.resolve({ posts: [], nextCursor: null, hasMore: false }),
+    fetcher,
     {
       revalidateFirstPage: false,
       revalidateOnFocus: false,

@@ -29,7 +29,11 @@ export const useNotifications = () => {
   const { data, error, isLoading, mutate } = useSWR(
     accessToken ? `${process.env.NEXT_PUBLIC_API_URL}/api/notifications` : null,
     accessToken ? createFetcher(accessToken) : null,
-    { revalidateOnFocus: false, dedupingInterval: 10000 }
+    { 
+      revalidateOnFocus: true, 
+      dedupingInterval: 10000,
+      refreshInterval: 30000 // Poll every 30 seconds
+    }
   );
 
   // Load fetched notifications into the store
