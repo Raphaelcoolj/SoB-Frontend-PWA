@@ -24,8 +24,8 @@ const fetcher = async (url: string): Promise<FeedPage> => {
     throw new Error(json.message || 'Failed to fetch discover feed');
   }
   
-  // The API returns the data directly, not wrapped in a 'data' key
-  return json as FeedPage;
+  // Unwrap the 'data' property from the backend API response
+  return json.data as FeedPage;
 };
 
 export const useDiscoverFeed = (fieldId: string | null) => {
