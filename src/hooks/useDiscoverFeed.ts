@@ -46,17 +46,22 @@ export const useDiscoverFeed = (fieldId: string | null) => {
     }
   );
 
-  const posts = data ? data.flatMap((page) => page.posts || []) : [];
+  const posts = data ? data.flatMap((page) => page?.posts || []) : [];
   const isLoadingInitial = !data && !error;
   const isLoadingMore = isValidating && size > 1;
-  const isEmpty = data && data.length > 0 && (!data[0].posts || data[0].posts.length === 0);
-  const hasMore = !!data?.[data.length - 1]?.nextCursor;
+  
+  // Robust check for empty feed
+  const isEmpty = data && data.length > 0 && Array.isArray(data[0].posts) && data[0].posts.length === 0;
+  
+  // Robust check for more pages
+  const lastPage = data && data.length > 0 ? data[data.length - 1] : null;
+  const hasMore = !!lastPage && lastPage.nextCursor !== null;
 
   return {
     posts,
     isLoadingInitial,
     isLoadingMore,
-    isEmpty,
+    isEmpty: !!isEmpty,
     hasMore,
     error,
     loadMore: () => setSize((s) => s + 1),
