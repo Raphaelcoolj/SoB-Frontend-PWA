@@ -18,12 +18,13 @@ const fetcher = async (url: string): Promise<FeedPage> => {
   const endpoint = url.replace(BASE_URL || '', '');
   const res = await fetchWithAuth(endpoint);
   
+  const json = await res.json().catch(() => ({}));
+  
   if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
     throw new Error(json.message || 'Failed to fetch discover feed');
   }
   
-  const json = await res.json();
+  console.log('[DEBUG] Discover Feed Response:', json);
   return json.data;
 };
 
