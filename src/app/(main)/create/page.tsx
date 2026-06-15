@@ -31,7 +31,7 @@ const postSchema = z.object({
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
   body: z.string().min(1, 'Content is required').max(2000, 'Articles cannot exceed 2000 characters'),
-  field: z.string().optional(),
+  field: z.string().min(1, 'Field is required'),
 });
 
 export default function CreatePage() {
@@ -109,7 +109,19 @@ export default function CreatePage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-card border border-border rounded-2xl p-4 space-y-4">
         {mode === 'article' && (
-          <Input id="title" placeholder="Article title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
+          <>
+            <Input id="title" placeholder="Article title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
+            <select
+              {...register('field')}
+              className="w-full bg-background border border-border rounded-lg p-2 text-sm text-foreground focus:outline-none"
+            >
+              <option value="">Select a field</option>
+              {fields.map((f: any) => (
+                <option key={f._id} value={f._id}>{f.name}</option>
+              ))}
+            </select>
+            {errors.field && <p className="text-xs text-destructive">{errors.field.message as string}</p>}
+          </>
         )}
 
         <textarea

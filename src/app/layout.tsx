@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     default: 'SoB — A Social Platform',
     template: '%s | SoB',
   },
-  description: 'SoB — an educational and social content platform.',
+  description: 'SoB — An educational and social content platform.',
   manifest: '/manifest.json',
   icons: {
     icon: [
