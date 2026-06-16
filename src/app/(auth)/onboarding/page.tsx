@@ -47,8 +47,8 @@ export default function OnboardingPage() {
   const toggleField = (fieldId: string) => {
     setSelectedFields(prev => {
       if (prev.includes(fieldId)) return prev.filter(id => id !== fieldId);
-      if (prev.length >= 5) {
-        toast.error('You can only select 5 fields');
+      if (prev.length >= 10) {
+        toast.error('You can select a maximum of 10 fields');
         return prev;
       }
       return [...prev, fieldId];
@@ -56,8 +56,12 @@ export default function OnboardingPage() {
   };
 
   const handleSubmit = async () => {
-    if (selectedFields.length !== 5) {
-      toast.error('Please select exactly 5 fields');
+    if (selectedFields.length < 2) {
+      toast.error('Please select at least 2 fields');
+      return;
+    }
+    if (selectedFields.length > 10) {
+      toast.error('Please select no more than 10 fields');
       return;
     }
     
@@ -127,7 +131,11 @@ export default function OnboardingPage() {
       
       {step === 2 && (
         <div className="space-y-4 animate-in fade-in">
-          <p className="text-sm text-muted-foreground">Select exactly 5 fields ({selectedFields.length}/5):</p>
+          <p className="text-sm text-muted-foreground">Select your interests (2-10 fields):</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Selected: {selectedFields.length}</span>
+            {selectedFields.length < 2 && <span className="text-[10px] text-destructive animate-pulse">Select at least 2</span>}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {fields.map((f: any) => (
               <button 
