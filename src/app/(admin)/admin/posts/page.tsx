@@ -142,7 +142,7 @@ export default function AdminPostsPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <a 
-                          href={`/posts/${p._id}`} 
+                          href={`/post/${p._id}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-accent hover:border-accent transition-all"
