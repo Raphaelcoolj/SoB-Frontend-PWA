@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
@@ -153,7 +153,14 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
                   {showOptions && (
-                    <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1">
+                    <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                      <Link
+                        href={`/post/${post._id}/edit`}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md w-full transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit
+                      </Link>
                       <button
                         onClick={handleDelete}
                         className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full"

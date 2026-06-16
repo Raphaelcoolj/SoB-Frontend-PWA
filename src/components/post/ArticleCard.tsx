@@ -9,7 +9,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -29,10 +29,26 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
   const { user, accessToken } = useAuthStore();
 
   const userId = user?._id || '';
+  const isAuthor = article.author._id === userId;
   const [likeCount, setLikeCount] = useState(article.likes.length);
   const [isLiked, setIsLiked] = useState(article.likes.includes(userId));
   const [isBookmarked, setIsBookmarked] = useState(article.bookmarks.includes(userId));
   const [commentCount, setCommentCount] = useState(article.comments.length);
+  const [showOptions, setShowOptions] = useState(false);
+
+  const handleDelete = async () => {
+    if (!accessToken || !isAuthor) return;
+    try {
+      const res = await fetchWithAuth(`/api/posts/${article._id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch {
+      // silent
+    }
+  };
 
   const handleCommentClick = () => {
     if (onCommentClick) {
@@ -127,17 +143,48 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
 
         {/* Author Footer */}
         <div className="flex items-center justify-between pt-2">
-          <Link href={`/profile/${article.author.username}`} className="flex items-center gap-2.5 group/author">
-            <UserAvatar avatar={article.author.avatar} name={article.author.name} size="sm" />
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-foreground group-hover/author:text-accent transition-colors">
-                {article.author.name}
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                {formatDistanceToNow(article.createdAt)}
-              </span>
-            </div>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href={`/profile/${article.author.username}`} className="flex items-center gap-2.5 group/author">
+              <UserAvatar avatar={article.author.avatar} name={article.author.name} size="sm" />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-foreground group-hover/author:text-accent transition-colors">
+                  {article.author.name}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {formatDistanceToNow(article.createdAt)}
+                </span>
+              </div>
+            </Link>
+
+            {isAuthor && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {showOptions && (
+                  <div className="absolute left-0 bottom-full mb-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                    <Link
+                      href={`/post/${article._id}/edit`}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md w-full transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </Link>
+                    <button
+                      onClick={handleDelete}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Actions */}
           <div className="flex items-center gap-0.5">
