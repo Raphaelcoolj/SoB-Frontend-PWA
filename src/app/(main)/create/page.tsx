@@ -30,7 +30,7 @@ const postSchema = z.object({
 
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
-  body: z.string().min(1, 'Content is required').max(4000, 'Articles cannot exceed 4000 characters'),
+  body: z.string().min(1, 'Content is required').max(5000, 'Articles cannot exceed 5000 characters'),
   field: z.string().min(1, 'Field is required'),
 });
 
@@ -181,10 +181,10 @@ export default function CreatePage() {
           </div>
           <div className="flex items-center gap-3">
              <div className="flex flex-col items-end">
-               <span className={`text-xs ${bodyValue.length > (mode === 'post' ? 200 : 4000) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                 {bodyValue.length}/{mode === 'post' ? '200' : '4000'}
+               <span className={`text-xs ${bodyValue.length > (mode === 'post' ? 200 : 5000) ? 'text-destructive' : 'text-muted-foreground'}`}>
+                 {bodyValue.length}/{mode === 'post' ? '200' : '5000'}
                </span>
-               {bodyValue.length > (mode === 'post' ? 200 : 4000) && (
+               {bodyValue.length > (mode === 'post' ? 200 : 5000) && (
                  <span className="text-[10px] text-destructive">
                    {mode === 'post' ? 'Post limit exceeded' : 'Continue thread in comments'}
                  </span>

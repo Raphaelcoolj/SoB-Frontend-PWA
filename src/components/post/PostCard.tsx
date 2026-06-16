@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
@@ -28,6 +29,7 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, onCommentClick, fullView = false, onDelete }: PostCardProps) {
+  const router = useRouter();
   const { user, accessToken } = useAuthStore();
 
   const userId = user?._id || '';
@@ -37,6 +39,17 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   const [isBookmarked, setIsBookmarked] = useState((post.bookmarks || []).includes(userId));
   const [commentCount, setCommentCount] = useState((post.comments || []).length);
   const [showOptions, setShowOptions] = useState(false);
+
+  const handleCommentClick = () => {
+    if (onCommentClick) {
+      onCommentClick(post._id);
+      return;
+    }
+
+    if (!fullView) {
+      router.push(`/post/${post._id}`);
+    }
+  };
 
   const handleLike = async () => {
     if (!accessToken) return;
@@ -211,7 +224,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
         </button>
 
         <button
-          onClick={() => onCommentClick?.(post._id)}
+          onClick={handleCommentClick}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
         >
           <MessageCircle className="w-4 h-4" />

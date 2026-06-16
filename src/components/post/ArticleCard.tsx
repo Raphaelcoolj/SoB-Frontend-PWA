@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen } from 'lucide-react';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
@@ -24,6 +25,7 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({ article, onCommentClick }: ArticleCardProps) {
+  const router = useRouter();
   const { user, accessToken } = useAuthStore();
 
   const userId = user?._id || '';
@@ -31,6 +33,14 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
   const [isLiked, setIsLiked] = useState(article.likes.includes(userId));
   const [isBookmarked, setIsBookmarked] = useState(article.bookmarks.includes(userId));
   const [commentCount, setCommentCount] = useState(article.comments.length);
+
+  const handleCommentClick = () => {
+    if (onCommentClick) {
+      onCommentClick(article._id);
+      return;
+    }
+    router.push(`/post/${article._id}`);
+  };
 
   const handleLike = async () => {
     if (!accessToken) return;
@@ -141,7 +151,7 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
               <span className="text-xs font-medium">{likeCount}</span>
             </button>
             <button
-              onClick={() => onCommentClick?.(article._id)}
+              onClick={handleCommentClick}
               className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
             >
               <MessageCircle className="w-4 h-4" />
