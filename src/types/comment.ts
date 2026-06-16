@@ -11,6 +11,7 @@ export interface Comment {
   parentComment: string | null;
   likes: string[]; // User IDs
   replies?: Comment[]; // Populated frontend-side
+  repliesCount?: number; // NEW: from backend
   createdAt: string;
   updatedAt: string;
 }

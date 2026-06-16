@@ -2,25 +2,26 @@
 
 /**
  * @file CommentSection.tsx
- * @description Manages the comment list for a post.
- * Handles fetching comments, posting new ones, and showing replies.
+ * @description Manages the comment list for a post with infinite loading.
  */
 
-import React, { useState, useEffect } from 'react';
-import useSWR from 'swr';
-import { Send, X, MessageCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import useSWRInfinite from 'swr/infinite';
+import { Send, X, MessageCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { toast } from 'sonner';
 import CommentCard from './CommentCard';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { Skeleton } from '../ui/Skeleton';
+import { Comment } from '../../types/comment';
 
 interface CommentSectionProps {
   postId: string;
   contentType?: 'post' | 'article';
 }
+
+const PAGE_SIZE = 10;
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
@@ -31,12 +32,18 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
   const [commentType, setCommentType] = useState<'comment' | 'debate'>('comment');
 
-  const { data: commentsData, mutate, error, isLoading } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/comments/post/${postId}`,
-    fetcher
-  );
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    if (previousPageData && !previousPageData.comments.length) return null;
+    return `${process.env.NEXT_PUBLIC_API_URL}/api/comments/post/${postId}?page=${pageIndex + 1}&limit=${PAGE_SIZE}`;
+  };
 
-  const comments = commentsData?.comments || [];
+  const { data, mutate, error, size, setSize, isValidating } = useSWRInfinite(getKey, fetcher);
+
+  const comments: Comment[] = data ? data.map(page => page.comments).flat() : [];
+  const isLoadingInitialData = !data && !error;
+  const isLoadingMore = isLoadingInitialData || (size > 0 && data && typeof data[size - 1] === "undefined");
+  const isEmpty = data?.[0]?.comments?.length === 0;
+  const isReachingEnd = isEmpty || (data && data[data.length - 1]?.comments?.length < PAGE_SIZE);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,28 +93,30 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
   const handleReply = (id: string, username: string) => {
     setReplyTo({ id, username });
     // Focus input? 
+    const textarea = document.getElementById('comment-textarea');
+    if (textarea) textarea.focus();
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[70vh]">
-      <div className="p-4 border-b border-border flex items-center justify-between">
+    <div className="flex flex-col h-full max-h-[75vh]">
+      <div className="p-4 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <h3 className="font-semibold text-sm flex items-center gap-2">
           <MessageCircle className="w-4 h-4 text-accent" />
           Comments
         </h3>
-        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-          {comments?.length || 0}
+        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+          {data?.[0]?.pagination?.total || 0}
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {isLoading ? (
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide">
+        {isLoadingInitialData ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="flex gap-3">
-                <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <Skeleton className="h-10 w-full rounded-2xl" />
+                  <Skeleton className="h-16 w-full rounded-2xl" />
                   <Skeleton className="h-3 w-20 rounded" />
                 </div>
               </div>
@@ -115,82 +124,90 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
           </div>
         ) : error ? (
           <p className="text-center py-10 text-xs text-destructive">Failed to load comments.</p>
-        ) : comments?.length === 0 ? (
+        ) : isEmpty ? (
           <div className="text-center py-20 space-y-2">
-            <p className="text-sm font-medium text-foreground">No comments yet</p>
+            <p className="text-sm font-semibold text-foreground">No comments yet</p>
             <p className="text-xs text-muted-foreground">Be the first to start the conversation!</p>
           </div>
         ) : (
-          Array.isArray(comments) && comments.map((comment: any) => (
-            <div key={comment._id} className="space-y-4">
-              <CommentCard 
-                comment={comment} 
-                postId={postId} 
-                onReply={handleReply}
-                onDelete={handleDelete}
-              />
-              {/* Nested replies could be rendered here if backend supports populated replies */}
-              {comment.replies?.length > 0 && (
-                <div className="ml-10 space-y-4 border-l-2 border-muted pl-4">
-                  {comment.replies.map((reply: any) => (
-                    <CommentCard 
-                      key={reply._id} 
-                      comment={reply} 
-                      postId={postId} 
-                      onReply={handleReply}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
-              )}
+          <>
+            <div className="space-y-6">
+              {comments.map((comment: Comment) => (
+                <CommentCard 
+                  key={comment._id} 
+                  comment={comment} 
+                  postId={postId} 
+                  onReply={handleReply}
+                  onDelete={handleDelete}
+                />
+              ))}
             </div>
-          ))
+
+            {!isReachingEnd && (
+              <button
+                disabled={isLoadingMore || isValidating}
+                onClick={() => setSize(size + 1)}
+                className="w-full py-3 text-xs font-bold text-accent hover:bg-accent/5 rounded-xl transition-colors border border-dashed border-accent/20 mt-4"
+              >
+                {isLoadingMore || isValidating ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Loading more...
+                  </div>
+                ) : (
+                  'Load more comments'
+                )}
+              </button>
+            )}
+          </>
         )}
       </div>
 
+      {/* Comment Form */}
       <div className="p-4 border-t border-border bg-card">
         {replyTo && (
-          <div className="flex items-center justify-between mb-2 px-2 py-1 bg-accent/10 border border-accent/20 rounded-lg">
-            <p className="text-[10px] font-medium text-accent">Replying to @{replyTo.username}</p>
-            <button onClick={() => setReplyTo(null)} className="text-accent">
+          <div className="flex items-center justify-between mb-2 px-3 py-1.5 bg-accent/5 border border-accent/10 rounded-xl">
+            <p className="text-[10px] font-bold text-accent">Replying to @{replyTo.username}</p>
+            <button onClick={() => setReplyTo(null)} className="text-accent hover:bg-accent/10 p-1 rounded-full">
               <X className="w-3 h-3" />
             </button>
           </div>
         )}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        {contentType === 'article' && (
-          <div className="flex gap-2 w-full">
-            <button 
-              type="button"
-              onClick={() => setCommentType('comment')}
-              className={`text-[10px] px-3 py-1 rounded-full border ${commentType === 'comment' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-muted-foreground'}`}
-            >
-              Comment
-            </button>
-            <button 
-              type="button"
-              onClick={() => setCommentType('debate')}
-              className={`text-[10px] px-3 py-1 rounded-full border ${commentType === 'debate' ? 'bg-accent text-white border-accent' : 'bg-background border-border text-muted-foreground'}`}
-            >
-              Debate
-            </button>
-          </div>
-        )}
-          <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          {contentType === 'article' && !replyTo && (
+            <div className="flex gap-2">
+              <button 
+                type="button"
+                onClick={() => setCommentType('comment')}
+                className={`text-[10px] px-4 py-1.5 rounded-full font-bold transition-all ${commentType === 'comment' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+              >
+                Comment
+              </button>
+              <button 
+                type="button"
+                onClick={() => setCommentType('debate')}
+                className={`text-[10px] px-4 py-1.5 rounded-full font-bold transition-all ${commentType === 'debate' ? 'bg-accent text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+              >
+                Debate
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2 items-start">
             <textarea
+              id="comment-textarea"
               placeholder={accessToken ? (commentType === 'debate' ? "Start a debate..." : "Add a comment...") : "Login to comment"}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               disabled={!accessToken || isSubmitting}
-              className="w-full h-24 p-3 text-xs rounded-xl border border-border bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full h-20 p-4 text-sm rounded-2xl border border-border bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent focus:outline-none transition-all resize-none"
             />
             <Button 
               type="submit" 
               size="sm" 
               disabled={!accessToken || isSubmitting || !commentText.trim()}
-              className="rounded-xl h-24 w-10 p-0 flex-shrink-0"
+              className="rounded-2xl h-20 w-12 p-0 flex-shrink-0 bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5 text-white" />
             </Button>
           </div>
         </form>

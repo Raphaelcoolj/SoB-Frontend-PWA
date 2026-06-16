@@ -178,7 +178,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
           {field && <div className="mt-1"><FieldBadge field={field} /></div>}
         </div>
         {isArticle && (
-          <span className="text-[10px] font-medium uppercase tracking-wider text-accent border border-accent/30 rounded-full px-2 py-0.5 flex-shrink-0 ml-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-accent border border-accent/30 rounded-full px-2 py-0.5 flex-shrink-0 ml-2 shadow-sm">
             Article
           </span>
         )}
