@@ -113,28 +113,21 @@ export default function ProfilePage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg text-foreground truncate">{profile.name}</h1>
-              {profile.role === 'admin' && (
-                <span className="text-[10px] uppercase tracking-wider bg-destructive/15 text-destructive border border-destructive/30 rounded-full px-2 py-0.5">
-                  Admin
-                </span>
-              )}
               {/* NEW: Badge display */}
               {profile.earlyAdopter && (
                 <span
                   title="Early Adopter — joined in SoB's first 500 members"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
+                  className="inline-flex items-center gap-1 p-1 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
                 >
-                  <Sparkles className="w-2.5 h-2.5" />
-                  Early Adopter
+                  <Sparkles className="w-3 h-3" />
                 </span>
               )}
               {profile.founderBadge && (
                 <span
                   title="Founding Member of SoB"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800"
+                  className="inline-flex items-center gap-1 p-1 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800"
                 >
-                  <Crown className="w-2.5 h-2.5" />
-                  Founding Member
+                  <Crown className="w-3 h-3" />
                 </span>
               )}
             </div>
