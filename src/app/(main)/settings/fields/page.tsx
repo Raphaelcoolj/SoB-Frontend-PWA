@@ -40,16 +40,10 @@ export default function PriorityFieldsPage() {
   const toggleField = (fieldId: string) => {
     setSelectedFields(prev => {
       if (prev.includes(fieldId)) {
-        // Only allow deselecting if it doesn't drop below 5? 
-        // Actually the spec says "Must always maintain exactly 5 selected" for the final submit.
-        // During selection, they can toggle freely but can't submit unless count is 5.
         return prev.filter(id => id !== fieldId);
       } else {
-        // Limit to 5 max? The spec says "swap any field out", "always maintain exactly 5".
-        // It's easier if we allow them to select/deselect and then validate on Save.
-        // But preventing > 5 might be better UX.
-        if (prev.length >= 5) {
-          setStatus({ message: 'You can only select exactly 5 fields.', type: 'error' });
+        if (prev.length >= 10) {
+          setStatus({ message: 'You can select a maximum of 10 fields.', type: 'error' });
           setTimeout(() => setStatus(null), 3000);
           return prev;
         }
@@ -60,8 +54,8 @@ export default function PriorityFieldsPage() {
 
   const handleSave = async () => {
     if (!accessToken) return;
-    if (selectedFields.length !== 5) {
-      setStatus({ message: 'You must select exactly 5 fields.', type: 'error' });
+    if (selectedFields.length < 2 || selectedFields.length > 10) {
+      setStatus({ message: 'You must select between 2 and 10 fields.', type: 'error' });
       return;
     }
 
@@ -79,8 +73,6 @@ export default function PriorityFieldsPage() {
 
       // Update local store user
       if (user) {
-        // Re-fetch me to get populated fields or just update local
-        // Re-fetching is safer for population
         const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
         const meData = await meRes.json();
         if (meRes.ok) setUser(meData.data.user);
@@ -114,7 +106,7 @@ export default function PriorityFieldsPage() {
             <BookOpen className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <p className="font-medium text-foreground">Your Top 5</p>
+            <p className="font-medium text-foreground">Your Interests</p>
             <p className="text-xs text-muted-foreground">These determine what you see in your feed.</p>
           </div>
         </div>
@@ -172,15 +164,15 @@ export default function PriorityFieldsPage() {
 
         <div className="pt-4 border-t border-border flex flex-col gap-4">
           <div className="flex justify-between items-center px-1">
-            <span className="text-xs text-muted-foreground">Selected: {selectedFields.length} / 5</span>
-            {selectedFields.length !== 5 && (
-              <span className="text-[10px] text-orange-400 font-medium">Select exactly 5 to save</span>
+            <span className="text-xs text-muted-foreground">Selected: {selectedFields.length}</span>
+            {(selectedFields.length < 2 || selectedFields.length > 10) && (
+              <span className="text-[10px] text-orange-400 font-medium">Select 2-10 to save</span>
             )}
           </div>
           <Button 
             onClick={handleSave} 
             loading={saving} 
-            disabled={selectedFields.length !== 5}
+            disabled={selectedFields.length < 2 || selectedFields.length > 10}
             className="w-full"
           >
             Update Fields
