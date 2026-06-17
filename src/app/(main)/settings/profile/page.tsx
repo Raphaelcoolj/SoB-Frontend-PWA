@@ -9,7 +9,7 @@ import React, { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
@@ -20,6 +20,7 @@ import { UserAvatar } from '../../../../components/user/UserAvatar';
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   bio: z.string().max(300, 'Bio cannot exceed 300 characters').optional(),
+  dob: z.string().optional(),
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
@@ -36,6 +37,27 @@ export default function EditProfilePage() {
 
   const onProfileSave = async (values: ProfileValues) => {
     if (!accessToken) return;
+    
+    // Make DOB mandatory if it's missing
+    if (!user?.dob && !values.dob) {
+        setProfileStatus('Date of Birth is required.');
+        return;
+    }
+
+    // Age validation if DOB is being set
+    if (values.dob) {
+        const dobDate = new Date(values.dob);
+        const today = new Date();
+        let age = today.getFullYear() - dobDate.getFullYear();
+        const m = today.getMonth() - dobDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) age--;
+        
+        if (age < 13) {
+            setProfileStatus('You must be at least 13 years old.');
+            return;
+        }
+    }
+
     setProfileStatus(null);
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
       method: 'PUT',
@@ -101,6 +123,14 @@ export default function EditProfilePage() {
             {profileStatus}
           </div>
         )}
+        
+        {!user?.dob && (
+          <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex gap-3 text-orange-600 dark:text-orange-400">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-medium">Please update your Date of Birth. This is required for account verification and app safety features.</p>
+          </div>
+        )}
+
         <form onSubmit={profileForm.handleSubmit(onProfileSave)} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="name">Full Name</Label>
@@ -116,6 +146,12 @@ export default function EditProfilePage() {
               className="w-full bg-background border border-input rounded-xl p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
             />
           </div>
+          {!user?.dob && (
+            <div className="space-y-1">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input type="date" id="dob" {...profileForm.register('dob')} />
+            </div>
+          )}
           <Button type="submit" loading={profileForm.formState.isSubmitting}>Save Changes</Button>
         </form>
       </section>
