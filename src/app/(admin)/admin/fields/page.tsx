@@ -13,7 +13,9 @@ import {
   Plus, 
   Trash2, 
   Search,
-  AlertCircle
+  AlertCircle,
+  Shield,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
