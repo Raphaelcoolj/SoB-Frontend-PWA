@@ -141,13 +141,13 @@ export default function EditPostPage() {
       <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-border">
           {mode === 'post' ? <MessageSquare className="w-5 h-5 text-accent" /> : <FileText className="w-5 h-5 text-accent" />}
-          <h1 className="font-bold text-lg">Edit {mode === 'post' ? 'Post' : 'Article'}</h1>
+          <h1 className="font-bold text-lg">Edit {mode === 'post' ? 'Post' : 'Story'}</h1>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {mode === 'article' && (
             <>
-              <Input id="title" placeholder="Article title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
+              <Input id="title" placeholder="Story title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
               
               <div className="relative">
                 <Input

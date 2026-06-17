@@ -43,6 +43,7 @@ export default function CreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldSearch, setFieldSearch] = useState('');
   const [showFieldDropdown, setShowFieldDropdown] = useState(false);
+  const [isSensitive, setIsSensitive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: fieldsData } = useSWR(`${BASE_URL}/api/fields`, fetcher, { revalidateOnFocus: false });
@@ -66,6 +67,7 @@ export default function CreatePage() {
       const formData = new FormData();
       formData.append('contentType', mode);
       formData.append('body', values.body);
+      formData.append('isSensitive', isSensitive.toString());
       
       if (mode === 'article') {
         if (values.field) formData.append('field', values.field);
@@ -105,7 +107,7 @@ export default function CreatePage() {
           }`}
           >
             {m === 'post' ? <MessageSquare className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-            {m.charAt(0).toUpperCase() + m.slice(1)}
+            {m === 'article' ? 'Story' : 'Post'}
           </button>
         ))}
       </div>
@@ -113,7 +115,7 @@ export default function CreatePage() {
       <form onSubmit={handleSubmit(onSubmit)} className="bg-card border border-border rounded-2xl p-4 space-y-4">
         {mode === 'article' && (
           <>
-            <Input id="title" placeholder="Article title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
+            <Input id="title" placeholder="Story title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
             
             <div className="relative">
               <Input
@@ -173,6 +175,17 @@ export default function CreatePage() {
             setImagePreviews(prev => prev.filter((_, i) => i !== index));
           }}
         />
+
+        <div className="flex items-center gap-2 px-1">
+          <input 
+            type="checkbox" 
+            id="isSensitive" 
+            checked={isSensitive} 
+            onChange={(e) => setIsSensitive(e.target.checked)}
+            className="w-4 h-4 accent-accent rounded"
+          />
+          <Label htmlFor="isSensitive" className="text-xs text-muted-foreground cursor-pointer select-none">Mark as Sensitive Content (18+)</Label>
+        </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <div className="flex gap-2 text-muted-foreground">

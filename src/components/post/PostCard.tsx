@@ -175,13 +175,17 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
             </div>
           </div>
           <div className="text-muted-foreground text-xs">@{post.author.username}</div>
-          {field && <div className="mt-1"><FieldBadge field={field} /></div>}
+          {field && <div className="mt-1 flex items-center gap-2">
+            <FieldBadge field={field} />
+            {post.isSensitive && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 border border-red-500/20 bg-red-500/10 rounded-full px-2 py-0.5 shadow-sm transition-all duration-200">
+                Sensitive
+              </span>
+            )}
+          </div>}
         </div>
-        {isArticle && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-accent border border-accent/30 rounded-full px-2 py-0.5 flex-shrink-0 ml-2 shadow-sm">
-            Article
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1">
+        </div>
       </div>
 
       {/* Content body */}

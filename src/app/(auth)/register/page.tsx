@@ -57,6 +57,15 @@ export default function RegisterPage() {
         toast.error('Invalid Date of Birth');
         return;
     }
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    if (age < 13) {
+      toast.error('You must be at least 13 years old to join SoB');
+      return;
+    }
     
     setLoading(true);
     try {

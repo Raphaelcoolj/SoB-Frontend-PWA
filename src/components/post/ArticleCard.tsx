@@ -120,14 +120,12 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
         {/* Header - Title and Type */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-[10px] font-medium text-accent uppercase tracking-widest">
-            <BookOpen className="w-3 h-3" />
-            <span>Article</span>
-            {!article.mediaUrls.length && !article.muxPlaybackId && (
-              <>
-                <span className="text-muted-foreground">·</span>
-                <FieldBadge field={field} />
-              </>
+            {article.isSensitive && (
+              <span className="text-red-600 dark:text-red-400 font-bold border border-red-500/20 bg-red-500/10 px-2 py-0.5 rounded-full shadow-sm transition-all duration-200">
+                Sensitive
+              </span>
             )}
+            <FieldBadge field={field} />
           </div>
           <Link href={`/post/${article._id}`}>
             <h2 className="text-xl font-semibold text-foreground leading-tight group-hover:text-accent transition-colors">

@@ -24,16 +24,16 @@ const getFieldStyles = (name: string) => {
 
   // We use HSL to ensure colors are always "vibrant" and "legible"
   // Hue: 0-360
-  // Saturation: 60-80% (vibrant but not neon)
-  // Lightness: 35-45% (dark enough for white text)
+  // Saturation: 65-75%
+  // Lightness: 45-55% (balanced for both light and dark backgrounds)
   const h = Math.abs(hash) % 360;
   const s = 70;
-  const l = 40;
+  const l = 50;
 
   return {
-    backgroundColor: `hsl(${h}, ${s}%, ${l}%)`,
-    borderColor: `hsl(${h}, ${s}%, ${l - 10}%)`,
-    color: '#ffffff'
+    backgroundColor: `hsla(${h}, ${s}%, ${l}%, 0.1)`,
+    borderColor: `hsla(${h}, ${s}%, ${l}%, 0.2)`,
+    color: `hsl(${h}, ${s}%, ${l - 5}%)`
   };
 };
 
@@ -47,7 +47,7 @@ export const FieldBadge = ({ field }: FieldBadgeProps) => {
   return (
     <span 
       style={styles}
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm"
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all duration-200"
     >
       {field.name}
     </span>

@@ -90,7 +90,7 @@ export default function AdminPostsPage() {
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Content</th>
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Author</th>
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Field</th>
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Date</th>
+                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Status</th>
                 <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground text-right">Actions</th>
               </tr>
             </thead>
@@ -117,12 +117,7 @@ export default function AdminPostsPage() {
                     <td className="px-6 py-4 max-w-xs">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[8px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                            p.contentType === 'article' ? 'bg-accent/10 border-accent/20 text-accent' : 'bg-muted border-border text-muted-foreground'
-                          }`}>
-                            {p.contentType}
-                          </span>
-                          {p.title && <p className="text-sm font-medium text-foreground truncate">{p.title}</p>}
+                          <p className="text-sm font-medium text-foreground truncate">{p.title || p.body.slice(0, 30)}</p>
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-1">{p.body}</p>
                       </div>
@@ -136,11 +131,31 @@ export default function AdminPostsPage() {
                         {p.field?.name || 'General'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(p.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4">
+                      {p.isSensitive ? (
+                        <span className="flex items-center gap-1 text-red-500 text-[10px] font-bold uppercase tracking-wider">
+                          <ShieldAlert className="w-3 h-3" />
+                          Sensitive
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                          <Shield className="w-3 h-3" />
+                          Safe
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleToggleSensitivity(p._id, p.isSensitive)}
+                          disabled={actionLoading === p._id}
+                          className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
+                            p.isSensitive ? 'border-red-500/20 bg-red-500/10 text-red-600' : 'border-border text-muted-foreground hover:bg-muted'
+                          }`}
+                          title={p.isSensitive ? "Mark as Safe" : "Mark as Sensitive"}
+                        >
+                          <Shield className="w-4 h-4" />
+                        </button>
                         <a 
                           href={`/post/${p._id}`} 
                           target="_blank" 

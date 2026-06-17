@@ -17,6 +17,7 @@ export interface Post {
   bookmarks: string[]; // User IDs
   comments: string[]; // Comment IDs
   isPublished: boolean;
+  isSensitive?: boolean;
   muxAssetId?: string;
   muxPlaybackId?: string;
   impressions: number;

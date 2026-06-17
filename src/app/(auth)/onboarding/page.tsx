@@ -19,13 +19,21 @@ import { toast } from 'sonner';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, accessToken, setUser } = useAuthStore();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ 
     username: user?.username || '', 
-    bio: user?.bio || '' 
+    bio: user?.bio || '',
+    dobDay: '',
+    dobMonth: '',
+    dobYear: ''
   });
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -65,16 +73,36 @@ export default function OnboardingPage() {
       return;
     }
     
+    // Construct DOB
+    let dob = null;
+    if (formData.dobDay && formData.dobMonth && formData.dobYear) {
+      const monthIndex = MONTHS.indexOf(formData.dobMonth);
+      dob = new Date(parseInt(formData.dobYear), monthIndex, parseInt(formData.dobDay));
+      if (isNaN(dob.getTime())) {
+        toast.error('Invalid Date of Birth');
+        return;
+      }
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+      if (age < 13) {
+        toast.error('You must be at least 13 years old to join SoB');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (!accessToken) return;
 
-      // 1. Update basic info (username/bio)
+      // 1. Update basic info (username/bio/dob)
       await fetchWithAuth('/api/auth/complete-onboarding', {
         method: 'POST',
         body: JSON.stringify({
           username: formData.username,
           bio: formData.bio,
+          dob: dob ? dob.toISOString() : undefined,
           priorityFields: selectedFields
         })
       });
@@ -107,6 +135,9 @@ export default function OnboardingPage() {
     }
   };
 
+  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-foreground">Welcome to SoB</h1>
@@ -128,8 +159,32 @@ export default function OnboardingPage() {
           <Button onClick={() => formData.username.length >= 3 ? setStep(2) : toast.error('Username too short')} className="w-full">Continue</Button>
         </div>
       )}
-      
+
       {step === 2 && (
+        <div className="space-y-4 animate-in fade-in">
+          <p className="text-sm text-muted-foreground">When is your birthday?</p>
+          <div className="grid grid-cols-3 gap-2">
+            <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobMonth} onChange={e => setFormData({...formData, dobMonth: e.target.value})}>
+              <option value="">Month</option>
+              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobDay} onChange={e => setFormData({...formData, dobDay: e.target.value})}>
+              <option value="">Day</option>
+              {days.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobYear} onChange={e => setFormData({...formData, dobYear: e.target.value})}>
+              <option value="">Year</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="w-full" onClick={() => setStep(1)}>Back</Button>
+            <Button className="w-full" onClick={() => formData.dobDay && formData.dobMonth && formData.dobYear ? setStep(3) : toast.error('Select full date')}>Continue</Button>
+          </div>
+        </div>
+      )}
+      
+      {step === 3 && (
         <div className="space-y-4 animate-in fade-in">
           <p className="text-sm text-muted-foreground">Select your interests (2-10 fields):</p>
           <div className="flex items-center justify-between">
@@ -148,7 +203,7 @@ export default function OnboardingPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="w-full" onClick={() => setStep(1)}>Back</Button>
+            <Button variant="outline" className="w-full" onClick={() => setStep(2)}>Back</Button>
             <Button onClick={handleSubmit} className="w-full" loading={loading}>Complete</Button>
           </div>
         </div>

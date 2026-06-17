@@ -176,11 +176,29 @@ export default function AdminFieldsPage() {
                       <BookOpen className="w-4 h-4 text-accent" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{f.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{f.name}</p>
+                        {f.isSensitive && (
+                          <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-[8px] font-bold uppercase tracking-wider bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 shadow-sm">
+                            <ShieldAlert className="w-2.5 h-2.5" />
+                            Sensitive
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-muted-foreground">slug: {f.slug}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => handleToggleSensitivity(f._id, f.isSensitive)}
+                      disabled={actionLoading === f._id}
+                      className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
+                        f.isSensitive ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100' : 'border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                      title={f.isSensitive ? "Mark as Safe" : "Mark as Sensitive"}
+                    >
+                      <Shield className="w-4 h-4" />
+                    </button>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Boost:</span>
                       <input
