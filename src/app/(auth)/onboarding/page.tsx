@@ -8,7 +8,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { Camera } from 'lucide-react';
+import { Camera, Star } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';

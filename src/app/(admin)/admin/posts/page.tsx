@@ -15,7 +15,9 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Filter
+  Filter,
+  Shield,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -46,6 +48,21 @@ export default function AdminPostsPage() {
     setActionLoading(postId);
     try {
       const res = await fetchWithAuth(`/api/admin/posts/${postId}`, { method: 'DELETE' });
+      if (res.ok) mutate();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleToggleSensitivity = async (postId: string, currentStatus: boolean) => {
+    setActionLoading(postId);
+    try {
+      const res = await fetchWithAuth(`/api/admin/posts/${postId}/sensitivity`, {
+        method: 'PUT',
+        body: JSON.stringify({ isSensitive: !currentStatus })
+      });
       if (res.ok) mutate();
     } catch (err) {
       console.error(err);

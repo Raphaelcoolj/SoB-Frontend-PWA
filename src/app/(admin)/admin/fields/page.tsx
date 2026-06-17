@@ -96,6 +96,36 @@ export default function AdminFieldsPage() {
     }
   };
 
+  const handleToggleSensitivity = async (fieldId: string, currentStatus: boolean) => {
+    setActionLoading(fieldId);
+    try {
+      const res = await fetchWithAuth(`/api/admin/fields/${fieldId}/sensitivity`, {
+        method: 'PUT',
+        body: JSON.stringify({ isSensitive: !currentStatus })
+      });
+      if (res.ok) mutate();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleTogglePriorityOnly = async (fieldId: string, currentStatus: boolean) => {
+    setActionLoading(fieldId);
+    try {
+      const res = await fetchWithAuth(`/api/admin/fields/${fieldId}/priority-only`, {
+        method: 'PUT',
+        body: JSON.stringify({ isPriorityOnly: !currentStatus })
+      });
+      if (res.ok) mutate();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filteredFields = fields.filter((f: any) => 
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -201,6 +231,16 @@ export default function AdminFieldsPage() {
                     >
                       <Shield className="w-4 h-4" />
                     </button>
+                    <button
+                      onClick={() => handleTogglePriorityOnly(f._id, f.isPriorityOnly)}
+                      disabled={actionLoading === f._id}
+                      className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
+                        f.isPriorityOnly ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                      title={f.isPriorityOnly ? "Disable Priority Only" : "Enable Priority Only"}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Boost:</span>
                       <input
@@ -248,4 +288,3 @@ export default function AdminFieldsPage() {
     </div>
   );
 }
-
