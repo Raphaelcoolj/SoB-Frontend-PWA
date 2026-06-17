@@ -20,6 +20,7 @@ interface AuthState {
   clearAuth: () => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
+  checkOnboardingStatus: (error: any) => void;
 }
 
 const setAuthCookie = (accessToken: string | null, refreshToken: string | null, user: User | null) => {
@@ -68,6 +69,11 @@ export const useAuthStore = create<AuthState>()(
         setAuthCookie(null, null, null);
       },
       setLoading: (loading) => set({ isLoading: loading }),
+      checkOnboardingStatus: (error: any) => {
+        if (error?.response?.data?.errorData?.isOnboarded === false) {
+          window.location.href = '/onboarding';
+        }
+      }
     }),
     {
       name: 'sob-auth-storage',

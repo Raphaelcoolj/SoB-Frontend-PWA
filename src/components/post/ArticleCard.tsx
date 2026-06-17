@@ -105,7 +105,6 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute top-4 right-4">
-            <FieldBadge field={field} />
           </div>
         </div>
       )}
