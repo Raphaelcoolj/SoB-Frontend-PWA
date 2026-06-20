@@ -1,14 +1,25 @@
 /**
  * @file page.tsx (privacy-policy)
- * @description Static privacy policy page.
+ * @description Static privacy policy page displaying Termly-generated policy content.
  */
 
 import React from 'react';
 import Link from 'next/link';
+import fs from 'fs';
+import path from 'path';
 import { ArrowLeft } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
 
 export default function PrivacyPolicyPage() {
+  let htmlContent = '';
+  try {
+    const htmlPath = path.join(process.cwd(), 'src/app/privacy-policy/policy_content.html');
+    htmlContent = fs.readFileSync(htmlPath, 'utf8');
+  } catch (err) {
+    console.error('Failed to load privacy policy content:', err);
+    htmlContent = '<p>Privacy policy content is temporarily unavailable.</p>';
+  }
+
   return (
     <div className="min-h-screen bg-background p-6 lg:p-20">
       <div className="max-w-3xl mx-auto space-y-10">
@@ -20,31 +31,43 @@ export default function PrivacyPolicyPage() {
           </Link>
         </header>
 
-        <main className="prose prose-invert max-w-none space-y-6">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground italic">Privacy Policy</h1>
-          <p className="text-muted-foreground">Last updated: June 12, 2026</p>
-          
-          <section className="space-y-4 pt-4">
-            <h2 className="text-xl font-medium text-foreground">1. Introduction</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Welcome to SoB (Sphere of Brilliance). We value your privacy and are committed to protecting your personal data. 
-              This policy explains how we collect, use, and safeguard your information.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xl font-medium text-foreground">2. Data Collection</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              [Insert Privacy Policy here]
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xl font-medium text-foreground">3. How We Use Data</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              We use your data to provide and improve our services, personalize your experience, and communicate with you.
-            </p>
-          </section>
+        <main className="privacy-policy-container prose prose-invert max-w-none text-foreground">
+          <style>{`
+            .privacy-policy-container [data-custom-class='title'], 
+            .privacy-policy-container [data-custom-class='title'] * {
+              color: var(--color-foreground) !important;
+              font-family: inherit !important;
+            }
+            .privacy-policy-container [data-custom-class='heading_1'], 
+            .privacy-policy-container [data-custom-class='heading_1'] * {
+              color: var(--color-foreground) !important;
+              font-family: inherit !important;
+            }
+            .privacy-policy-container [data-custom-class='heading_2'], 
+            .privacy-policy-container [data-custom-class='heading_2'] * {
+              color: var(--color-foreground) !important;
+              font-family: inherit !important;
+            }
+            .privacy-policy-container [data-custom-class='body_text'], 
+            .privacy-policy-container [data-custom-class='body_text'] * {
+              color: var(--color-foreground) !important;
+              opacity: 0.85;
+              font-family: inherit !important;
+            }
+            .privacy-policy-container [data-custom-class='subtitle'], 
+            .privacy-policy-container [data-custom-class='subtitle'] * {
+              color: var(--color-foreground) !important;
+              opacity: 0.7;
+              font-family: inherit !important;
+            }
+            .privacy-policy-container [data-custom-class='link'], 
+            .privacy-policy-container [data-custom-class='link'] * {
+              color: var(--color-accent, #3b82f6) !important;
+              font-family: inherit !important;
+              text-decoration: underline;
+            }
+          `}</style>
+          <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
         </main>
 
         <footer className="pt-10 border-t border-border">
@@ -56,4 +79,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-
