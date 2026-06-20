@@ -1,6 +1,6 @@
 /**
  * @file page.tsx (privacy-policy)
- * @description Static privacy policy page displaying Termly-generated policy content.
+ * @description Static privacy policy page displaying the platform's privacy policy content.
  */
 
 import React from 'react';

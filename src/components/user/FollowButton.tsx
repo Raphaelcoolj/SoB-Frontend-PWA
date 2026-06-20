@@ -17,6 +17,7 @@ interface FollowButtonProps {
   targetUserId: string;
   initialIsFollowing: boolean;
   onFollowChange?: (isFollowing: boolean, newCount: number) => void;
+  className?: string;
 }
 
 export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange }: FollowButtonProps) => {
