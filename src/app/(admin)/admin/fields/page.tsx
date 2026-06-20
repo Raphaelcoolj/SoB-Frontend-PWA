@@ -202,14 +202,14 @@ export default function AdminFieldsPage() {
               </div>
             ) : (
               filteredFields.map((f: any) => (
-                <div key={f._id} className="p-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                <div key={f._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/20 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                       <BookOpen className="w-4 h-4 text-accent" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">{f.name}</p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">{f.name}</p>
                         {f.isSensitive && (
                           <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-[8px] font-bold uppercase tracking-wider bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 shadow-sm">
                             <ShieldAlert className="w-2.5 h-2.5" />
@@ -217,31 +217,33 @@ export default function AdminFieldsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">slug: {f.slug}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">slug: {f.slug}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => handleToggleSensitivity(f._id, f.isSensitive)}
-                      disabled={actionLoading === f._id}
-                      className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
-                        f.isSensitive ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100' : 'border-border text-muted-foreground hover:bg-muted'
-                      }`}
-                      title={f.isSensitive ? "Mark as Safe" : "Mark as Sensitive"}
-                    >
-                      <Shield className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleTogglePriorityOnly(f._id, f.isPriorityOnly)}
-                      disabled={actionLoading === f._id}
-                      className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
-                        f.isPriorityOnly ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-border text-muted-foreground hover:bg-muted'
-                      }`}
-                      title={f.isPriorityOnly ? "Disable Priority Only" : "Enable Priority Only"}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto justify-start sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border/40 sm:pt-0">
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleSensitivity(f._id, f.isSensitive)}
+                        disabled={actionLoading === f._id}
+                        className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
+                          f.isSensitive ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100' : 'border-border text-muted-foreground hover:bg-muted'
+                        }`}
+                        title={f.isSensitive ? "Mark as Safe" : "Mark as Sensitive"}
+                      >
+                        <Shield className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleTogglePriorityOnly(f._id, f.isPriorityOnly)}
+                        disabled={actionLoading === f._id}
+                        className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
+                          f.isPriorityOnly ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-border text-muted-foreground hover:bg-muted'
+                        }`}
+                        title={f.isPriorityOnly ? "Disable Priority Only" : "Enable Priority Only"}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 bg-muted/30 sm:bg-transparent p-1.5 sm:p-0 rounded-lg border border-border/40 sm:border-0">
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Boost:</span>
                       <input
                         type="number"
@@ -266,7 +268,7 @@ export default function AdminFieldsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0 rounded-lg border-destructive/30 text-destructive/60 hover:text-white hover:bg-destructive hover:border-destructive transition-all"
+                      className="h-8 w-8 p-0 rounded-lg border-destructive/30 text-destructive/60 hover:text-white hover:bg-destructive hover:border-destructive transition-all ml-auto sm:ml-0"
                       onClick={() => handleDeleteField(f._id)}
                       loading={actionLoading === f._id}
                     >
