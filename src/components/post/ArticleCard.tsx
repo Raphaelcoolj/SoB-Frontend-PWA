@@ -10,6 +10,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+// NEW: Import ImageLightbox
+import ImageLightbox from './ImageLightbox';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -35,6 +37,10 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
   const [isBookmarked, setIsBookmarked] = useState(article.bookmarks.includes(userId));
   const [commentCount, setCommentCount] = useState(article.comments.length);
   const [showOptions, setShowOptions] = useState(false);
+
+  // NEW: State for image lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const handleDelete = async () => {
     if (!accessToken || !isAuthor) return;
@@ -97,7 +103,15 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
     <article className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300 group shadow-sm hover:shadow-md">
       {/* Cover Image or Video */}
       {article.mediaUrls.length > 0 && !article.muxPlaybackId && (
-        <div className="relative h-48 sm:h-64 overflow-hidden">
+        // NEW: Wrap article cover image in a button to open image lightbox on tap
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // prevent triggering article/post detail navigation
+            setLightboxIndex(0);
+            setLightboxOpen(true);
+          }}
+          className="relative w-full h-48 sm:h-64 overflow-hidden block focus:outline-none cursor-pointer text-left"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={article.mediaUrls[0]}
@@ -106,7 +120,7 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
           />
           <div className="absolute top-4 right-4">
           </div>
-        </div>
+        </button>
       )}
 
       {article.muxPlaybackId && (
@@ -212,6 +226,15 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
           </div>
         </div>
       </div>
+
+      {/* NEW: Conditional lightbox overlay */}
+      {lightboxOpen && (
+        <ImageLightbox
+          images={article.mediaUrls}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </article>
   );
 }

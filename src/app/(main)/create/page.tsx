@@ -25,7 +25,8 @@ const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data
 type ContentMode = 'post' | 'article';
 
 const postSchema = z.object({
-  body: z.string().min(1, 'Content is required').max(200, 'Posts cannot exceed 200 characters'),
+  // NEW: Make post body optional to allow media-only posts
+  body: z.string().max(200, 'Posts cannot exceed 200 characters').optional().or(z.literal('')),
 });
 
 const articleSchema = z.object({
@@ -63,10 +64,17 @@ export default function CreatePage() {
     if (!accessToken) return;
     setSubmitting(true);
 
+    // NEW: Enforce that posts have either text body or attached media files
+    if (mode === 'post' && !values.body?.trim() && images.length === 0) {
+      toast.error('Post must contain either text or media (image/video)');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append('contentType', mode);
-      formData.append('body', values.body);
+      formData.append('body', values.body || '');
       formData.append('isSensitive', isSensitive.toString());
       
       if (mode === 'article') {
@@ -107,7 +115,7 @@ export default function CreatePage() {
           }`}
           >
             {m === 'post' ? <MessageSquare className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-            {m === 'article' ? 'Story' : 'Post'}
+            {m === 'article' ? 'Article/Story' : 'Post'}
           </button>
         ))}
       </div>
@@ -115,7 +123,7 @@ export default function CreatePage() {
       <form onSubmit={handleSubmit(onSubmit)} className="bg-card border border-border rounded-2xl p-4 space-y-4">
         {mode === 'article' && (
           <>
-            <Input id="title" placeholder="Story title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
+            <Input id="title" placeholder="title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
             
             <div className="relative">
               <Input

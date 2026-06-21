@@ -11,6 +11,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+// NEW: Import ImageLightbox
+import ImageLightbox from './ImageLightbox';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
@@ -39,6 +41,10 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   const [isBookmarked, setIsBookmarked] = useState((post.bookmarks || []).includes(userId));
   const [commentCount, setCommentCount] = useState((post.comments || []).length);
   const [showOptions, setShowOptions] = useState(false);
+
+  // NEW: State for image lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const handleCommentClick = () => {
     if (onCommentClick) {
@@ -210,14 +216,24 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
       {!post.muxPlaybackId && post.mediaUrls.length > 0 && (
         <div className={`px-4 pb-3 grid gap-1.5 ${post.mediaUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {post.mediaUrls.slice(0, 4).map((url, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            // NEW: Wrap image in clickable button to trigger full screen lightbox
+            <button
               key={i}
-              src={url}
-              alt={`Media ${i + 1}`}
-              className="w-full h-48 object-cover rounded-lg border border-border"
-              loading="lazy"
-            />
+              onClick={(e) => {
+                e.stopPropagation(); // prevent triggering post navigation
+                setLightboxIndex(i);
+                setLightboxOpen(true);
+              }}
+              className="w-full h-48 relative overflow-hidden rounded-lg border border-border cursor-pointer focus:outline-none hover:opacity-95 transition-opacity"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`Media ${i + 1}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </button>
           ))}
         </div>
       )}
@@ -261,6 +277,15 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
           {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* NEW: Conditional lightbox overlay */}
+      {lightboxOpen && (
+        <ImageLightbox
+          images={post.mediaUrls}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </article>
   );
 }
