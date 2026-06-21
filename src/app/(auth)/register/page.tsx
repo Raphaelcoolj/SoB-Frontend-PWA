@@ -39,9 +39,14 @@ export default function RegisterPage() {
     dobYear: ''
   });
   const [loading, setLoading] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreeToTerms) {
+      toast.error('You must agree to the Terms of Service and Privacy Policy');
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -163,9 +168,31 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-300">
             <PasswordInput placeholder="Password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
             <PasswordInput placeholder="Confirm Password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
+            
+            <div className="flex items-start gap-2 pt-2 pb-1">
+              <input
+                id="agreeToTerms"
+                type="checkbox"
+                required
+                checked={agreeToTerms}
+                onChange={e => setAgreeToTerms(e.target.checked)}
+                className="w-4 h-4 rounded border-border bg-muted text-accent focus:ring-accent cursor-pointer mt-0.5"
+              />
+              <label htmlFor="agreeToTerms" className="text-xs text-muted-foreground select-none cursor-pointer leading-relaxed">
+                I agree to the{' '}
+                <Link href="/terms-of-service" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy-policy" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
             <div className="flex gap-2">
               <Button variant="outline" className="w-full" type="button" onClick={() => setStep(3)}>Back</Button>
-              <Button type="submit" className="w-full" loading={loading}>Register</Button>
+              <Button type="submit" className="w-full" loading={loading} disabled={!agreeToTerms}>Register</Button>
             </div>
           </form>
         )}

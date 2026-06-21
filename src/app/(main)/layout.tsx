@@ -17,6 +17,7 @@ import TabletNav from '../../components/layout/TabletNav';
 import { useAuthStore } from '../../store/authStore';
 import { connectSocket } from '../../lib/socket';
 import { useThemeStore, ACCENT_MAP } from '../../store/themeStore';
+import TermsAgreementModal from '../../components/shared/TermsAgreementModal';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -81,6 +82,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Mobile bottom tab bar */}
       <BottomNav />
+
+      {/* Terms agreement modal overlay */}
+      <TermsAgreementModal />
     </div>
   );
 }

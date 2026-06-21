@@ -16,6 +16,7 @@ import { Label } from '../../../components/ui/Label';
 import { UserAvatar } from '../../../components/user/UserAvatar';
 import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
@@ -39,6 +40,7 @@ export default function OnboardingPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: fieldsData } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/fields`, fetcher);
@@ -64,6 +66,10 @@ export default function OnboardingPage() {
   };
 
   const handleSubmit = async () => {
+    if (!user?.agreedToTerms && !agreeToTerms) {
+      toast.error('You must agree to the Terms of Service and Privacy Policy');
+      return;
+    }
     if (selectedFields.length < 2) {
       toast.error('Please select at least 2 fields');
       return;
@@ -103,7 +109,8 @@ export default function OnboardingPage() {
           username: formData.username,
           bio: formData.bio,
           dob: dob ? dob.toISOString() : undefined,
-          priorityFields: selectedFields
+          priorityFields: selectedFields,
+          agreedToTerms: !user?.agreedToTerms ? agreeToTerms : undefined
         })
       });
 
@@ -202,9 +209,33 @@ export default function OnboardingPage() {
               </button>
             ))}
           </div>
+
+          {!user?.agreedToTerms && (
+            <div className="flex items-start gap-2 pt-2 pb-1 text-left">
+              <input
+                id="agreeToTerms"
+                type="checkbox"
+                required
+                checked={agreeToTerms}
+                onChange={e => setAgreeToTerms(e.target.checked)}
+                className="w-4 h-4 rounded border-border bg-muted text-accent focus:ring-accent cursor-pointer mt-0.5"
+              />
+              <label htmlFor="agreeToTerms" className="text-xs text-muted-foreground select-none cursor-pointer leading-relaxed">
+                I agree to the{' '}
+                <Link href="/terms-of-service" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy-policy" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button variant="outline" className="w-full" onClick={() => setStep(2)}>Back</Button>
-            <Button onClick={handleSubmit} className="w-full" loading={loading}>Complete</Button>
+            <Button onClick={handleSubmit} className="w-full" loading={loading} disabled={!user?.agreedToTerms && !agreeToTerms}>Complete</Button>
           </div>
         </div>
       )}
