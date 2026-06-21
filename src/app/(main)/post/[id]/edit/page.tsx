@@ -33,6 +33,27 @@ const articleSchema = z.object({
   field: z.string().min(1, 'Field is required'),
 });
 
+// NEW: Helper to validate video duration is 60 seconds or less
+const validateVideoDuration = (file: File): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('video/')) {
+      resolve(true);
+      return;
+    }
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(video.duration <= 60);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(false);
+    };
+  });
+};
+
 export default function EditPostPage() {
   const router = useRouter();
   const { id } = useParams();
@@ -244,10 +265,25 @@ export default function EditPostPage() {
             </div>
           </div>
           
-          <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => {
+          <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={async (e) => {
               const files = Array.from(e.target.files || []);
-              setImages(prev => [...prev, ...files]);
-              setImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+              const validFiles: File[] = [];
+              
+              for (const file of files) {
+                if (file.type.startsWith('video/')) {
+                  const isValid = await validateVideoDuration(file);
+                  if (!isValid) {
+                    toast.error(`Video "${file.name}" exceeds the 60-second limit.`);
+                    continue;
+                  }
+                }
+                validFiles.push(file);
+              }
+
+              if (validFiles.length > 0) {
+                setImages(prev => [...prev, ...validFiles]);
+                setImagePreviews(prev => [...prev, ...validFiles.map(f => URL.createObjectURL(f))]);
+              }
               e.target.value = '';
           }} />
         </form>

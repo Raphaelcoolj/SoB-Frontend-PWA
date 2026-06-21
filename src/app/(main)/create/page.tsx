@@ -17,6 +17,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
 import MediaUploader from '../../../components/post/MediaUploader';
+import VideoTrimmerModal from '../../../components/post/VideoTrimmerModal';
 import { toast } from 'sonner';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -35,6 +36,27 @@ const articleSchema = z.object({
   field: z.string().min(1, 'Field is required'),
 });
 
+// NEW: Helper to validate video duration is 60 seconds or less
+const validateVideoDuration = (file: File): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('video/')) {
+      resolve(true);
+      return;
+    }
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(video.duration <= 60);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(false);
+    };
+  });
+};
+
 export default function CreatePage() {
   const router = useRouter();
   const { accessToken } = useAuthStore();
@@ -45,7 +67,56 @@ export default function CreatePage() {
   const [fieldSearch, setFieldSearch] = useState('');
   const [showFieldDropdown, setShowFieldDropdown] = useState(false);
   const [isSensitive, setIsSensitive] = useState(false);
+  const [trimmingFile, setTrimmingFile] = useState<File | null>(null);
+  const [trimmingIndex, setTrimmingIndex] = useState<number | null>(null);
+  const [isTrimmerOpen, setIsTrimmerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTrimComplete = (trimmedFile: File) => {
+    setIsTrimmerOpen(false);
+    if (trimmingIndex !== null) {
+      setImages(prev => {
+        const next = [...prev];
+        next[trimmingIndex] = trimmedFile;
+        return next;
+      });
+      setImagePreviews(prev => {
+        const next = [...prev];
+        URL.revokeObjectURL(next[trimmingIndex]);
+        next[trimmingIndex] = URL.createObjectURL(trimmedFile);
+        return next;
+      });
+      toast.success('Video trimmed successfully!');
+    } else {
+      setImages(prev => [...prev, trimmedFile]);
+      setImagePreviews(prev => [...prev, URL.createObjectURL(trimmedFile)]);
+      toast.success('Video trimmed and added!');
+    }
+    setTrimmingFile(null);
+    setTrimmingIndex(null);
+  };
+
+  const processFiles = async (files: File[]) => {
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (file.type.startsWith('video/')) {
+        const isValid = await validateVideoDuration(file);
+        if (!isValid) {
+          toast.info(`Video "${file.name}" exceeds 60s limit. Opening trimmer...`);
+          setTrimmingFile(file);
+          setTrimmingIndex(null);
+          setIsTrimmerOpen(true);
+          continue;
+        }
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length > 0) {
+      setImages(prev => [...prev, ...validFiles]);
+      setImagePreviews(prev => [...prev, ...validFiles.map(f => URL.createObjectURL(f))]);
+    }
+  };
   
   const { data: fieldsData } = useSWR(`${BASE_URL}/api/fields`, fetcher, { revalidateOnFocus: false });
   const fields: any[] = fieldsData?.fields || fieldsData || [];
@@ -174,13 +245,21 @@ export default function CreatePage() {
         <MediaUploader 
           files={images}
           previews={imagePreviews}
-          onUpload={(newFiles) => {
-            setImages(prev => [...prev, ...newFiles]);
-            setImagePreviews(prev => [...prev, ...newFiles.map(f => URL.createObjectURL(f))]);
-          }}
+          onUpload={processFiles}
           onRemove={(index) => {
             setImages(prev => prev.filter((_, i) => i !== index));
-            setImagePreviews(prev => prev.filter((_, i) => i !== index));
+            setImagePreviews(prev => {
+              URL.revokeObjectURL(prev[index]);
+              return prev.filter((_, i) => i !== index);
+            });
+          }}
+          onTrim={(index) => {
+            const file = images[index];
+            if (file && file.type.startsWith('video/')) {
+              setTrimmingFile(file);
+              setTrimmingIndex(index);
+              setIsTrimmerOpen(true);
+            }
           }}
         />
 
@@ -216,13 +295,34 @@ export default function CreatePage() {
         </div>
         
         {/* Hidden File Input for the icons to trigger */}
-        <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => {
+        <input 
+          ref={fileInputRef} 
+          type="file" 
+          accept="image/*,video/*" 
+          multiple 
+          className="hidden" 
+          onChange={async (e) => {
             const files = Array.from(e.target.files || []);
-            setImages(prev => [...prev, ...files]);
-            setImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+            if (files.length > 0) {
+              await processFiles(files);
+            }
             e.target.value = '';
-        }} />
+          }} 
+        />
       </form>
+
+      {trimmingFile && (
+        <VideoTrimmerModal
+          file={trimmingFile}
+          isOpen={isTrimmerOpen}
+          onClose={() => {
+            setIsTrimmerOpen(false);
+            setTrimmingFile(null);
+            setTrimmingIndex(null);
+          }}
+          onTrimComplete={handleTrimComplete}
+        />
+      )}
     </div>
   );
 }
