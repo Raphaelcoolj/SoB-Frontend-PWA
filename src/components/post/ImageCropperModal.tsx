@@ -11,17 +11,42 @@ interface ImageCropperModalProps {
   onCropComplete: (croppedFile: File) => void;
 }
 
-interface Point { x: number; y: number; }
+interface CropBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e';
+
+const HANDLE_HIT = 16;
+const MIN_SIZE = 30;
+
+function clamp(v: number, min: number, max: number) {
+  return Math.min(Math.max(v, min), max);
+}
+
+function getCursor(mode: DragMode | null) {
+  if (!mode) return 'default';
+  const map: Record<string, string> = {
+    move: 'move', nw: 'nw-resize', ne: 'ne-resize',
+    sw: 'sw-resize', se: 'se-resize',
+    n: 'n-resize', s: 's-resize', w: 'w-resize', e: 'e-resize',
+  };
+  return map[mode] || 'default';
+}
 
 export default function ImageCropperModal({ file, isOpen, onClose, onCropComplete }: ImageCropperModalProps) {
-  const imageRef = useRef<HTMLImageElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [display, setDisplay] = useState({ w: 0, h: 0 });
-  const [crop, setCrop] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [drawStart, setDrawStart] = useState<Point>({ x: 0, y: 0 });
+  const [box, setBox] = useState<CropBox | null>(null);
+  const [dragMode, setDragMode] = useState<DragMode | null>(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [boxOnStart, setBoxOnStart] = useState<CropBox | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -30,86 +55,168 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
     return () => { URL.revokeObjectURL(url); setImageUrl(null); };
   }, [file]);
 
-  const getPos = useCallback((clientX: number, clientY: number): Point | null => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return null;
-    return { x: clientX - rect.left, y: clientY - rect.top };
+  const pos = useCallback((clientX: number, clientY: number) => {
+    const r = containerRef.current?.getBoundingClientRect();
+    return r ? { x: clientX - r.left, y: clientY - r.top } : null;
   }, []);
 
-  const updateDisplay = useCallback(() => {
-    if (imageRef.current && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setDisplay({ w: rect.width, h: rect.height });
-      setNatural({ w: imageRef.current.naturalWidth, h: imageRef.current.naturalHeight });
+  const hitTest = useCallback((p: { x: number; y: number }, b: CropBox): DragMode | null => {
+    const h = HANDLE_HIT;
+    const l = p.x >= b.x - h && p.x <= b.x + h;
+    const r = p.x >= b.x + b.w - h && p.x <= b.x + b.w + h;
+    const t = p.y >= b.y - h && p.y <= b.y + h;
+    const bt = p.y >= b.y + b.h - h && p.y <= b.y + b.h + h;
+    const insideX = p.x >= b.x && p.x <= b.x + b.w;
+    const insideY = p.y >= b.y && p.y <= b.y + b.h;
+    if (t && l) return 'nw';
+    if (t && r) return 'ne';
+    if (bt && l) return 'sw';
+    if (bt && r) return 'se';
+    if (t && insideX) return 'n';
+    if (bt && insideX) return 's';
+    if (l && insideY) return 'w';
+    if (r && insideY) return 'e';
+    if (insideX && insideY) return 'move';
+    return null;
+  }, []);
+
+  const initBox = useCallback(() => {
+    if (display.w === 0 || display.h === 0) return;
+    const m = 0.08;
+    setBox({
+      x: display.w * m,
+      y: display.h * m,
+      w: display.w * (1 - 2 * m),
+      h: display.h * (1 - 2 * m),
+    });
+  }, [display]);
+
+  useEffect(() => {
+    if (display.w > 0) initBox();
+  }, [display, initBox]);
+
+  const onImgLoad = () => {
+    if (imgRef.current && containerRef.current) {
+      const r = containerRef.current.getBoundingClientRect();
+      setDisplay({ w: r.width, h: r.height });
+      setNatural({ w: imgRef.current.naturalWidth, h: imgRef.current.naturalHeight });
     }
-  }, []);
-
-  const handleImageLoad = () => {
-    updateDisplay();
-    setCrop(null);
   };
 
-  const startCrop = useCallback((pos: Point) => {
-    setIsDrawing(true);
-    setDrawStart(pos);
-    setCrop(null);
-  }, []);
+  const onDown = (e: React.PointerEvent) => {
+    const p = pos(e.clientX, e.clientY);
+    if (!p || !box) return;
+    const mode = hitTest(p, box);
+    if (!mode) return;
+    setDragMode(mode);
+    setDragStart(p);
+    setBoxOnStart({ ...box });
+    containerRef.current?.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
 
-  const moveCrop = useCallback((pos: Point) => {
-    if (!isDrawing) return;
-    const x = Math.min(drawStart.x, pos.x);
-    const y = Math.min(drawStart.y, pos.y);
-    const w = Math.abs(pos.x - drawStart.x);
-    const h = Math.abs(pos.y - drawStart.y);
-    setCrop({ x, y, w, h });
-  }, [isDrawing, drawStart]);
-
-  const endCrop = useCallback(() => {
-    setIsDrawing(false);
-    if (crop && (crop.w < 10 || crop.h < 10)) {
-      setCrop(null);
+  const onMove = (e: React.PointerEvent) => {
+    if (!dragMode || !boxOnStart) {
+      if (box && containerRef.current) {
+        const p = pos(e.clientX, e.clientY);
+        if (p) {
+          const mode = hitTest(p, box);
+          containerRef.current.style.cursor = getCursor(mode);
+        }
+      }
+      return;
     }
-  }, [crop]);
+    const p = pos(e.clientX, e.clientY);
+    if (!p) return;
+    const r = containerRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const maxW = r.width;
+    const maxH = r.height;
+    const dx = p.x - dragStart.x;
+    const dy = p.y - dragStart.y;
+    let { x, y, w, h } = boxOnStart;
 
-  const handleMouseDown = (e: React.MouseEvent) => { const p = getPos(e.clientX, e.clientY); if (p) startCrop(p); };
-  const handleMouseMove = (e: React.MouseEvent) => { const p = getPos(e.clientX, e.clientY); if (p) moveCrop(p); };
-  const handleMouseUp = () => endCrop();
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) { const p = getPos(e.touches[0].clientX, e.touches[0].clientY); if (p) startCrop(p); }
+    switch (dragMode) {
+      case 'move':
+        x = clamp(x + dx, 0, maxW - w);
+        y = clamp(y + dy, 0, maxH - h);
+        break;
+      case 'nw': {
+        const nx = clamp(x + dx, 0, x + w - MIN_SIZE);
+        const ny = clamp(y + dy, 0, y + h - MIN_SIZE);
+        w = x + w - nx;
+        h = y + h - ny;
+        x = nx; y = ny;
+        break;
+      }
+      case 'ne': {
+        const ny = clamp(y + dy, 0, y + h - MIN_SIZE);
+        w = clamp(w + dx, MIN_SIZE, maxW - x);
+        h = y + h - ny;
+        y = ny;
+        break;
+      }
+      case 'sw': {
+        const nx = clamp(x + dx, 0, x + w - MIN_SIZE);
+        w = x + w - nx;
+        h = clamp(h + dy, MIN_SIZE, maxH - y);
+        x = nx;
+        break;
+      }
+      case 'se':
+        w = clamp(w + dx, MIN_SIZE, maxW - x);
+        h = clamp(h + dy, MIN_SIZE, maxH - y);
+        break;
+      case 'n': {
+        const ny = clamp(y + dy, 0, y + h - MIN_SIZE);
+        h = y + h - ny;
+        y = ny;
+        break;
+      }
+      case 's':
+        h = clamp(h + dy, MIN_SIZE, maxH - y);
+        break;
+      case 'w': {
+        const nx = clamp(x + dx, 0, x + w - MIN_SIZE);
+        w = x + w - nx;
+        x = nx;
+        break;
+      }
+      case 'e':
+        w = clamp(w + dx, MIN_SIZE, maxW - x);
+        break;
+    }
+    setBox({ x, y, w, h });
   };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) { const p = getPos(e.touches[0].clientX, e.touches[0].clientY); if (p) moveCrop(p); }
-  };
-  const handleTouchEnd = () => endCrop();
 
-  const applyCrop = async () => {
-    if (!crop || !imageRef.current) return;
+  const onUp = (e: React.PointerEvent) => {
+    containerRef.current?.releasePointerCapture(e.pointerId);
+    setDragMode(null);
+  };
+
+  const apply = async () => {
+    if (!box || !imgRef.current) return;
     setIsProcessing(true);
-
-    const scaleX = natural.w / display.w;
-    const scaleY = natural.h / display.h;
-    const sx = crop.x * scaleX;
-    const sy = crop.y * scaleY;
-    const sw = crop.w * scaleX;
-    const sh = crop.h * scaleY;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = sw;
-    canvas.height = sh;
-    const ctx = canvas.getContext('2d');
+    const sx = (box.x / display.w) * natural.w;
+    const sy = (box.y / display.h) * natural.h;
+    const sw = (box.w / display.w) * natural.w;
+    const sh = (box.h / display.h) * natural.h;
+    const c = document.createElement('canvas');
+    c.width = sw;
+    c.height = sh;
+    const ctx = c.getContext('2d');
     if (!ctx) { setIsProcessing(false); return; }
-
-    ctx.drawImage(imageRef.current, sx, sy, sw, sh, 0, 0, sw, sh);
-    canvas.toBlob((blob) => {
+    ctx.drawImage(imgRef.current, sx, sy, sw, sh, 0, 0, sw, sh);
+    c.toBlob((blob) => {
       if (!blob) { setIsProcessing(false); return; }
-      const croppedFile = new File([blob], file.name, { type: file.type });
+      onCropComplete(new File([blob], file.name, { type: file.type }));
       setIsProcessing(false);
-      onCropComplete(croppedFile);
     }, file.type);
   };
 
   if (!isOpen) return null;
+
+  const cursor = dragMode ? getCursor(dragMode) : undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md">
@@ -128,38 +235,55 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           <div
             ref={containerRef}
             className="relative w-full flex-1 min-h-[250px] sm:min-h-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            onPointerDown={onDown}
+            onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
+            style={{ cursor }}
           >
             {imageUrl && (
               <img
-                ref={imageRef}
+                ref={imgRef}
                 src={imageUrl}
                 alt="Crop preview"
                 className="w-full h-full object-contain"
-                onLoad={handleImageLoad}
+                onLoad={onImgLoad}
                 draggable={false}
               />
             )}
-            {crop && (
-              <div
-                className="absolute border-2 border-accent bg-accent/10 pointer-events-none"
-                style={{ left: crop.x, top: crop.y, width: crop.w, height: crop.h }}
-              />
+            {box && (
+              <>
+                <div className="absolute inset-0 pointer-events-none" style={{
+                  background: 'rgba(0,0,0,0.5)',
+                  clipPath: `polygon(
+                    0% 0%, 100% 0%, 100% 100%, 0% 100%,
+                    0% 0%,
+                    ${box.x}px ${box.y}px,
+                    ${box.x}px ${box.y + box.h}px,
+                    ${box.x + box.w}px ${box.y + box.h}px,
+                    ${box.x + box.w}px ${box.y}px,
+                    ${box.x}px ${box.y}px
+                  )`,
+                }} />
+                <div className="absolute border-2 border-white pointer-events-none" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />
+                <Handle cx={box.x} cy={box.y} />
+                <Handle cx={box.x + box.w} cy={box.y} />
+                <Handle cx={box.x} cy={box.y + box.h} />
+                <Handle cx={box.x + box.w} cy={box.y + box.h} />
+                <EdgeHandle cx={box.x + box.w / 2} cy={box.y} />
+                <EdgeHandle cx={box.x + box.w / 2} cy={box.y + box.h} />
+                <EdgeHandle cx={box.x} cy={box.y + box.h / 2} />
+                <EdgeHandle cx={box.x + box.w} cy={box.y + box.h / 2} />
+              </>
             )}
           </div>
 
           {imageUrl && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="truncate mr-2">{file.name} ({Math.round(natural.w)}x{Math.round(natural.h)})</span>
-              {crop && crop.w >= 10 && crop.h >= 10 && (
+              {box && (
                 <span className="shrink-0">
-                  {Math.round(crop.w * natural.w / display.w)}x{Math.round(crop.h * natural.h / display.h)}px
+                  {Math.round((box.w / display.w) * natural.w)}x{Math.round((box.h / display.h) * natural.h)}px
                 </span>
               )}
             </div>
@@ -172,8 +296,8 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           </Button>
           <Button
             className="flex-1 py-3 text-sm"
-            disabled={!crop || crop.w < 10 || crop.h < 10 || isProcessing}
-            onClick={applyCrop}
+            disabled={!box || box.w < MIN_SIZE || box.h < MIN_SIZE || isProcessing}
+            onClick={apply}
           >
             {isProcessing ? (
               <span className="flex items-center gap-2 justify-center">
@@ -184,5 +308,25 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
         </div>
       </div>
     </div>
+  );
+}
+
+function Handle({ cx, cy }: { cx: number; cy: number }) {
+  const s = 12;
+  return (
+    <div
+      className="absolute bg-white border-2 border-accent rounded-sm pointer-events-none"
+      style={{ left: cx - s / 2, top: cy - s / 2, width: s, height: s }}
+    />
+  );
+}
+
+function EdgeHandle({ cx, cy }: { cx: number; cy: number }) {
+  const s = 10;
+  return (
+    <div
+      className="absolute bg-white border border-accent/60 rounded-sm pointer-events-none"
+      style={{ left: cx - s / 2, top: cy - s / 2, width: s, height: s }}
+    />
   );
 }

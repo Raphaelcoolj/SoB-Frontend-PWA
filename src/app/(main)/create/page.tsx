@@ -131,6 +131,7 @@ export default function CreatePage() {
 
   const processFiles = async (files: File[]) => {
     const validFiles: File[] = [];
+    let croppingOpened = false;
     for (const file of files) {
       if (file.type.startsWith('video/')) {
         const isValid = await validateVideoDuration(file);
@@ -141,8 +142,15 @@ export default function CreatePage() {
           setIsTrimmerOpen(true);
           continue;
         }
+        validFiles.push(file);
+      } else if (file.type.startsWith('image/') && !croppingOpened) {
+        setCroppingFile(file);
+        setCroppingIndex(null);
+        setIsCropperOpen(true);
+        croppingOpened = true;
+      } else {
+        validFiles.push(file);
       }
-      validFiles.push(file);
     }
 
     if (validFiles.length > 0) {
@@ -280,7 +288,7 @@ export default function CreatePage() {
             value={bodyValue}
             onChange={(html) => setValue('body', html, { shouldValidate: true })}
             placeholder="Tell your story..."
-            minHeight="250px"
+            minHeight="300px"
           />
         )}
         
