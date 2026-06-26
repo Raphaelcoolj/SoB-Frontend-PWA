@@ -159,20 +159,18 @@ export default function ProfilePage() {
               {/* Badges */}
               {profile.earlyAdopter && (
                 <span
-                  title="Early Adopter — joined in SoB's first 500 members"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm"
+                  title="Early Adopter"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm"
                 >
-                  <Sparkles className="w-2.5 h-2.5" />
-                  Early Adopter
+                  <Sparkles className="w-3 h-3" />
                 </span>
               )}
               {profile.founderBadge && (
                 <span
-                  title="Founding Member of SoB"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-sm"
+                  title="Founding Member"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-sm"
                 >
-                  <Crown className="w-2.5 h-2.5" />
-                  Founder
+                  <Crown className="w-3 h-3" />
                 </span>
               )}
               {/* Private indicator */}

@@ -6,7 +6,7 @@
  */
 
 import React, { useRef } from 'react';
-import { X, Scissors } from 'lucide-react';
+import { X, Scissors, Crop } from 'lucide-react';
 
 interface MediaUploaderProps {
   files: File[];
@@ -14,7 +14,8 @@ interface MediaUploaderProps {
   accept?: string;
   onUpload: (files: File[]) => void;
   onRemove: (index: number) => void;
-  onTrim?: (index: number) => void; // NEW: Trim callback
+  onTrim?: (index: number) => void;
+  onCrop?: (index: number) => void;
 }
 
 export default function MediaUploader({ 
@@ -23,7 +24,8 @@ export default function MediaUploader({
   accept = "image/*", 
   onUpload, 
   onRemove,
-  onTrim, // NEW
+  onTrim,
+  onCrop,
 }: MediaUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,8 +53,17 @@ export default function MediaUploader({
               
               {/* Overlay controls */}
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                {!isVideo && onCrop && (
+                  <button
+                    type="button"
+                    onClick={() => onCrop(i)}
+                    className="bg-black/60 hover:bg-accent text-white rounded-full p-1 transition-all cursor-pointer"
+                    title="Crop Image"
+                  >
+                    <Crop className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 {isVideo && onTrim && (
-                  // NEW: Trim button
                   <button
                     type="button"
                     onClick={() => onTrim(i)}

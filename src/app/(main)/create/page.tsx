@@ -5,7 +5,7 @@
  * @description Unified content creation page.
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +18,8 @@ import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
 import MediaUploader from '../../../components/post/MediaUploader';
 import VideoTrimmerModal from '../../../components/post/VideoTrimmerModal';
+import ImageCropperModal from '../../../components/post/ImageCropperModal';
+import ContentEditor from '../../../components/post/ContentEditor';
 import { toast } from 'sonner';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -30,9 +32,14 @@ const postSchema = z.object({
   body: z.string().max(200, 'Posts cannot exceed 200 characters').optional().or(z.literal('')),
 });
 
+const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '');
+
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
-  body: z.string().min(1, 'Content is required').max(5000, 'Articles cannot exceed 5000 characters'),
+  body: z.string().min(1, 'Content is required').refine(
+    (val) => stripHtml(val).length <= 10000,
+    'Articles cannot exceed 10000 characters'
+  ),
   field: z.string().min(1, 'Field is required'),
 });
 
@@ -70,6 +77,9 @@ export default function CreatePage() {
   const [trimmingFile, setTrimmingFile] = useState<File | null>(null);
   const [trimmingIndex, setTrimmingIndex] = useState<number | null>(null);
   const [isTrimmerOpen, setIsTrimmerOpen] = useState(false);
+  const [croppingFile, setCroppingFile] = useState<File | null>(null);
+  const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTrimComplete = (trimmedFile: File) => {
@@ -94,6 +104,29 @@ export default function CreatePage() {
     }
     setTrimmingFile(null);
     setTrimmingIndex(null);
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setIsCropperOpen(false);
+    if (croppingIndex !== null) {
+      setImages(prev => {
+        const next = [...prev];
+        next[croppingIndex] = croppedFile;
+        return next;
+      });
+      setImagePreviews(prev => {
+        const next = [...prev];
+        URL.revokeObjectURL(next[croppingIndex]);
+        next[croppingIndex] = URL.createObjectURL(croppedFile);
+        return next;
+      });
+      toast.success('Image cropped successfully!');
+    } else {
+      setImages(prev => [...prev, croppedFile]);
+      setImagePreviews(prev => [...prev, URL.createObjectURL(croppedFile)]);
+    }
+    setCroppingFile(null);
+    setCroppingIndex(null);
   };
 
   const processFiles = async (files: File[]) => {
@@ -235,12 +268,21 @@ export default function CreatePage() {
           </>
         )}
 
-        <textarea
-          {...register('body')}
-          rows={mode === 'post' ? 4 : 8}
-          placeholder={mode === 'post' ? "What's happening?" : 'Tell your story...'}
-          className="w-full bg-transparent border-none text-sm resize-none focus:outline-none placeholder:text-muted-foreground"
-        />
+        {mode === 'post' ? (
+          <textarea
+            {...register('body')}
+            rows={4}
+            placeholder="What's happening?"
+            className="w-full bg-transparent border-none text-sm resize-none focus:outline-none placeholder:text-muted-foreground"
+          />
+        ) : (
+          <ContentEditor
+            value={bodyValue}
+            onChange={(html) => setValue('body', html, { shouldValidate: true })}
+            placeholder="Tell your story..."
+            minHeight="250px"
+          />
+        )}
         
         <MediaUploader 
           files={images}
@@ -259,6 +301,14 @@ export default function CreatePage() {
               setTrimmingFile(file);
               setTrimmingIndex(index);
               setIsTrimmerOpen(true);
+            }
+          }}
+          onCrop={(index) => {
+            const file = images[index];
+            if (file && file.type.startsWith('image/')) {
+              setCroppingFile(file);
+              setCroppingIndex(index);
+              setIsCropperOpen(true);
             }
           }}
         />
@@ -280,16 +330,16 @@ export default function CreatePage() {
             <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><Video className="w-5 h-5" /></button>
           </div>
           <div className="flex items-center gap-3">
-             <div className="flex flex-col items-end">
-               <span className={`text-xs ${bodyValue.length > (mode === 'post' ? 200 : 5000) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                 {bodyValue.length}/{mode === 'post' ? '200' : '5000'}
-               </span>
-               {bodyValue.length > (mode === 'post' ? 200 : 5000) && (
-                 <span className="text-[10px] text-destructive">
-                   {mode === 'post' ? 'Post limit exceeded' : 'Continue thread in comments'}
-                 </span>
-               )}
-             </div>
+           <div className="flex flex-col items-end">
+                <span className={`text-xs ${stripHtml(bodyValue).length > (mode === 'post' ? 200 : 10000) ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {stripHtml(bodyValue).length}/{mode === 'post' ? '200' : '10000'}
+                </span>
+                {stripHtml(bodyValue).length > (mode === 'post' ? 200 : 10000) && (
+                  <span className="text-[10px] text-destructive">
+                    {mode === 'post' ? 'Post limit exceeded' : 'Article limit exceeded'}
+                  </span>
+                )}
+              </div>
              <Button type="submit" loading={submitting}>Publish</Button>
           </div>
         </div>
@@ -321,6 +371,19 @@ export default function CreatePage() {
             setTrimmingIndex(null);
           }}
           onTrimComplete={handleTrimComplete}
+        />
+      )}
+
+      {croppingFile && (
+        <ImageCropperModal
+          file={croppingFile}
+          isOpen={isCropperOpen}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setCroppingFile(null);
+            setCroppingIndex(null);
+          }}
+          onCropComplete={handleCropComplete}
         />
       )}
     </div>

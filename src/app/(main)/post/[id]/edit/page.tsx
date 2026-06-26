@@ -16,6 +16,8 @@ import { useAuthStore } from '../../../../../store/authStore';
 import { Button } from '../../../../../components/ui/Button';
 import { Input } from '../../../../../components/ui/Input';
 import MediaUploader from '../../../../../components/post/MediaUploader';
+import ImageCropperModal from '../../../../../components/post/ImageCropperModal';
+import ContentEditor from '../../../../../components/post/ContentEditor';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '../../../../../lib/api';
 
@@ -27,9 +29,14 @@ const postSchema = z.object({
   body: z.string().max(200, 'Posts cannot exceed 200 characters').optional().or(z.literal('')),
 });
 
+const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '');
+
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
-  body: z.string().min(1, 'Content is required').max(5000, 'Articles cannot exceed 5000 characters'),
+  body: z.string().min(1, 'Content is required').refine(
+    (val) => stripHtml(val).length <= 10000,
+    'Articles cannot exceed 10000 characters'
+  ),
   field: z.string().min(1, 'Field is required'),
 });
 
@@ -65,7 +72,30 @@ export default function EditPostPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldSearch, setFieldSearch] = useState('');
   const [showFieldDropdown, setShowFieldDropdown] = useState(false);
+  const [croppingFile, setCroppingFile] = useState<File | null>(null);
+  const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCropComplete = (croppedFile: File) => {
+    setIsCropperOpen(false);
+    if (croppingIndex !== null) {
+      setImages(prev => {
+        const next = [...prev];
+        next[croppingIndex] = croppedFile;
+        return next;
+      });
+      setImagePreviews(prev => {
+        const next = [...prev];
+        URL.revokeObjectURL(next[croppingIndex]);
+        next[croppingIndex] = URL.createObjectURL(croppedFile);
+        return next;
+      });
+      toast.success('Image cropped successfully!');
+    }
+    setCroppingFile(null);
+    setCroppingIndex(null);
+  };
 
   const { data, isLoading: loadingPost } = useSWR(id ? `/api/posts/${id}` : null, fetcher);
   const { data: fieldsData } = useSWR(`${BASE_URL}/api/fields`, (url) => fetch(url).then(r => r.json()).then(d => d.data), { revalidateOnFocus: false });
@@ -217,12 +247,21 @@ export default function EditPostPage() {
             </>
           )}
 
-          <textarea
-            {...register('body')}
-            rows={mode === 'post' ? 4 : 8}
-            placeholder={mode === 'post' ? "What's happening?" : 'Tell your story...'}
-            className="w-full bg-transparent border-none text-sm resize-none focus:outline-none placeholder:text-muted-foreground"
-          />
+          {mode === 'post' ? (
+            <textarea
+              {...register('body')}
+              rows={4}
+              placeholder="What's happening?"
+              className="w-full bg-transparent border-none text-sm resize-none focus:outline-none placeholder:text-muted-foreground"
+            />
+          ) : (
+            <ContentEditor
+              value={bodyValue}
+              onChange={(html) => setValue('body', html, { shouldValidate: true })}
+              placeholder="Tell your story..."
+              minHeight="250px"
+            />
+          )}
 
           {existingMedia.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
@@ -248,6 +287,14 @@ export default function EditPostPage() {
               setImages(prev => prev.filter((_, i) => i !== index));
               setImagePreviews(prev => prev.filter((_, i) => i !== index));
             }}
+            onCrop={(index) => {
+              const file = images[index];
+              if (file && file.type.startsWith('image/')) {
+                setCroppingFile(file);
+                setCroppingIndex(index);
+                setIsCropperOpen(true);
+              }
+            }}
           />
 
           <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -257,10 +304,10 @@ export default function EditPostPage() {
             </div>
             <div className="flex items-center gap-3">
                <div className="flex flex-col items-end">
-                 <span className={`text-xs ${bodyValue.length > (mode === 'post' ? 200 : 5000) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                   {bodyValue.length}/{mode === 'post' ? '200' : '5000'}
-                 </span>
-               </div>
+                  <span className={`text-xs ${stripHtml(bodyValue).length > (mode === 'post' ? 200 : 10000) ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {stripHtml(bodyValue).length}/{mode === 'post' ? '200' : '10000'}
+                  </span>
+                </div>
                <Button type="submit" loading={submitting}>Save Changes</Button>
             </div>
           </div>
@@ -288,6 +335,19 @@ export default function EditPostPage() {
           }} />
         </form>
       </div>
+
+      {croppingFile && (
+        <ImageCropperModal
+          file={croppingFile}
+          isOpen={isCropperOpen}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setCroppingFile(null);
+            setCroppingIndex(null);
+          }}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 }

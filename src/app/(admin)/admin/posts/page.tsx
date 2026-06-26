@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * @file page.tsx (admin/posts)
- * @description Admin content management. Paginated list of all posts and articles
- * with deletion capabilities.
- */
-
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import { 
@@ -17,7 +11,8 @@ import {
   ChevronRight,
   Filter,
   Shield,
-  ShieldAlert
+  ShieldAlert,
+  Flag
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -34,9 +29,10 @@ export default function AdminPostsPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
 
   const { data, mutate, isLoading } = useSWR(
-    accessToken ? `/api/admin/posts` : null,
+    accessToken ? `/api/admin/posts${showFlaggedOnly ? '?flagged=true' : ''}` : null,
     fetcher
   );
 
@@ -88,14 +84,27 @@ export default function AdminPostsPage() {
           <p className="text-muted-foreground mt-1 text-sm">Monitor and moderate all platform content.</p>
         </div>
 
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search content..." 
-            className="pl-10 h-10 rounded-xl"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowFlaggedOnly(!showFlaggedOnly)}
+            className={`flex items-center gap-2 h-10 px-4 rounded-xl text-xs font-semibold transition-all border ${
+              showFlaggedOnly
+                ? 'bg-red-500/10 border-red-500/30 text-red-600'
+                : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Flag className="w-4 h-4" />
+            Flagged
+          </button>
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search content..." 
+              className="pl-10 h-10 rounded-xl"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -149,17 +158,30 @@ export default function AdminPostsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {p.isSensitive ? (
-                        <span className="flex items-center gap-1 text-red-500 text-[10px] font-bold uppercase tracking-wider">
-                          <ShieldAlert className="w-3 h-3" />
-                          Sensitive
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                          <Shield className="w-3 h-3" />
-                          Safe
-                        </span>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {p.isSensitive ? (
+                          <span className="flex items-center gap-1 text-red-500 text-[10px] font-bold uppercase tracking-wider">
+                            <ShieldAlert className="w-3 h-3" />
+                            Sensitive
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                            <Shield className="w-3 h-3" />
+                            Safe
+                          </span>
+                        )}
+                        {p.isAutoFlagged && (
+                          <span className="flex items-center gap-1 text-amber-500 text-[10px] font-medium">
+                            <Flag className="w-3 h-3" />
+                            Auto-flagged
+                          </span>
+                        )}
+                        {p.reportCount > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {p.reportCount} report{p.reportCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

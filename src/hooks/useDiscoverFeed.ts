@@ -50,7 +50,9 @@ export const useDiscoverFeed = (fieldId: string | null) => {
     }
   );
 
-  const posts = data ? data.flatMap((page) => page?.posts || []) : [];
+  const posts = data
+    ? [...new Map(data.flatMap((page) => page?.posts || []).map((p) => [p._id, p])).values()]
+    : [];
   const isLoadingInitial = !data && !error;
   const isLoadingMore = isValidating && size > 1;
   

@@ -16,9 +16,7 @@ import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import UserAvatar from '../user/UserAvatar';
-import FieldBadge from '../shared/FieldBadge';
 import VideoPlayer from './VideoPlayer';
-import { Field } from '../../types/user';
 import { formatDistanceToNow } from '../../lib/utils';
 
 interface ArticleCardProps {
@@ -97,8 +95,6 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
     }
   };
 
-  const field = article.field as Field;
-
   return (
     <article className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300 group shadow-sm hover:shadow-md">
       {/* Cover Image or Video */}
@@ -132,14 +128,11 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
       <div className="p-5 space-y-4">
         {/* Header - Title and Type */}
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-[10px] font-medium text-accent uppercase tracking-widest">
-            {article.isSensitive && (
-              <span className="text-red-600 dark:text-red-400 font-bold border border-red-500/20 bg-red-500/10 px-2 py-0.5 rounded-full shadow-sm transition-all duration-200">
-                Sensitive
-              </span>
-            )}
-            <FieldBadge field={field} />
-          </div>
+          {article.isSensitive && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 border border-red-500/20 bg-red-500/10 px-2 py-0.5 rounded-full shadow-sm transition-all duration-200 inline-flex w-fit">
+              Sensitive
+            </span>
+          )}
           <Link href={`/post/${article._id}`}>
             <h2 className="text-xl font-semibold text-foreground leading-tight group-hover:text-accent transition-colors">
               {article.title || 'Untitled Article'}

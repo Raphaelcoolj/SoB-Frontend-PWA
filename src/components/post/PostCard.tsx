@@ -10,17 +10,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit } from 'lucide-react';
-// NEW: Import ImageLightbox
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
 import ImageLightbox from './ImageLightbox';
+import ReportModal from './ReportModal';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { UserAvatar } from '../user/UserAvatar';
-import { FieldBadge } from '../shared/FieldBadge';
 import VideoPlayer from './VideoPlayer';
-import { Field } from '../../types/user';
 import { formatDistanceToNow } from '../../lib/utils';
 
 interface PostCardProps {
@@ -42,9 +40,9 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   const [commentCount, setCommentCount] = useState((post.comments || []).length);
   const [showOptions, setShowOptions] = useState(false);
 
-  // NEW: State for image lightbox
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const handleCommentClick = () => {
     if (onCommentClick) {
@@ -130,7 +128,6 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
     }
   };
 
-  const field = post.field as Field;
   const isArticle = post.contentType === 'article';
 
   // DEBUG: Inspect the post object to see why _id is undefined
@@ -144,51 +141,62 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
           <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start gap-2">
-            <Link
-              href={`/profile/${post.author.username}`}
-              className="font-medium text-sm text-foreground hover:text-accent transition-colors truncate"
-            >
-              {post.author.name}
-            </Link>
-            <div className="flex items-center gap-2">
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col">
+              <Link
+                href={`/profile/${post.author.username}`}
+                className="font-medium text-sm text-foreground hover:text-accent transition-colors truncate"
+              >
+                {post.author.name}
+              </Link>
+              <span className="text-muted-foreground text-[11px] leading-none">@{post.author.username}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
-              {isAuthor && (
-                <div className="relative">
-                  <button onClick={() => setShowOptions(!showOptions)} className="text-muted-foreground hover:text-foreground">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  {showOptions && (
-                    <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
-                      <Link
-                        href={`/post/${post._id}/edit`}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md w-full transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </Link>
+              <div className="relative">
+                <button onClick={() => setShowOptions(!showOptions)} className="text-muted-foreground hover:text-foreground">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {showOptions && (
+                  <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                    {isAuthor ? (
+                      <>
+                        <Link
+                          href={`/post/${post._id}/edit`}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md w-full transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Link>
+                        <button
+                          onClick={handleDelete}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </>
+                    ) : (
                       <button
-                        onClick={handleDelete}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full"
+                        onClick={() => { setShowOptions(false); setShowReportModal(true); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 rounded-md w-full"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
+                        <Flag className="w-4 h-4" />
+                        Report
                       </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="text-muted-foreground text-xs">@{post.author.username}</div>
-          {field && <div className="mt-1 flex items-center gap-2">
-            <FieldBadge field={field} />
-            {post.isSensitive && (
+          {post.isSensitive && (
+            <div className="mt-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 border border-red-500/20 bg-red-500/10 rounded-full px-2 py-0.5 shadow-sm transition-all duration-200">
                 Sensitive
               </span>
-            )}
-          </div>}
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
         </div>
@@ -201,9 +209,13 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
             {post.title}
           </h2>
         )}
-        <p className={`text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap ${fullView ? '' : 'line-clamp-4'}`}>
-          {post.body}
-        </p>
+        {fullView ? (
+          <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body }} />
+        ) : (
+          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4">
+            {post.body?.replace(/<[^>]*>/g, '')}
+          </p>
+        )}
       </Link>
 
       {/* Media (images or HLS video) */}
@@ -278,13 +290,15 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
         </button>
       </div>
 
-      {/* NEW: Conditional lightbox overlay */}
       {lightboxOpen && (
         <ImageLightbox
           images={post.mediaUrls}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxOpen(false)}
         />
+      )}
+      {showReportModal && (
+        <ReportModal postId={post._id} onClose={() => setShowReportModal(false)} />
       )}
     </article>
   );

@@ -65,7 +65,9 @@ export const useFeed = (feedType: FeedType = 'all') => {
     }
   );
 
-  const posts = data ? data.flatMap((page) => page.posts) : [];
+  const posts = data
+    ? [...new Map(data.flatMap((page) => page.posts).map((p) => [p._id, p])).values()]
+    : [];
   const isLoadingInitial = !data && !error;
   const isLoadingMore = isValidating && size > 1;
   const isEmpty = data?.[0]?.posts.length === 0;
