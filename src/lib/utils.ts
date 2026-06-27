@@ -55,3 +55,21 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timer = setTimeout(() => fn(...args), delay);
   };
 }
+
+/**
+ * Strips HTML tags and decodes common HTML entities like &nbsp; &amp; etc.
+ * SSR-safe (no DOM dependency).
+ */
+export function stripHtml(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
+}

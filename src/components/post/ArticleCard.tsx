@@ -142,7 +142,7 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
 
         {/* Content Preview */}
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-wrap">
-          {article.body}
+          {article.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
         </p>
 
         {/* Author Footer */}

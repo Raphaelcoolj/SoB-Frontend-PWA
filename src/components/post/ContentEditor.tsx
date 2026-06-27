@@ -56,10 +56,16 @@ export default function ContentEditor({ value, onChange, placeholder = 'Start wr
     });
   }, []);
 
+  const normalizeHtml = (html: string) => {
+    return html.replace(/&nbsp;/g, ' ');
+  };
+
   const emitChange = useCallback(() => {
     if (editorRef.current) {
       isUpdating.current = true;
-      onChange(editorRef.current.innerHTML);
+      let html = editorRef.current.innerHTML;
+      html = normalizeHtml(html);
+      onChange(html);
       requestAnimationFrame(() => { isUpdating.current = false; });
     }
   }, [onChange]);
@@ -180,8 +186,8 @@ export default function ContentEditor({ value, onChange, placeholder = 'Start wr
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-background">
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/30 relative">
+    <div className="border border-border rounded-lg bg-background">
+      <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-card/95 backdrop-blur-sm">
         <ToolbarButton active={active.bold} onClick={handleBold} title="Bold (Ctrl+B)">
           <Bold className="w-4 h-4" />
         </ToolbarButton>

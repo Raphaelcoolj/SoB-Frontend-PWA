@@ -16,6 +16,7 @@ import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Label } from '../../../../components/ui/Label';
 import { UserAvatar } from '../../../../components/user/UserAvatar';
+import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -29,6 +30,8 @@ export default function EditProfilePage() {
   const { user, accessToken, setUser } = useAuthStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
+  const [croppingFile, setCroppingFile] = useState<File | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -69,13 +72,10 @@ export default function EditProfilePage() {
     else setProfileStatus(data.message || 'Failed to update profile.');
   };
 
-  const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !accessToken) return;
-
+  const uploadAvatar = async (file: File) => {
+    if (!accessToken) return;
     const formData = new FormData();
     formData.append('avatar', file);
-
     try {
       setProfileStatus('Uploading...');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
@@ -89,9 +89,26 @@ export default function EditProfilePage() {
         setProfileStatus('Avatar updated successfully!'); 
       }
       else setProfileStatus(data.message || 'Failed to update avatar.');
-    } catch (err) {
+    } catch {
       setProfileStatus('Failed to update avatar.');
     }
+  };
+
+  const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !accessToken) return;
+    if (file.type.startsWith('image/')) {
+      setCroppingFile(file);
+      setIsCropperOpen(true);
+    } else {
+      uploadAvatar(file);
+    }
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setIsCropperOpen(false);
+    setCroppingFile(null);
+    uploadAvatar(croppedFile);
   };
 
   return (
@@ -155,6 +172,18 @@ export default function EditProfilePage() {
           <Button type="submit" loading={profileForm.formState.isSubmitting}>Save Changes</Button>
         </form>
       </section>
+
+      {croppingFile && (
+        <ImageCropperModal
+          file={croppingFile}
+          isOpen={isCropperOpen}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setCroppingFile(null);
+          }}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 }

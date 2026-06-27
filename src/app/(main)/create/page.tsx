@@ -21,6 +21,7 @@ import VideoTrimmerModal from '../../../components/post/VideoTrimmerModal';
 import ImageCropperModal from '../../../components/post/ImageCropperModal';
 import ContentEditor from '../../../components/post/ContentEditor';
 import { toast } from 'sonner';
+import { stripHtml } from '../../../lib/utils';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
@@ -31,8 +32,6 @@ const postSchema = z.object({
   // NEW: Make post body optional to allow media-only posts
   body: z.string().max(200, 'Posts cannot exceed 200 characters').optional().or(z.literal('')),
 });
-
-const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '');
 
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),

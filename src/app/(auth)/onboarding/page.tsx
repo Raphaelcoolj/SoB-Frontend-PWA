@@ -17,6 +17,7 @@ import { UserAvatar } from '../../../components/user/UserAvatar';
 import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import ImageCropperModal from '../../../components/post/ImageCropperModal';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
@@ -38,6 +39,8 @@ export default function OnboardingPage() {
   });
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [croppingFile, setCroppingFile] = useState<File | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
@@ -49,9 +52,21 @@ export default function OnboardingPage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatar(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      if (file.type.startsWith('image/')) {
+        setCroppingFile(file);
+        setIsCropperOpen(true);
+      } else {
+        setAvatar(file);
+        setAvatarPreview(URL.createObjectURL(file));
+      }
     }
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setIsCropperOpen(false);
+    setCroppingFile(null);
+    setAvatar(croppedFile);
+    setAvatarPreview(URL.createObjectURL(croppedFile));
   };
 
   const toggleField = (fieldId: string) => {
@@ -238,6 +253,18 @@ export default function OnboardingPage() {
             <Button onClick={handleSubmit} className="w-full" loading={loading} disabled={!user?.agreedToTerms && !agreeToTerms}>Complete</Button>
           </div>
         </div>
+      )}
+
+      {croppingFile && (
+        <ImageCropperModal
+          file={croppingFile}
+          isOpen={isCropperOpen}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setCroppingFile(null);
+          }}
+          onCropComplete={handleCropComplete}
+        />
       )}
     </div>
   );

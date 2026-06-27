@@ -18,6 +18,8 @@ import { useAuthStore } from '../../store/authStore';
 import { connectSocket } from '../../lib/socket';
 import { useThemeStore, ACCENT_MAP } from '../../store/themeStore';
 import TermsAgreementModal from '../../components/shared/TermsAgreementModal';
+import { useNotifications } from '../../hooks/useNotifications';
+import { useSocket } from '../../hooks/useSocket';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -36,6 +38,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     const hex = ACCENT_MAP[accentColor];
     document.documentElement.style.setProperty('--accent', hex);
   }, [accentColor]);
+
+  // Fetch notifications globally so unread badge is never stale
+  useNotifications();
+  useSocket();
 
   // Redirect unauthenticated users to login
   useEffect(() => {

@@ -210,10 +210,10 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
           </h2>
         )}
         {fullView ? (
-          <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body }} />
+          <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') }} />
         ) : (
           <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4">
-            {post.body?.replace(/<[^>]*>/g, '')}
+            {post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
           </p>
         )}
       </Link>

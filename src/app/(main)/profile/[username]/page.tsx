@@ -151,7 +151,7 @@ export default function ProfilePage() {
     <div className="space-y-5">
       {/* Profile header */}
       <div className="pt-2 space-y-4">
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <UserAvatar avatar={profile.avatar} name={profile.name} size="lg" className="w-20 h-20 text-2xl" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
