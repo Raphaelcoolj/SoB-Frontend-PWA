@@ -10,6 +10,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '../components/ui/sonner';
 import { ThemeInitializer } from '../components/shared/ThemeInitializer';
+import { SerwistProvider } from '@serwist/turbopack/react';
 import './globals.css';
 
 const inter = Inter({
@@ -64,9 +65,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange={false}
         >
-          <ThemeInitializer />
-          {children}
-          <Toaster />
+          <SerwistProvider swUrl="/serwist/sw.js">
+            <ThemeInitializer />
+            {children}
+            <Toaster />
+          </SerwistProvider>
         </ThemeProvider>
       </body>
     </html>
