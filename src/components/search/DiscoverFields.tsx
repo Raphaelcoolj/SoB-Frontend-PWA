@@ -99,6 +99,7 @@ function FieldPostsFeed({ fieldId }: { fieldId: string }) {
       hasMore={hasMore}
       isEmpty={!!isEmpty}
       loadMore={loadMore}
+      variant="flat"
     />
   );
 }

@@ -7,16 +7,18 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { User, Bell, Palette, ShieldCheck, BookOpen, ChevronRight, Bookmark } from 'lucide-react';
+import { User, Bell, Palette, ShieldCheck, BookOpen, ChevronRight, Bookmark, FileText, MessageSquare } from 'lucide-react';
 
 const SETTINGS_LINKS = [
   { href: '/settings/profile', icon: User, label: 'Edit Profile', description: 'Name, username, bio, profile photo' },
   { href: '/settings/account', icon: ShieldCheck, label: 'Account', description: 'Password, sign out, delete account' },
   { href: '/settings/notifications', icon: Bell, label: 'Notifications', description: 'Email and push notification preferences' },
   { href: '/settings/appearance', icon: Palette, label: 'Appearance', description: 'Dark/light mode and accent colors' },
-  { href: '/settings/fields', icon: BookOpen, label: 'Fields', description: 'Manage your 5 priority learning fields' },
+  { href: '/settings/fields', icon: BookOpen, label: 'Fields', description: 'Manage your priority learning fields' },
   { href: '/settings/privacy', icon: ShieldCheck, label: 'Privacy', description: 'Account visibility, blocked users, data' },
   { href: '/bookmarks', icon: Bookmark, label: 'Bookmarks', description: 'View your saved posts' },
+  { href: '/community-guidelines', icon: FileText, label: 'Community Guidelines', description: 'Our rules and standards' },
+  { href: '/contact', icon: MessageSquare, label: 'Contact Us', description: 'Feedback, support, and inquiries' },
 ];
 
 export default function SettingsPage() {

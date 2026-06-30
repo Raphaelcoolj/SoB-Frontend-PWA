@@ -21,6 +21,7 @@ import {
   ShieldOff,
   ChevronRight,
   Users,
+  Download,
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { UserAvatar } from '../../../../components/user/UserAvatar';
@@ -267,6 +268,10 @@ export default function PrivacySettingsPage() {
           {[
             { href: '/privacy-policy', label: 'Privacy Policy' },
             { href: '/terms-of-service', label: 'Terms of Service' },
+            { href: '/community-guidelines', label: 'Community Guidelines' },
+            { href: '/child-safety', label: 'Child Safety' },
+            { href: '/contact', label: 'Contact & Feedback' },
+            { href: '/delete-account', label: 'Delete Account (Web)' },
           ].map(({ href, label }, i, arr) => (
             <Link
               key={href}
@@ -281,6 +286,60 @@ export default function PrivacySettingsPage() {
           ))}
         </div>
       </section>
+
+      {/* ── Download My Data ── */}
+      <section className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <Download className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Download Your Data</p>
+            <p className="text-[11px] text-muted-foreground">GDPR data portability — export all your data</p>
+          </div>
+        </div>
+        <div className="px-4 pb-4">
+          <DataExportButton />
+        </div>
+      </section>
     </div>
+  );
+}
+
+function DataExportButton() {
+  const [exporting, setExporting] = useState(false);
+  const { accessToken } = useAuthStore();
+
+  const handleExport = async () => {
+    if (!accessToken) return;
+    setExporting(true);
+    try {
+      const res = await fetchWithAuth('/api/users/me/export-data', { method: 'GET' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Export failed');
+      const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sob-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Your data has been downloaded.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to export data.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={exporting}
+      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-sm font-semibold hover:bg-emerald-500/10 transition-all disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+    >
+      <Download className="w-4 h-4" />
+      {exporting ? 'Preparing your data...' : 'Download My Data'}
+    </button>
   );
 }

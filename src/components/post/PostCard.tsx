@@ -7,7 +7,7 @@
  * Supports real-time like/comment count updates via socket events from parent.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
+import { socket } from '../../lib/socket';
 import { UserAvatar } from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
 import { formatDistanceToNow } from '../../lib/utils';
@@ -26,9 +27,10 @@ interface PostCardProps {
   onCommentClick?: (postId: string) => void;
   fullView?: boolean;
   onDelete?: (postId: string) => void;
+  variant?: 'default' | 'flat';
 }
 
-export default function PostCard({ post, onCommentClick, fullView = false, onDelete }: PostCardProps) {
+export default function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 'default' }: PostCardProps) {
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
 
@@ -39,6 +41,21 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   const [isBookmarked, setIsBookmarked] = useState((post.bookmarks || []).includes(userId));
   const [commentCount, setCommentCount] = useState((post.comments || []).length);
   const [showOptions, setShowOptions] = useState(false);
+
+  useEffect(() => {
+    setCommentCount((post.comments || []).length);
+  }, [post.comments]);
+
+  useEffect(() => {
+    if (!socket.connected) return;
+    const handleNewComment = () => setCommentCount((c) => c + 1);
+    socket.on('new_comment', handleNewComment);
+    socket.on('new_debate', handleNewComment);
+    return () => {
+      socket.off('new_comment', handleNewComment);
+      socket.off('new_debate', handleNewComment);
+    };
+  }, []);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -133,6 +150,157 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   // DEBUG: Inspect the post object to see why _id is undefined
   console.log('[PostCard] Inspecting post object:', post);
 
+  if (variant === 'flat') {
+    return (
+      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent">
+        <div className="flex gap-3">
+          <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">
+            <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            {/* Header: Name @username · date and options */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                <Link
+                  href={`/profile/${post.author.username}`}
+                  className="font-bold text-sm text-foreground hover:underline truncate flex-shrink-0 max-w-[120px] sm:max-w-[200px]"
+                >
+                  {post.author.name}
+                </Link>
+                <span className="text-muted-foreground text-xs truncate min-w-0 flex-1">@{post.author.username}</span>
+                <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
+                <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
+              </div>
+              <div className="relative">
+                <button onClick={() => setShowOptions(!showOptions)} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {showOptions && (
+                  <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                    {isAuthor ? (
+                      <>
+                        <Link
+                          href={`/post/${post._id}/edit`}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md w-full transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Link>
+                        <button
+                          onClick={handleDelete}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => { setShowOptions(false); setShowReportModal(true); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 rounded-md w-full cursor-pointer"
+                      >
+                        <Flag className="w-4 h-4" />
+                        Report
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Post text */}
+            <Link href={`/post/${post._id}`} className="block mt-1">
+              {isArticle && post.title && (
+                <h2 className="font-semibold text-foreground mb-1 leading-snug hover:text-accent transition-colors text-base">
+                  {post.title}
+                </h2>
+              )}
+              <p className="text-sm text-foreground/95 leading-normal whitespace-pre-wrap line-clamp-4">
+                {post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+              </p>
+            </Link>
+
+            {/* Media (images or HLS video) */}
+            {post.muxPlaybackId && (
+              <div className="mt-3">
+                <VideoPlayer playbackId={post.muxPlaybackId} />
+              </div>
+            )}
+
+            {!post.muxPlaybackId && post.mediaUrls.length > 0 && (
+              <div className={`mt-3 grid gap-1.5 ${post.mediaUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {post.mediaUrls.slice(0, 4).map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxIndex(i);
+                      setLightboxOpen(true);
+                    }}
+                    className="w-full h-40 relative overflow-hidden rounded-xl border border-border cursor-pointer focus:outline-none hover:opacity-95 transition-opacity"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`Media ${i + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Engagement Row - Twitter style */}
+            <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
+              <button
+                onClick={handleCommentClick}
+                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-xs">{commentCount}</span>
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="text-xs">{post.shares}</span>
+              </button>
+
+              <button
+                onClick={handleLike}
+                className={`flex items-center gap-1.5 p-1.5 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
+              >
+                <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+                <span className="text-xs">{likeCount}</span>
+              </button>
+
+              <button
+                onClick={handleBookmark}
+                className={`p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
+              >
+                {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {lightboxOpen && (
+          <ImageLightbox
+            images={post.mediaUrls}
+            initialIndex={lightboxIndex}
+            onClose={() => setLightboxOpen(false)}
+          />
+        )}
+        {showReportModal && (
+          <ReportModal postId={post._id} onClose={() => setShowReportModal(false)} />
+        )}
+      </article>
+    );
+  }
+
   return (
     <article className="bg-card border border-border rounded-xl overflow-hidden transition-colors duration-200 group">
       {/* Author header */}
@@ -142,14 +310,14 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <Link
                 href={`/profile/${post.author.username}`}
                 className="font-medium text-sm text-foreground hover:text-accent transition-colors truncate"
               >
                 {post.author.name}
               </Link>
-              <span className="text-muted-foreground text-[11px] leading-none">@{post.author.username}</span>
+              <span className="text-muted-foreground text-[11px] leading-none truncate">@{post.author.username}</span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>

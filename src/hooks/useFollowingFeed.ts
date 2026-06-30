@@ -1,8 +1,8 @@
 /**
- * @file useFeed.ts
- * @description SWR-powered infinite scroll feed hook.
- * Fetches posts page by page using cursor-based pagination from the backend FYF feed endpoint.
- * Supports feed type filtering: 'all' | 'articles' | 'posts' via contentType query param.
+ * @file useFollowingFeed.ts
+ * @description SWR-powered infinite scroll hook for the Following feed.
+ * Fetches posts page-by-page from /api/feed/following — only posts by authors the
+ * logged-in user follows.
  */
 
 import useSWRInfinite from 'swr/infinite';
@@ -10,17 +10,12 @@ import { useAuthStore } from '../store/authStore';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-type FeedType = 'all' | 'articles' | 'posts';
-
 interface FeedPage {
   posts: import('../types/post').Post[];
   nextCursor: number | null;
   hasMore: boolean;
 }
 
-/**
- * Fetcher that passes the Authorization header for protected FYF endpoint.
- */
 const createFetcher = (token: string) => async (url: string): Promise<FeedPage> => {
   const res = await fetch(url, {
     headers: {
@@ -30,29 +25,21 @@ const createFetcher = (token: string) => async (url: string): Promise<FeedPage> 
     credentials: 'include',
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || 'Failed to fetch feed');
+  if (!res.ok) throw new Error(json.message || 'Failed to fetch following feed');
   return json.data;
 };
 
-export const useFeed = (feedType: FeedType = 'all') => {
+export const useFollowingFeed = () => {
   const { accessToken } = useAuthStore();
 
   const getKey = (pageIndex: number, previousPageData: FeedPage | null) => {
-    // Stop fetching if there's no more data
     if (previousPageData && !previousPageData.nextCursor) return null;
     if (!accessToken) return null;
 
     const cursor = previousPageData ? previousPageData.nextCursor : 0;
-    const params = new URLSearchParams({
-      cursor: String(cursor),
-    });
+    const params = new URLSearchParams({ cursor: String(cursor) });
 
-    // Apply content type filter
-    if (feedType !== 'all') {
-      params.set('type', feedType === 'articles' ? 'article' : 'post');
-    }
-
-    return `${BASE_URL}/api/feed/fyf?${params.toString()}`;
+    return `${BASE_URL}/api/feed/following?${params.toString()}`;
   };
 
   const { data, error, size, setSize, isValidating, mutate } = useSWRInfinite<FeedPage>(

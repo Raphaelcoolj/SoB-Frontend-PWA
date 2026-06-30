@@ -35,7 +35,7 @@ export default function Sidebar() {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <aside className="hidden lg:flex flex-col fixed top-0 left-0 bottom-0 w-64 border-r border-border bg-card text-card-foreground p-6 z-30">
+    <aside className="hidden lg:flex flex-col fixed top-0 left-0 bottom-0 w-64 border-r border-border bg-background text-foreground p-6 z-30">
       {/* Brand Logo header */}
       <div className="mb-8">
         <Logo />

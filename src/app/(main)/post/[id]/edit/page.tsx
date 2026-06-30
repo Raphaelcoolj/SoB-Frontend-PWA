@@ -27,7 +27,7 @@ const fetcher = (url: string) => fetchWithAuth(url).then(r => r.json()).then(d =
 
 const postSchema = z.object({
   // NEW: Make post body optional to allow media-only posts
-  body: z.string().max(200, 'Posts cannot exceed 200 characters').optional().or(z.literal('')),
+  body: z.string().max(400, 'Posts cannot exceed 400 characters').optional().or(z.literal('')),
 });
 
 const articleSchema = z.object({
@@ -303,8 +303,8 @@ export default function EditPostPage() {
             </div>
             <div className="flex items-center gap-3">
                <div className="flex flex-col items-end">
-                  <span className={`text-xs ${stripHtml(bodyValue).length > (mode === 'post' ? 200 : 10000) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    {stripHtml(bodyValue).length}/{mode === 'post' ? '200' : '10000'}
+                   <span className={`text-xs ${stripHtml(bodyValue).length > (mode === 'post' ? 400 : 10000) ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {stripHtml(bodyValue).length}/{mode === 'post' ? '400' : '10000'}
                   </span>
                 </div>
                <Button type="submit" loading={submitting}>Save Changes</Button>
