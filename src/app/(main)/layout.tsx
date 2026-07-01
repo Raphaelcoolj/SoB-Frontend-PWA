@@ -43,12 +43,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   useNotifications();
   useSocket();
 
-  // Redirect unauthenticated users to login
+  // Redirect unauthenticated users to login or incomplete onboarding to onboarding
   useEffect(() => {
-    if (!isLoading && !accessToken) {
-      router.replace('/login');
+    if (!isLoading) {
+      if (!accessToken) {
+        router.replace('/login');
+      } else if (user && !user.isOnboarded) {
+        router.replace('/onboarding');
+      }
     }
-  }, [accessToken, isLoading, router]);
+  }, [accessToken, user, isLoading, router]);
 
   // Loading state
   if (isLoading) {

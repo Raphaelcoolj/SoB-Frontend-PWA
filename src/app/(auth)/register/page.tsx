@@ -16,12 +16,7 @@ import { Label } from '../../../components/ui/Label';
 import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 
-const STEPS = ['Account', 'Username', 'Birthdate', 'Password'];
-
-const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-];
+const STEPS = ['Account', 'Username', 'Password'];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,10 +27,7 @@ export default function RegisterPage() {
     username: '', 
     email: '', 
     password: '', 
-    confirmPassword: '', 
-    dobDay: '',
-    dobMonth: '',
-    dobYear: ''
+    confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
@@ -51,26 +43,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // Convert month name to index (0-11)
-    const monthIndex = MONTHS.indexOf(formData.dobMonth);
-    
-    // Construct and validate DOB
-    const dob = new Date(parseInt(formData.dobYear), monthIndex, parseInt(formData.dobDay));
-    
-    if (isNaN(dob.getTime())) {
-        toast.error('Invalid Date of Birth');
-        return;
-    }
-
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    if (age < 13) {
-      toast.error('You must be at least 13 years old to join SoB');
-      return;
-    }
-    
     setLoading(true);
     try {
       const res = await fetchWithAuth('/api/auth/register', {
@@ -79,8 +51,7 @@ export default function RegisterPage() {
           name: formData.name,
           username: formData.username,
           email: formData.email,
-          password: formData.password,
-          dob: dob.toISOString()
+          password: formData.password
         })
       });
       const data = await res.json();
@@ -100,8 +71,7 @@ export default function RegisterPage() {
     }
   };
 
-  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
 
   return (
     <div className="px-6 sm:px-0 py-6">
@@ -138,30 +108,6 @@ export default function RegisterPage() {
         )}
         
         {step === 3 && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            <Label>Date of Birth</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobMonth} onChange={e => setFormData({...formData, dobMonth: e.target.value})}>
-                <option value="">Month</option>
-                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-              <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobDay} onChange={e => setFormData({...formData, dobDay: e.target.value})}>
-                <option value="">Day</option>
-                {days.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobYear} onChange={e => setFormData({...formData, dobYear: e.target.value})}>
-                <option value="">Year</option>
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="w-full" onClick={() => setStep(2)}>Back</Button>
-              <Button className="w-full" onClick={() => formData.dobDay && formData.dobMonth && formData.dobYear ? setStep(4) : toast.error('Select full date')}>Continue</Button>
-            </div>
-          </div>
-        )}
-        
-        {step === 4 && (
           <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-300">
             <PasswordInput placeholder="Password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
             <PasswordInput placeholder="Confirm Password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
@@ -192,7 +138,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" className="w-full" type="button" onClick={() => setStep(3)}>Back</Button>
+              <Button variant="outline" className="w-full" type="button" onClick={() => setStep(2)}>Back</Button>
               <Button type="submit" className="w-full" loading={loading} disabled={!agreeToTerms}>Register</Button>
             </div>
           </form>

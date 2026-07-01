@@ -371,20 +371,33 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
       </div>
 
       {/* Content body */}
-      <Link href={`/post/${post._id}`} className="block px-4 pb-3">
-        {isArticle && post.title && (
-          <h2 className={`font-semibold text-foreground mb-1.5 leading-snug hover:text-accent transition-colors ${fullView ? 'text-2xl' : 'text-base'}`}>
-            {post.title}
-          </h2>
-        )}
-        {fullView ? (
-          <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') }} />
-        ) : (
-          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4">
+      {fullView ? (
+        <div className="px-4 pb-3">
+          {isArticle && post.title && (
+            <h2 className="font-semibold text-foreground mb-1.5 leading-snug text-2xl">
+              {post.title}
+            </h2>
+          )}
+          {isArticle && /<[a-z][\s\S]*>/i.test(post.body) ? (
+            <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') }} />
+          ) : (
+            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
+              {post.body}
+            </p>
+          )}
+        </div>
+      ) : (
+        <Link href={`/post/${post._id}`} className="block px-4 pb-3">
+          {isArticle && post.title && (
+            <h2 className="font-semibold text-foreground mb-1.5 leading-snug hover:text-accent transition-colors text-base">
+              {post.title}
+            </h2>
+          )}
+          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4 break-words">
             {post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
           </p>
-        )}
-      </Link>
+        </Link>
+      )}
 
       {/* Media (images or HLS video) */}
       {post.muxPlaybackId && (

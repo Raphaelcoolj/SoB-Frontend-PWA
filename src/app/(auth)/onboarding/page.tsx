@@ -8,7 +8,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { Camera, Star } from 'lucide-react';
+import { Camera, Star, Pencil, ChevronDown, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -184,109 +184,285 @@ export default function OnboardingPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-foreground">Welcome to SoB</h1>
-      
+      {/* Visual Progress Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
+            {step === 1 ? 'Setup Profile' : step === 2 ? 'Date of Birth' : 'Choose Topics'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Step {step} of 3 • {step === 1 ? 'Tell us about yourself' : step === 2 ? 'Security & verification' : 'Personalize your feed'}
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                step === s 
+                  ? 'w-6 bg-accent' 
+                  : step > s 
+                    ? 'w-2 bg-accent/50' 
+                    : 'w-2 bg-muted'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
       {step === 1 && (
-        <div className="space-y-4 animate-in fade-in">
-          <p className="text-sm text-muted-foreground">Setup your profile.</p>
-          <div className="flex justify-center" onClick={() => fileRef.current?.click()}>
-            <div className="relative cursor-pointer">
-              <UserAvatar avatar={avatarPreview || user?.avatar} name={user?.name || 'User'} size="lg" className="w-24 h-24" />
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                <Camera className="w-6 h-6 text-white" />
+        <div className="space-y-5 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-3">
+            <div 
+              className="relative cursor-pointer group" 
+              onClick={() => fileRef.current?.click()}
+              aria-label="Upload profile picture"
+            >
+              {/* Glowing decorative ring */}
+              <div className="absolute -inset-1 bg-gradient-to-tr from-accent to-blue-500 rounded-full blur opacity-30 group-hover:opacity-65 transition duration-300" />
+              
+              {/* Main Avatar container */}
+              <div className="relative rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center transition-transform duration-300 active:scale-95">
+                <UserAvatar 
+                  avatar={avatarPreview || user?.avatar} 
+                  name={user?.name || 'User'} 
+                  size="lg" 
+                  className="w-24 h-24 sm:w-28 sm:h-28" 
+                />
+                
+                {/* Dark overlay on hover */}
+                <div className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <Camera className="w-7 h-7 text-white" />
+                </div>
+              </div>
+
+              {/* Edit/Camera icon floating badge at bottom right */}
+              <div className="absolute bottom-1 right-1 bg-accent border-2 border-background w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
+                <Pencil className="w-4 h-4 text-white" />
               </div>
             </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+            <p className="text-[11px] text-muted-foreground">Click to upload photo</p>
           </div>
-          <Input placeholder="Username (3-20 chars)" required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
-          <Input placeholder="Bio (optional)" value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
-          <Button onClick={() => formData.username.length >= 3 ? setStep(2) : toast.error('Username too short')} className="w-full">Continue</Button>
+
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Username</Label>
+              <Input 
+                id="username"
+                placeholder="@username" 
+                required 
+                value={formData.username} 
+                onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')})} 
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="bio" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bio (optional)</Label>
+                <span className="text-[10px] text-muted-foreground">{formData.bio.length}/160</span>
+              </div>
+              <textarea 
+                id="bio"
+                placeholder="Tell the world about yourself..." 
+                maxLength={160}
+                rows={3}
+                value={formData.bio} 
+                onChange={e => setFormData({...formData, bio: e.target.value})} 
+                className="flex w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent disabled:cursor-not-allowed disabled:opacity-50 transition-all resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <Button 
+              onClick={() => formData.username.length >= 3 ? setStep(2) : toast.error('Username must be at least 3 characters')} 
+              className="w-full h-12 flex items-center justify-center gap-2 group text-sm font-semibold"
+            >
+              Continue
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </Button>
+          </div>
         </div>
       )}
 
       {step === 2 && (
-        <div className="space-y-4 animate-in fade-in">
-          <p className="text-sm text-muted-foreground">When is your birthday?</p>
-          <div className="grid grid-cols-3 gap-2">
-            <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobMonth} onChange={e => setFormData({...formData, dobMonth: e.target.value})}>
-              <option value="">Month</option>
-              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobDay} onChange={e => setFormData({...formData, dobDay: e.target.value})}>
-              <option value="">Day</option>
-              {days.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select className="bg-muted p-2 rounded-lg text-sm" value={formData.dobYear} onChange={e => setFormData({...formData, dobYear: e.target.value})}>
-              <option value="">Year</option>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center text-center space-y-4 py-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-inner">
+              <Calendar className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-foreground">When is your birthday?</h2>
+              <p className="text-xs text-muted-foreground max-w-[280px]">
+                This helps us customize your learning path and verify your age. You must be at least 13.
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="w-full" onClick={() => setStep(1)}>Back</Button>
-            <Button className="w-full" onClick={() => formData.dobDay && formData.dobMonth && formData.dobYear ? setStep(3) : toast.error('Select full date')}>Continue</Button>
+
+          <div className="grid grid-cols-3 gap-2">
+            {/* Month select */}
+            <div className="relative">
+              <select 
+                aria-label="Birth month"
+                className="appearance-none bg-card border border-input rounded-xl pl-4 pr-8 py-2.5 text-sm w-full text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all cursor-pointer" 
+                value={formData.dobMonth} 
+                onChange={e => setFormData({...formData, dobMonth: e.target.value})}
+              >
+                <option value="">Month</option>
+                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+
+            {/* Day select */}
+            <div className="relative">
+              <select 
+                aria-label="Birth day"
+                className="appearance-none bg-card border border-input rounded-xl pl-4 pr-8 py-2.5 text-sm w-full text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all cursor-pointer" 
+                value={formData.dobDay} 
+                onChange={e => setFormData({...formData, dobDay: e.target.value})}
+              >
+                <option value="">Day</option>
+                {days.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+
+            {/* Year select */}
+            <div className="relative">
+              <select 
+                aria-label="Birth year"
+                className="appearance-none bg-card border border-input rounded-xl pl-4 pr-8 py-2.5 text-sm w-full text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all cursor-pointer" 
+                value={formData.dobYear} 
+                onChange={e => setFormData({...formData, dobYear: e.target.value})}
+              >
+                <option value="">Year</option>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              className="w-full h-12 text-sm font-semibold flex items-center justify-center gap-1.5" 
+              onClick={() => setStep(1)}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <Button 
+              className="w-full h-12 text-sm font-semibold" 
+              onClick={() => {
+                if (formData.dobDay && formData.dobMonth && formData.dobYear) {
+                  // Verify age
+                  const monthIndex = MONTHS.indexOf(formData.dobMonth);
+                  const dob = new Date(parseInt(formData.dobYear), monthIndex, parseInt(formData.dobDay));
+                  if (isNaN(dob.getTime())) {
+                    toast.error('Invalid Date of Birth');
+                    return;
+                  }
+                  const today = new Date();
+                  let age = today.getFullYear() - dob.getFullYear();
+                  const m = today.getMonth() - dob.getMonth();
+                  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+                  if (age < 13) {
+                    toast.error('You must be at least 13 years old to join SoB');
+                    return;
+                  }
+                  setStep(3);
+                } else {
+                  toast.error('Please select full date');
+                }
+              }}
+            >
+              Continue
+            </Button>
           </div>
         </div>
       )}
       
       {step === 3 && (
-        <div className="space-y-4 animate-in fade-in">
-          <p className="text-sm text-muted-foreground text-center">Choose topics you&apos;re interested in</p>
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-xs font-medium text-muted-foreground">{selectedFields.length} selected</span>
-            {selectedFields.length < 2 && <span className="text-[10px] text-destructive">(min 2)</span>}
-            {selectedFields.length >= 2 && <span className="text-[10px] text-emerald-500">✓ Good to go</span>}
-          </div>
-          <div className="grid grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
-            {fields.map((f: any) => {
-              const isSelected = selectedFields.includes(f._id);
-              return (
-                <button
-                  key={f._id}
-                  onClick={() => toggleField(f._id)}
-                  className={`relative flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border-2 text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
-                    isSelected
-                      ? 'bg-accent/10 border-accent text-accent shadow-sm'
-                      : 'bg-card border-border/60 text-muted-foreground hover:border-accent/30 hover:bg-muted/50'
-                  }`}
-                >
-                  <span className="text-2xl">{getFieldEmoji(f.name)}</span>
-                  <span className="text-xs font-semibold">{f.name}</span>
-                  {isSelected && (
-                    <span className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <span className="text-white text-[10px] font-bold">✓</span>
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+        <div className="space-y-5 animate-in fade-in duration-300">
+          <div className="text-center space-y-1 py-1">
+            <p className="text-xs text-muted-foreground">Select topics to personalize your dashboard</p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xs font-semibold text-foreground/80">{selectedFields.length} selected</span>
+              {selectedFields.length < 2 && <span className="text-[10px] text-destructive">(min 2)</span>}
+              {selectedFields.length >= 2 && <span className="text-[10px] text-emerald-500">✓ Ready to explore</span>}
+            </div>
           </div>
 
+          {fields.length === 0 ? (
+            <div className="grid grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-12 rounded-2xl bg-muted animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1 py-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+              {fields.map((f: any) => {
+                const isSelected = selectedFields.includes(f._id);
+                return (
+                  <button
+                    key={f._id}
+                    onClick={() => toggleField(f._id)}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-sm font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? 'bg-accent text-white border-accent shadow-md shadow-accent/25 scale-[1.02]'
+                        : 'bg-card border-border/80 text-foreground/80 hover:border-accent/40 hover:bg-muted/30'
+                    }`}
+                  >
+                    <span className="text-base leading-none">{getFieldEmoji(f.name)}</span>
+                    <span className="truncate">{f.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {!user?.agreedToTerms && (
-            <div className="flex items-start gap-2 pt-2 pb-1 text-left">
+            <div className="flex items-start gap-2.5 pt-2 pb-1 text-left">
               <input
                 id="agreeToTerms"
                 type="checkbox"
                 required
                 checked={agreeToTerms}
                 onChange={e => setAgreeToTerms(e.target.checked)}
-                className="w-4 h-4 rounded border-border bg-muted text-accent focus:ring-accent cursor-pointer mt-0.5"
+                className="w-4 h-4 rounded border-input bg-card text-accent focus:ring-accent/40 cursor-pointer mt-0.5"
               />
               <label htmlFor="agreeToTerms" className="text-xs text-muted-foreground select-none cursor-pointer leading-relaxed">
                 I agree to the{' '}
-                <Link href="/terms-of-service" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                <Link href="/terms-of-service" target="_blank" className="text-accent font-semibold hover:underline">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy-policy" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                <Link href="/privacy-policy" target="_blank" className="text-accent font-semibold hover:underline">
                   Privacy Policy
                 </Link>
               </label>
             </div>
           )}
 
-          <div className="flex gap-2">
-            <Button variant="outline" className="w-full" onClick={() => setStep(2)}>Back</Button>
-            <Button onClick={handleSubmit} className="w-full" loading={loading} disabled={!user?.agreedToTerms && !agreeToTerms}>Complete</Button>
+          <div className="flex gap-3 pt-2">
+            <Button 
+              variant="outline" 
+              className="w-full h-12 text-sm font-semibold flex items-center justify-center gap-1.5" 
+              onClick={() => setStep(2)}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full h-12 text-sm font-semibold" 
+              loading={loading} 
+              disabled={(!user?.agreedToTerms && !agreeToTerms) || selectedFields.length < 2}
+            >
+              Complete
+            </Button>
           </div>
         </div>
       )}
