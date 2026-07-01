@@ -6,7 +6,7 @@
  * Articles feature a prominent title, rich text preview, and potentially different media layout.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit } from 'lucide-react';
@@ -15,16 +15,19 @@ import ImageLightbox from './ImageLightbox';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
+import { socket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
 import { formatDistanceToNow } from '../../lib/utils';
+import { toast } from 'sonner';
 
 interface ArticleCardProps {
   article: Post;
   onCommentClick?: (articleId: string) => void;
+  variant?: 'default' | 'flat';
 }
 
-export default function ArticleCard({ article, onCommentClick }: ArticleCardProps) {
+export default function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCardProps) {
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
 
@@ -35,6 +38,21 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
   const [isBookmarked, setIsBookmarked] = useState(article.bookmarks.includes(userId));
   const [commentCount, setCommentCount] = useState(article.comments.length);
   const [showOptions, setShowOptions] = useState(false);
+
+  useEffect(() => {
+    setCommentCount(article.comments.length);
+  }, [article.comments]);
+
+  useEffect(() => {
+    if (!socket.connected) return;
+    const handleNewComment = () => setCommentCount((c) => c + 1);
+    socket.on('new_comment', handleNewComment);
+    socket.on('new_debate', handleNewComment);
+    return () => {
+      socket.off('new_comment', handleNewComment);
+      socket.off('new_debate', handleNewComment);
+    };
+  }, []);
 
   // NEW: State for image lightbox
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -94,6 +112,147 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
       setIsBookmarked((prev) => !prev);
     }
   };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/post/${article._id}`;
+    try {
+      await fetchWithAuth(`/api/posts/${article._id}/share`, { method: 'POST', body: JSON.stringify({}) });
+      if (navigator.share) {
+        navigator.share({ title: article.title || 'Check this out', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast('Link copied to clipboard');
+      }
+    } catch { /* silent */ }
+  };
+
+  if (variant === 'flat') {
+    return (
+      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent">
+        <div className="flex gap-3">
+          {/* Avatar on the left */}
+          <Link href={`/profile/${article.author.username}`} className="flex-shrink-0">
+            <UserAvatar avatar={article.author.avatar} name={article.author.name} size="md" />
+          </Link>
+          
+          <div className="flex-1 min-w-0">
+            {/* Header: Name @username · time and more options */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                <Link
+                  href={`/profile/${article.author.username}`}
+                  className="font-bold text-sm text-foreground hover:underline truncate flex-shrink-0 max-w-[120px] sm:max-w-[200px]"
+                >
+                  {article.author.name}
+                </Link>
+                <span className="text-muted-foreground text-xs truncate min-w-0 flex-1">@{article.author.username}</span>
+                <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
+                <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(article.createdAt)}</span>
+              </div>
+              
+              <div className="relative font-normal">
+                <button onClick={(e) => { e.stopPropagation(); setShowOptions(!showOptions); }} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {showOptions && (
+                  <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                    {isAuthor ? (
+                      <>
+                        <Link
+                          href={`/post/${article._id}/edit`}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md w-full transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Link>
+                        <button
+                          onClick={handleDelete}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md w-full cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </>
+                    ) : (
+                      <span className="block px-3 py-2 text-xs text-muted-foreground">Options</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Nested Article Card block (on the right) */}
+            <div className="mt-2 border border-border/80 rounded-2xl overflow-hidden bg-card/45 hover:bg-card/75 transition-colors duration-200 cursor-pointer">
+              <Link href={`/post/${article._id}`} className="block">
+                {/* Cover image if available */}
+                {article.mediaUrls.length > 0 && (
+                  <div className="relative w-full h-40 overflow-hidden border-b border-border/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={article.mediaUrls[0]}
+                      alt={article.title || 'Article cover'}
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
+                    />
+                  </div>
+                )}
+                
+                {/* Text section inside article preview card */}
+                <div className="p-4 space-y-1.5">
+                  <h2 className="text-base font-bold text-foreground leading-snug group-hover:text-accent transition-colors line-clamp-2">
+                    {article.title || 'Untitled Article'}
+                  </h2>
+                  <p className="text-xs text-muted-foreground leading-normal line-clamp-2">
+                    {article.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                  </p>
+                </div>
+              </Link>
+            </div>
+
+            {/* Engagement Row - Twitter style */}
+            <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
+              <button
+                onClick={handleCommentClick}
+                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-xs">{commentCount}</span>
+              </button>
+
+              <button
+                onClick={handleLike}
+                className={`flex items-center gap-1.5 p-1.5 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
+              >
+                <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+                <span className="text-xs">{likeCount}</span>
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={handleBookmark}
+                className={`p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
+              >
+                {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {lightboxOpen && (
+          <ImageLightbox
+            images={article.mediaUrls}
+            initialIndex={lightboxIndex}
+            onClose={() => setLightboxOpen(false)}
+          />
+        )}
+      </article>
+    );
+  }
 
   return (
     <article className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300 group shadow-sm hover:shadow-md">
@@ -207,6 +366,12 @@ export default function ArticleCard({ article, onCommentClick }: ArticleCardProp
             >
               <MessageCircle className="w-4 h-4" />
               <span className="text-xs font-medium">{commentCount}</span>
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
+            >
+              <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={handleBookmark}

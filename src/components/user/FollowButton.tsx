@@ -12,6 +12,7 @@ import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { Button } from '../ui/Button';
 import { toast } from 'sonner';
+import { cn } from '../../lib/utils';
 
 interface FollowButtonProps {
   targetUserId: string;
@@ -20,13 +21,12 @@ interface FollowButtonProps {
   className?: string;
 }
 
-export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange }: FollowButtonProps) => {
+export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange, className }: FollowButtonProps) => {
   const { accessToken, user } = useAuthStore();
   const { mutate } = useSWRConfig();
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [loading, setLoading] = useState(false);
-
-  // NEW: Sync with prop if it changes (e.g. on navigation)
+  // Sync with prop if it changes (e.g. on navigation)
   useEffect(() => {
     setIsFollowing(initialIsFollowing);
   }, [initialIsFollowing]);
@@ -34,7 +34,8 @@ export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange 
   // Don't render if it's the user's own profile
   if (user?._id === targetUserId) return null;
 
-  const handleToggle = async () => {
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card navigation if inside a card
     if (!accessToken) return;
     setLoading(true);
 
@@ -67,15 +68,20 @@ export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange 
   };
 
   return (
-    <Button
-      variant={isFollowing ? 'outline' : 'default'}
-      size="sm"
-      loading={loading}
+    <button
       onClick={handleToggle}
-      className="min-w-[90px]"
+      disabled={loading}
+      className={cn(
+        "inline-flex items-center justify-center rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer h-9 px-3",
+        isFollowing
+          ? "bg-muted text-muted-foreground border border-border"
+          : "bg-accent text-foreground",
+        className || "min-w-[90px]"
+      )}
     >
-      {isFollowing ? 'Unfollow' : 'Follow'}
-    </Button>
+      {loading && <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />}
+      {isFollowing ? 'Following' : 'Follow'}
+    </button>
   );
 };
 

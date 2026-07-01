@@ -87,10 +87,14 @@ export default function TermsAgreementModal() {
             Please read the full{' '}
             <Link href="/terms-of-service" target="_blank" className="text-accent hover:underline font-semibold">
               Terms of Service
-            </Link>{' '}
-            and{' '}
+            </Link>
+            ,{' '}
             <Link href="/privacy-policy" target="_blank" className="text-accent hover:underline font-semibold">
               Privacy Policy
+            </Link>
+            , and{' '}
+            <Link href="/community-guidelines" target="_blank" className="text-accent hover:underline font-semibold">
+              Community Guidelines
             </Link>{' '}
             for detailed information on our guidelines and how we handle data.
           </p>

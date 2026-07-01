@@ -21,6 +21,28 @@ import ImageCropperModal from '../../../components/post/ImageCropperModal';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
+const FIELD_EMOJIS: Record<string, string> = {
+  math: '🔢', science: '🔬', technology: '💻', engineering: '⚙️',
+  art: '🎨', music: '🎵', literature: '📚', history: '📜',
+  philosophy: '🧠', psychology: '🧠', biology: '🧬', chemistry: '🧪',
+  physics: '⚛️', astronomy: '🔭', geography: '🌍', economics: '📊',
+  politics: '🏛️', sociology: '👥', medicine: '🏥', sports: '⚽',
+  business: '💼', design: '🎯', photography: '📷', cooking: '🍳',
+  languages: '🗣️', education: '📖', environment: '🌿', law: '⚖️',
+  finance: '💰', marketing: '📈', coding: '👨‍💻', data: '📉',
+  ai: '🤖', robotics: '🤖', gaming: '🎮', film: '🎬',
+  fashion: '👗', architecture: '🏗️', anthropology: '🏺',
+};
+
+const getFieldEmoji = (name: string): string => {
+  const key = name.toLowerCase().trim();
+  if (FIELD_EMOJIS[key]) return FIELD_EMOJIS[key];
+  for (const [k, emoji] of Object.entries(FIELD_EMOJIS)) {
+    if (key.includes(k)) return emoji;
+  }
+  return '📌';
+};
+
 const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -208,21 +230,35 @@ export default function OnboardingPage() {
       
       {step === 3 && (
         <div className="space-y-4 animate-in fade-in">
-          <p className="text-sm text-muted-foreground">Select your interests (2-10 fields):</p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Selected: {selectedFields.length}</span>
-            {selectedFields.length < 2 && <span className="text-[10px] text-destructive animate-pulse">Select at least 2</span>}
+          <p className="text-sm text-muted-foreground text-center">Choose topics you&apos;re interested in</p>
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-xs font-medium text-muted-foreground">{selectedFields.length} selected</span>
+            {selectedFields.length < 2 && <span className="text-[10px] text-destructive">(min 2)</span>}
+            {selectedFields.length >= 2 && <span className="text-[10px] text-emerald-500">✓ Good to go</span>}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {fields.map((f: any) => (
-              <button 
-                key={f._id} 
-                onClick={() => toggleField(f._id)}
-                className={`p-2 rounded-lg border text-sm ${selectedFields.includes(f._id) ? 'bg-accent text-white border-accent' : 'bg-muted border-border'}`}
-              >
-                {f.name}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
+            {fields.map((f: any) => {
+              const isSelected = selectedFields.includes(f._id);
+              return (
+                <button
+                  key={f._id}
+                  onClick={() => toggleField(f._id)}
+                  className={`relative flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border-2 text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
+                    isSelected
+                      ? 'bg-accent/10 border-accent text-accent shadow-sm'
+                      : 'bg-card border-border/60 text-muted-foreground hover:border-accent/30 hover:bg-muted/50'
+                  }`}
+                >
+                  <span className="text-2xl">{getFieldEmoji(f.name)}</span>
+                  <span className="text-xs font-semibold">{f.name}</span>
+                  {isSelected && (
+                    <span className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold">✓</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {!user?.agreedToTerms && (

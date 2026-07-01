@@ -10,10 +10,12 @@ import {
   FileText, 
   BookOpen, 
   Radio, 
+  MessageSquare,
   ArrowLeft,
   ShieldCheck,
   Menu,
-  X
+  X,
+  Newspaper
 } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
 
@@ -22,7 +24,9 @@ const ADMIN_NAV = [
   { href: '/admin/users', icon: Users, label: 'Users' },
   { href: '/admin/posts', icon: FileText, label: 'Posts' },
   { href: '/admin/fields', icon: BookOpen, label: 'Fields' },
+  { href: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
   { href: '/admin/broadcast', icon: Radio, label: 'Broadcast' },
+  { href: '/admin/pipeline', icon: Newspaper, label: 'Pipeline' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

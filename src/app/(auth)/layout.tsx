@@ -1,21 +1,13 @@
-/**
- * @file layout.tsx ((auth))
- * @description Layout for authentication pages (login, register, etc.).
- * Centers content and provides a consistent auth-flow aesthetic.
- */
-
 import React from 'react';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Auth card wrapper */}
-        <div className="bg-card border border-border rounded-3xl shadow-xl p-8">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 flex items-center justify-center sm:p-4">
+        <div className="w-full max-w-md mx-auto sm:bg-card sm:border sm:border-border sm:rounded-3xl sm:shadow-xl sm:p-8 min-h-screen sm:min-h-0 flex flex-col justify-center">
           {children}
         </div>
       </div>
     </div>
   );
 }
-

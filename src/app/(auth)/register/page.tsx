@@ -13,7 +13,6 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { Label } from '../../../components/ui/Label';
-import Card, { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 
@@ -105,23 +104,21 @@ export default function RegisterPage() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
-    <Card className="backdrop-blur-md bg-card/90 shadow-2xl border-border/80 w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-2xl font-semibold">Create Account</CardTitle>
-        <CardDescription>Join the SoB community</CardDescription>
-        
-        {/* Visual Progress Thread */}
-        <div className="flex gap-2 mt-6">
-          {STEPS.map((s, i) => (
-            <div key={s} className="flex-1 flex flex-col items-center gap-2">
-              <div className={`h-1.5 w-full rounded-full transition-colors duration-300 ${step >= i + 1 ? 'bg-accent' : 'bg-muted'}`} />
-              <span className={`text-[10px] font-medium uppercase ${step >= i + 1 ? 'text-accent' : 'text-muted-foreground'}`}>{i + 1}</span>
-            </div>
-          ))}
-        </div>
-      </CardHeader>
+    <div className="px-6 sm:px-0 py-6">
+      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-center text-foreground">Create Account</h1>
+      <p className="text-sm text-muted-foreground text-center mt-1 mb-6">Join the SoB community</p>
       
-      <CardContent>
+      {/* Visual Progress Thread */}
+      <div className="flex gap-2 mb-6">
+        {STEPS.map((s, i) => (
+          <div key={s} className="flex-1 flex flex-col items-center gap-1">
+            <div className={`h-1.5 w-full rounded-full transition-colors duration-300 ${step >= i + 1 ? 'bg-accent' : 'bg-muted'}`} />
+            <span className={`text-[10px] font-medium uppercase ${step >= i + 1 ? 'text-accent' : 'text-muted-foreground'}`}>{s}</span>
+          </div>
+        ))}
+      </div>
+      
+      <div>
         {step === 1 && (
           <div className="space-y-4 animate-in fade-in duration-300">
             <Input placeholder="Full Name" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -182,10 +179,14 @@ export default function RegisterPage() {
                 I agree to the{' '}
                 <Link href="/terms-of-service" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
                   Terms of Service
-                </Link>{' '}
-                and{' '}
+                </Link>
+                ,{' '}
                 <Link href="/privacy-policy" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
                   Privacy Policy
+                </Link>
+                , and{' '}
+                <Link href="/community-guidelines" target="_blank" className="text-blue-600 dark:text-accent font-semibold hover:underline">
+                  Community Guidelines
                 </Link>
               </label>
             </div>
@@ -196,15 +197,14 @@ export default function RegisterPage() {
             </div>
           </form>
         )}
-      </CardContent>
-      <CardFooter className="justify-center border-t border-border/40 py-4">
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 dark:text-accent font-semibold hover:opacity-80">
-            Log In
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+      </div>
+
+      <p className="text-sm text-muted-foreground text-center mt-8">
+        Already have an account?{' '}
+        <Link href="/login" className="text-blue-600 dark:text-accent font-semibold hover:opacity-80">
+          Log In
+        </Link>
+      </p>
+    </div>
   );
 }

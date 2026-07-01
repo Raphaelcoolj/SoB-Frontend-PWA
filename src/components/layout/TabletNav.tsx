@@ -34,7 +34,7 @@ export default function TabletNav() {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <aside className="hidden md:flex lg:hidden flex-col fixed top-0 left-0 bottom-0 w-20 border-r border-border bg-card text-card-foreground items-center py-6 z-30">
+    <aside className="hidden md:flex lg:hidden flex-col fixed top-0 left-0 bottom-0 w-20 border-r border-border bg-background text-foreground items-center py-6 z-30">
       {/* Brand logo (mobile/icon form) */}
       <div className="mb-8">
         <Logo />
