@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { 
   Newspaper, Settings, Play, Pause, Calendar,
-  CheckCircle2, Clock, AlertCircle, RefreshCw, FileText
+  CheckCircle2, Clock, AlertCircle, RefreshCw, FileText,
+  Pencil, X
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -21,6 +22,12 @@ const fetcher = (url: string, token: string) =>
 export default function AdminPipelinePage() {
   const { accessToken } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'accounts' | 'posts'>('overview');
+  const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    name: '', username: '', email: '', fieldSlug: '',
+    contentType: 'article', profileBio: '', avatar: '',
+  });
+  const [saving, setSaving] = useState(false);
 
   const { data: accountsData, isLoading: accountsLoading, mutate: mutateAccounts } = useSWR(
     accessToken ? [`${BASE}/api/admin/pipeline/accounts`, accessToken] : null,
@@ -45,6 +52,43 @@ export default function AdminPipelinePage() {
   const totalPending = posts.filter((p: any) => !p.isPublished).length;
   const activeAccounts = accounts.filter((a: any) => a.isActive).length;
   const totalPosts = posts.length;
+
+  const openEdit = (acc: any) => {
+    setEditingAccount(acc);
+    setEditForm({
+      name: acc.name || '',
+      username: acc.username || '',
+      email: acc.user?.email || '',
+      fieldSlug: acc.fieldSlug || '',
+      contentType: acc.contentType || 'article',
+      profileBio: acc.profileBio || '',
+      avatar: acc.user?.avatar || '',
+    });
+  };
+
+  const handleSaveAccount = async () => {
+    if (!editingAccount) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/admin/pipeline/accounts/${editingAccount._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Account updated.');
+        setEditingAccount(null);
+        mutateAccounts();
+      } else {
+        toast.error(data.message || 'Failed to update account');
+      }
+    } catch {
+      toast.error('Failed to update account');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleToggleAccount = async (id: string) => {
     try {
@@ -111,7 +155,7 @@ export default function AdminPipelinePage() {
           </div>
 
           {activeTab === 'overview' && (
-            <Card className="p-6 border-border/60">
+            <Card className="p-4 sm:p-6 border-border/60">
               <h3 className="font-medium text-sm mb-4 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-accent" />
                 Recent Campaigns
@@ -145,7 +189,7 @@ export default function AdminPipelinePage() {
           )}
 
           {activeTab === 'accounts' && (
-            <Card className="p-6 border-border/60">
+            <Card className="p-4 sm:p-6 border-border/60">
               <h3 className="font-medium text-sm mb-4">Editorial Accounts</h3>
               <div className="space-y-3">
                 {accounts.map((acc: any) => (
@@ -157,10 +201,17 @@ export default function AdminPipelinePage() {
                         <p className="text-xs text-muted-foreground">@{acc.username} · {acc.contentType}s in {acc.fieldSlug}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-xs text-muted-foreground hidden sm:inline">
                         {acc.postsGenerated} gen · {acc.postsPublished} pub
                       </span>
+                      <button
+                        onClick={() => openEdit(acc)}
+                        className="p-2 rounded-lg transition-all text-muted-foreground hover:text-accent hover:bg-accent/10"
+                        title="Edit account"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleToggleAccount(acc._id)}
                         className={`p-2 rounded-lg transition-all ${
@@ -183,7 +234,7 @@ export default function AdminPipelinePage() {
           )}
 
           {activeTab === 'posts' && (
-            <Card className="p-6 border-border/60">
+            <Card className="p-4 sm:p-6 border-border/60">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-sm">Scheduled Posts</h3>
                 <button onClick={() => mutatePosts()} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
@@ -232,6 +283,120 @@ export default function AdminPipelinePage() {
             </Card>
           )}
         </>
+      )}
+
+      {/* Edit Account Modal */}
+      {editingAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background border border-border/60 rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-border/60">
+              <h2 className="text-lg font-semibold">Edit Account</h2>
+              <button onClick={() => setEditingAccount(null)} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-start sm:items-center gap-3 mb-2">
+                {editForm.avatar ? (
+                  <img src={editForm.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg font-semibold text-muted-foreground">
+                    {(editForm.name || '?')[0]}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-muted-foreground">Avatar URL</label>
+                  <input
+                    type="text"
+                    value={editForm.avatar}
+                    onChange={e => setEditForm(f => ({ ...f, avatar: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Name</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Username</label>
+                  <input
+                    type="text"
+                    value={editForm.username}
+                    onChange={e => setEditForm(f => ({ ...f, username: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Field Slug</label>
+                  <input
+                    type="text"
+                    value={editForm.fieldSlug}
+                    onChange={e => setEditForm(f => ({ ...f, fieldSlug: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Content Type</label>
+                  <select
+                    value={editForm.contentType}
+                    onChange={e => setEditForm(f => ({ ...f, contentType: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  >
+                    <option value="article">Article</option>
+                    <option value="post">Post</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Bio</label>
+                <textarea
+                  value={editForm.profileBio}
+                  onChange={e => setEditForm(f => ({ ...f, profileBio: e.target.value }))}
+                  rows={3}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-border/60">
+              <button
+                onClick={() => setEditingAccount(null)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAccount}
+                disabled={saving}
+                className="px-5 py-2 rounded-xl text-sm font-semibold bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
