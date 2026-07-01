@@ -182,11 +182,11 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
             </div>
 
             {/* Nested Article Card block (on the right) */}
-            <div className="mt-2 border border-border/80 rounded-2xl overflow-hidden bg-card/45 hover:bg-card/75 transition-colors duration-200 cursor-pointer">
+            <div className="mt-2 border border-border rounded-2xl overflow-hidden bg-card hover:bg-muted transition-colors duration-200 cursor-pointer">
               <Link href={`/post/${article._id}`} className="block">
                 {/* Cover image if available */}
                 {article.mediaUrls.length > 0 && (
-                  <div className="relative w-full h-40 overflow-hidden border-b border-border/40">
+                  <div className="relative w-full h-40 overflow-hidden border-b border-border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={article.mediaUrls[0]}
@@ -212,7 +212,7 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
                 onClick={handleCommentClick}
-                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span className="text-xs">{commentCount}</span>
@@ -235,7 +235,7 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
 
               <button
                 onClick={handleBookmark}
-                className={`p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
+              className={`p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
               >
                 {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
               </button>
