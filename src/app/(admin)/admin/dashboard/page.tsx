@@ -75,7 +75,7 @@ export default function AdminDashboardPage() {
   const breakdown = summary.activityBreakdown;
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
+    <div className="space-y-8 animate-in fade-in duration-300">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Real-time platform performance and user engagement.</p>

@@ -21,7 +21,7 @@ export default function TopBar() {
   }
 
   return (
-    <header className="md:hidden sticky top-0 z-40 w-full h-14 px-4 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-md">
+    <header className="md:hidden sticky top-0 z-40 w-full h-14 px-4 flex items-center justify-between border-b border-border bg-background">
       <Logo />
       
       <div className="flex items-center gap-2">

@@ -79,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="w-64 border-r border-border bg-card flex flex-col fixed inset-y-0 hidden lg:flex">
+      <aside className="w-64 border-r border-border bg-card flex flex-col fixed inset-y-0 overflow-y-auto hidden lg:flex">
         <div className="p-6 border-b border-border flex items-center justify-between">
           <Logo />
           <div className="bg-accent/10 p-1.5 rounded-lg">
@@ -90,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 p-4 lg:p-10 max-w-7xl mx-auto w-full">
+      <main className="flex-1 lg:ml-64 p-4 lg:p-10 max-w-7xl mx-auto w-full min-h-screen overflow-x-hidden">
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between mb-8 pb-4 border-b border-border">
           <Logo />

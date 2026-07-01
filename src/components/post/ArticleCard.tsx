@@ -191,7 +191,7 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
                     <img
                       src={article.mediaUrls[0]}
                       alt={article.title || 'Article cover'}
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
+                    className="w-full h-full object-cover transition-opacity duration-300"
                     />
                   </div>
                 )}
@@ -271,7 +271,7 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
           <img
             src={article.mediaUrls[0]}
             alt={article.title || 'Article cover'}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover"
           />
           <div className="absolute top-4 right-4">
           </div>
