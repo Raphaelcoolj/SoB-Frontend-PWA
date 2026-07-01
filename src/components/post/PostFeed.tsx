@@ -108,7 +108,7 @@ export default function PostFeed({
   }
 
   return (
-    <div className={variant === 'flat' ? '-mx-4 divide-y divide-border/30 pb-20 bg-transparent' : 'space-y-4'}>
+    <div className={variant === 'flat' ? '-mx-4 divide-y divide-border/30 pb-20 bg-transparent overflow-x-hidden' : 'space-y-4'}>
       {posts.map((post) => {
         if (post.contentType === 'article') {
           return <ArticleCard key={post._id} article={post} onCommentClick={onCommentClick} variant={variant} />;
