@@ -50,13 +50,10 @@
   body {
     @apply bg-background text-foreground font-sans;
     min-height: 100dvh;
-    /* isolation: isolate prevents fixed/sticky elements' GPU layers from
-       bleeding into the scroll container, fixing Android Chrome scan-line artifacts */
+    /* isolation: isolate creates a new stacking context without breaking position:fixed */
     isolation: isolate;
-    /* Prevent subpixel rendering glitches on Android */
+    /* Use subpixel-antialiased to avoid Android GPU layer promotion from antialiased */
     -webkit-font-smoothing: subpixel-antialiased;
-    /* Force the body to its own compositing layer */
-    transform: translateZ(0);
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
