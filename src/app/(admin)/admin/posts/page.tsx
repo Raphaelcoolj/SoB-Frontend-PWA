@@ -12,7 +12,8 @@ import {
   Filter,
   Shield,
   ShieldAlert,
-  Flag
+  Flag,
+  Pencil
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -202,6 +203,12 @@ export default function AdminPostsPage() {
                           className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-accent hover:border-accent transition-all"
                         >
                           <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <a 
+                          href={`/post/${p._id}/edit`}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-accent hover:border-accent transition-all"
+                        >
+                          <Pencil className="w-4 h-4" />
                         </a>
                         <Button
                           variant="outline"
