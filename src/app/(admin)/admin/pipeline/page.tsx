@@ -28,6 +28,8 @@ export default function AdminPipelinePage() {
     name: '', username: '', email: '', fieldSlug: '',
     contentType: 'article', profileBio: '', avatar: '',
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: accountsData, isLoading: accountsLoading, mutate: mutateAccounts } = useSWR(
@@ -56,6 +58,8 @@ export default function AdminPipelinePage() {
 
   const openEdit = (acc: any) => {
     setEditingAccount(acc);
+    setAvatarFile(null);
+    setAvatarPreview(null);
     setEditForm({
       name: acc.name || '',
       username: acc.username || '',
@@ -71,10 +75,23 @@ export default function AdminPipelinePage() {
     if (!editingAccount) return;
     setSaving(true);
     try {
+      const fd = new FormData();
+      fd.append('name', editForm.name);
+      fd.append('username', editForm.username);
+      fd.append('email', editForm.email);
+      fd.append('fieldSlug', editForm.fieldSlug);
+      fd.append('contentType', editForm.contentType);
+      fd.append('profileBio', editForm.profileBio);
+      if (avatarFile) {
+        fd.append('avatar', avatarFile);
+      } else {
+        fd.append('avatar', editForm.avatar);
+      }
+
       const res = await fetch(`${BASE}/api/admin/pipeline/accounts/${editingAccount._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify(editForm),
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: fd,
       });
       const data = await res.json();
       if (data.success) {
@@ -417,7 +434,9 @@ export default function AdminPipelinePage() {
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-start sm:items-center gap-3 mb-2">
-                {editForm.avatar ? (
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="" className="w-12 h-12 rounded-full object-cover" />
+                ) : editForm.avatar ? (
                   <img src={editForm.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg font-semibold text-muted-foreground">
@@ -425,13 +444,18 @@ export default function AdminPipelinePage() {
                   </div>
                 )}
                 <div className="flex-1">
-                  <label className="text-xs font-medium text-muted-foreground">Avatar URL</label>
+                  <label className="text-xs font-medium text-muted-foreground">Avatar</label>
                   <input
-                    type="text"
-                    value={editForm.avatar}
-                    onChange={e => setEditForm(f => ({ ...f, avatar: e.target.value }))}
-                    className="w-full mt-1 px-3 py-2 rounded-xl bg-muted/50 border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
-                    placeholder="https://..."
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setAvatarFile(file);
+                        setAvatarPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="w-full mt-1 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-accent file:text-white hover:file:opacity-90 file:cursor-pointer"
                   />
                 </div>
               </div>
