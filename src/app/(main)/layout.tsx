@@ -77,7 +77,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Main content area — offsets for each nav size */}
       <main className="
-        pb-20 md:pb-0
+        pb-20 md:pb-20 lg:pb-0
         md:pl-20 lg:pl-64
         min-h-screen
       ">

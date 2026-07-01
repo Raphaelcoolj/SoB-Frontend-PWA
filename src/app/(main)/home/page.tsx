@@ -88,7 +88,7 @@ export default function HomePage() {
       {currentUser && (
         <Link
           href="/create"
-          className="md:hidden fixed bottom-20 right-4 z-40 bg-accent text-white p-4 rounded-full shadow-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+          className="lg:hidden fixed bottom-20 right-4 z-50 bg-accent text-white p-4 rounded-full shadow-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           aria-label="Create new post"
         >
           <Plus className="w-6 h-6 stroke-[3]" />

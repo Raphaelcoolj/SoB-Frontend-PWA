@@ -152,7 +152,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
 
   if (variant === 'flat') {
     return (
-      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent isolate [backface-visibility:hidden]">
+      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent [backface-visibility:hidden]">
         <div className="flex gap-3">
           <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">
             <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
