@@ -30,7 +30,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-background/90 backdrop-blur-md border-t border-border flex items-center justify-around pb-safe-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-background border-t border-border flex items-center justify-around pb-safe-bottom">
       {navItems.map((item) => {
         const IconComponent = item.icon;
         // Determine active matching path

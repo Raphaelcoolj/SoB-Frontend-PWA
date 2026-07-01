@@ -26,7 +26,7 @@ export default function HomePage() {
   return (
     <div className="space-y-4 pb-20 -mt-4 lg:-mt-6">
       {/* Sticky Home Top Header Bar */}
-      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/40 -mx-4 pt-2.5 pb-0 animate-in fade-in duration-200">
+      <div className="sticky top-0 z-40 bg-background border-b border-border/40 -mx-4 pt-2.5 pb-0">
         {/* Logo + Actions row — mobile only (sidebar shows logo on larger screens) */}
         <div className="md:hidden px-4 flex items-center justify-between">
           <div className="flex items-center">
@@ -54,7 +54,7 @@ export default function HomePage() {
                   {tab === 'forYou' ? 'For you' : 'Following'}
                 </span>
                 {isActive && (
-                  <span className="absolute bottom-0 w-12 h-0.5 bg-accent rounded-full animate-in fade-in zoom-in-95 duration-200" />
+                  <span className="absolute bottom-0 w-12 h-0.5 bg-accent rounded-full" />
                 )}
               </button>
             );
