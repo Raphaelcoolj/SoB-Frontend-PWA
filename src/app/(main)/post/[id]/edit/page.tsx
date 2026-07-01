@@ -103,7 +103,7 @@ export default function EditPostPage() {
   const fields: any[] = fieldsData?.fields || fieldsData || [];
 
   useEffect(() => {
-    if (post && user && post.author._id !== user._id) {
+    if (post && user && post.author._id !== user._id && user.role !== 'admin') {
       toast.error('You are not authorized to edit this post');
       router.push(`/post/${id}`);
     }
