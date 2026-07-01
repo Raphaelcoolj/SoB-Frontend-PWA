@@ -23,6 +23,7 @@ export default function AdminPipelinePage() {
   const { accessToken } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'accounts' | 'posts'>('overview');
   const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [previewPost, setPreviewPost] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     name: '', username: '', email: '', fieldSlug: '',
     contentType: 'article', profileBio: '', avatar: '',
@@ -87,6 +88,45 @@ export default function AdminPipelinePage() {
       toast.error('Failed to update account');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePublishPost = async (id: string) => {
+    try {
+      const res = await fetch(`${BASE}/api/admin/pipeline/posts/${id}/publish`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Post published!');
+        setPreviewPost(null);
+        mutatePosts();
+      } else {
+        toast.error(data.message || 'Failed to publish');
+      }
+    } catch {
+      toast.error('Failed to publish post');
+    }
+  };
+
+  const handleDeletePost = async (id: string) => {
+    if (!confirm('Delete this scheduled post?')) return;
+    try {
+      const res = await fetch(`${BASE}/api/admin/pipeline/posts/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Post deleted.');
+        setPreviewPost(null);
+        mutatePosts();
+      } else {
+        toast.error(data.message || 'Failed to delete');
+      }
+    } catch {
+      toast.error('Failed to delete post');
     }
   };
 
@@ -243,7 +283,7 @@ export default function AdminPipelinePage() {
               </div>
               <div className="space-y-3">
                 {posts.map((post: any) => (
-                  <div key={post._id} className="flex items-start justify-between p-3 rounded-xl bg-muted/30 border border-border/40 group hover:border-accent/40 transition-all gap-4">
+                  <div key={post._id} className="flex items-start justify-between p-3 rounded-xl bg-muted/30 border border-border/40 group hover:border-accent/40 transition-all gap-2 sm:gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
@@ -261,15 +301,45 @@ export default function AdminPipelinePage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-foreground mt-1 truncate">{post.title || '(untitled)'}</p>
+                      <button
+                        onClick={() => setPreviewPost(post)}
+                        className="text-sm font-medium text-foreground mt-1 truncate block hover:text-accent transition-colors text-left"
+                      >
+                        {post.title || '(untitled)'}
+                      </button>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         @{post.editorialAccount?.username || 'unknown'} · {post.field?.name || 'unknown field'}
                       </p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(post.scheduledAt).toLocaleDateString()} {new Date(post.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {new Date(post.scheduledAt).toLocaleDateString()}
                       </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setPreviewPost(post)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-accent hover:bg-accent/10 transition-all"
+                          title="Preview"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                        {!post.isPublished && (
+                          <button
+                            onClick={() => handlePublishPost(post._id)}
+                            className="p-1.5 rounded-lg text-emerald-500 hover:bg-emerald-500/10 transition-all"
+                            title="Publish now"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeletePost(post._id)}
+                          className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-all"
+                          title="Delete"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                       {post.metadata?.wordCount && (
                         <p className="text-[10px] text-muted-foreground">{post.metadata.wordCount} words</p>
                       )}
@@ -283,6 +353,70 @@ export default function AdminPipelinePage() {
             </Card>
           )}
         </>
+      )}
+
+      {/* Preview Post Modal */}
+      {previewPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background border border-border/60 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border/60">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                  previewPost.contentType === 'article' ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'
+                }`}>
+                  {previewPost.contentType}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  @{previewPost.editorialAccount?.username}
+                </span>
+              </div>
+              <button onClick={() => setPreviewPost(null)} className="p-2 rounded-lg hover:bg-muted transition-colors flex-shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+              {previewPost.title && (
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground">{previewPost.title}</h2>
+              )}
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground whitespace-pre-wrap break-words">
+                {previewPost.body || previewPost.rawContent || '(no content)'}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-t border-border/60">
+              <div className="flex items-center gap-2">
+                {previewPost.isPublished && previewPost.post?._id ? (
+                  <a
+                    href={`/post/${previewPost.post._id}`}
+                    target="_blank"
+                    className="text-xs text-accent hover:underline"
+                  >
+                    View live post →
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    Scheduled: {new Date(previewPost.scheduledAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setPreviewPost(null); handleDeletePost(previewPost._id); }}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all"
+                >
+                  Delete
+                </button>
+                {!previewPost.isPublished && (
+                  <button
+                    onClick={() => handlePublishPost(previewPost._id)}
+                    className="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition-all"
+                  >
+                    Publish Now
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Edit Account Modal */}
