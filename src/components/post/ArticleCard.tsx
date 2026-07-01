@@ -128,7 +128,7 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
 
   if (variant === 'flat') {
     return (
-      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent isolate [backface-visibility:hidden]">
+      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent [backface-visibility:hidden]">
         <div className="flex gap-3">
           {/* Avatar on the left */}
           <Link href={`/profile/${article.author.username}`} className="flex-shrink-0">
