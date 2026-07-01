@@ -67,7 +67,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <head />
       <body className="bg-background text-foreground font-sans">
         <ThemeProvider
           attribute="class"
