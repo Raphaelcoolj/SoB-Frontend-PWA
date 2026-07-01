@@ -352,6 +352,13 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
           {/* Actions */}
           <div className="flex items-center gap-0.5">
             <button
+              onClick={handleCommentClick}
+              className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-xs font-medium">{commentCount}</span>
+            </button>
+            <button
               onClick={handleLike}
               className={`flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted ${
                 isLiked ? 'text-red-500' : 'text-muted-foreground'
@@ -359,13 +366,6 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
             >
               <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
               <span className="text-xs font-medium">{likeCount}</span>
-            </button>
-            <button
-              onClick={handleCommentClick}
-              className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span className="text-xs font-medium">{commentCount}</span>
             </button>
             <button
               onClick={handleShare}

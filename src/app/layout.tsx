@@ -55,9 +55,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <head>
-        <meta name="theme-color" content="#3B82F6" />
-      </head>
+      <head />
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <ThemeProvider
           attribute="class"

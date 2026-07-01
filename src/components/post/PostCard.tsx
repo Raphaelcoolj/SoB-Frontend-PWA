@@ -262,19 +262,19 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
               </button>
 
               <button
-                onClick={handleShare}
-                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"
-              >
-                <Share2 className="w-4 h-4" />
-                <span className="text-xs">{post.shares}</span>
-              </button>
-
-              <button
                 onClick={handleLike}
                 className={`flex items-center gap-1.5 p-1.5 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
                 <span className="text-xs">{likeCount}</span>
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="text-xs">{post.shares}</span>
               </button>
 
               <button
@@ -421,6 +421,14 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
       {/* Engagement bar */}
       <div className="flex items-center gap-1 px-4 py-3 border-t border-border/60">
         <button
+          onClick={handleCommentClick}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
+        >
+          <MessageCircle className="w-4 h-4" />
+          <span className="text-xs font-medium">{commentCount}</span>
+        </button>
+
+        <button
           onClick={handleLike}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 hover:bg-muted active:scale-95 cursor-pointer ${
             isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'
@@ -428,14 +436,6 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
         >
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
           <span className="text-xs font-medium">{likeCount}</span>
-        </button>
-
-        <button
-          onClick={handleCommentClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span className="text-xs font-medium">{commentCount}</span>
         </button>
 
         <button

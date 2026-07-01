@@ -13,9 +13,11 @@ import { useFollowingFeed } from '../../../hooks/useFollowingFeed';
 import PostFeed from '../../../components/post/PostFeed';
 import Logo from '../../../components/shared/Logo';
 import Link from 'next/link';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Plus } from 'lucide-react';
+import { useAuthStore } from '../../../store/authStore';
 
 export default function HomePage() {
+  const { user: currentUser } = useAuthStore();
   const { posts: fyfPosts, isLoadingInitial: fyfLoading, isLoadingMore: fyfLoadingMore, hasMore: fyfHasMore, isEmpty: fyfEmpty, loadMore: fyfLoadMore } = useFeed('all');
   const { posts: followingPosts, isLoadingInitial: followingLoading, isLoadingMore: followingLoadingMore, hasMore: followingHasMore, isEmpty: followingEmpty, loadMore: followingLoadMore } = useFollowingFeed();
 
@@ -80,6 +82,17 @@ export default function HomePage() {
           loadMore={followingLoadMore}
           variant="flat"
         />
+      )}
+
+      {/* Floating Action Button (FAB) on mobile */}
+      {currentUser && (
+        <Link
+          href="/create"
+          className="md:hidden fixed bottom-20 right-4 z-40 bg-accent text-white p-4 rounded-full shadow-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+          aria-label="Create new post"
+        >
+          <Plus className="w-6 h-6 stroke-[3]" />
+        </Link>
       )}
     </div>
   );
