@@ -152,7 +152,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
 
   if (variant === 'flat') {
     return (
-      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent [backface-visibility:hidden]">
+      <article className="border-b border-border py-4 px-4 transition-colors duration-200 group bg-background">
         <div className="flex gap-3">
           <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">
             <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
@@ -255,7 +255,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
                 onClick={handleCommentClick}
-                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span className="text-xs">{commentCount}</span>
@@ -279,7 +279,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
 
               <button
                 onClick={handleBookmark}
-                className={`p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
+                className={`p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
               >
                 {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
               </button>
@@ -419,7 +419,7 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
       )}
 
       {/* Engagement bar */}
-      <div className="flex items-center gap-1 px-4 py-3 border-t border-border/60">
+      <div className="flex items-center gap-1 px-4 py-3 border-t border-border">
         <button
           onClick={handleCommentClick}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
