@@ -184,50 +184,54 @@ export default function AdminUsersPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-muted/50 border-b border-border">
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">User</th>
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Role</th>
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Status</th>
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Founder</th>
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Joined</th>
-                <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground text-right">Actions</th>
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">User</th>
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hidden sm:table-cell">Role</th>
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hidden md:table-cell">Status</th>
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hidden md:table-cell">Founder</th>
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hidden lg:table-cell">Joined</th>
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 [1, 2, 3, 4, 5].map(i => (
                   <tr key={i}>
-                    <td className="px-6 py-4"><Skeleton className="h-10 w-40" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-6 w-16" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-6 w-24" /></td>
-                    <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 ml-auto" /></td>
+                    <td className="px-4 sm:px-6 py-4"><Skeleton className="h-10 w-40" /></td>
+                    <td className="px-4 sm:px-6 py-4"><Skeleton className="h-6 w-16" /></td>
+                    <td className="px-4 sm:px-6 py-4"><Skeleton className="h-6 w-24" /></td>
+                    <td className="px-4 sm:px-6 py-4 text-right"><Skeleton className="h-8 w-8 ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground text-sm">
+                  <td colSpan={6} className="px-4 sm:px-6 py-12 text-center text-muted-foreground text-sm">
                     No users found.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((u: any) => (
                   <tr key={u._id} className="hover:bg-muted/20 transition-colors group">
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <UserAvatar avatar={u.avatar} name={u.name} size="sm" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">@{u.username} · {u.email}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
+                            <span className="sm:hidden text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">{u.role}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">@{u.username}</p>
+                          <p className="text-[10px] text-muted-foreground truncate hidden sm:block">{u.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
                       <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${
                         u.role === 'admin' ? 'bg-accent/10 text-accent border border-accent/20' : 'bg-muted text-muted-foreground border border-border'
                       }`}>
                         {u.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
                       {u.isBanned ? (
                         <span className="text-[10px] font-semibold uppercase tracking-widest bg-destructive/10 text-destructive border border-destructive/20 px-2 py-1 rounded-full">
                           Banned
@@ -242,19 +246,19 @@ export default function AdminUsersPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
                       <Switch
                         checked={u.founderBadge}
                         onCheckedChange={() => handleToggleFounderBadge(u._id, u.founderBadge)}
                         disabled={actionLoading === u._id}
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
                       <p className="text-xs text-muted-foreground">
                         {new Date(u.createdAt).toLocaleDateString()}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 sm:px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {u._id !== currentUser?._id && (
                           <>
@@ -356,28 +360,28 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Pagination */}
-        <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             Showing {Math.min(filteredUsers.length, pagination.limit)} of {pagination.total} users
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 rounded-lg"
+              className="h-8 px-3 rounded-lg text-xs"
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Prev
             </Button>
-            <div className="text-xs font-medium px-3">
-              Page {page} of {Math.ceil(pagination.total / pagination.limit) || 1}
+            <div className="text-xs font-medium px-2 sm:px-3">
+              {page} / {Math.ceil(pagination.total / pagination.limit) || 1}
             </div>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 rounded-lg"
+              className="h-8 px-3 rounded-lg text-xs"
               disabled={page >= Math.ceil(pagination.total / pagination.limit)}
               onClick={() => setPage(page + 1)}
             >

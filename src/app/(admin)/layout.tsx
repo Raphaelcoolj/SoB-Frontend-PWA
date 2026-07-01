@@ -48,34 +48,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const NavLinks = () => (
-    <>
-      <nav className="flex-1 p-4 space-y-1">
-        {ADMIN_NAV.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setIsMenuOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted group"
-          >
-            <item.icon className="w-5 h-5 group-hover:text-accent transition-colors" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      <div className="p-4 border-t border-border">
-        <Link 
-          href="/home" 
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Exit Admin
-        </Link>
-      </div>
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
@@ -86,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <ShieldCheck className="w-4 h-4 text-accent" />
           </div>
         </div>
-        <NavLinks />
+        <NavLinks onNavClick={() => setIsMenuOpen(false)} />
       </aside>
 
       {/* Main Content */}
@@ -108,12 +80,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile Menu Overlay */}
         {isMenuOpen && (
           <div className="lg:hidden fixed inset-0 top-14 bg-background z-40 flex flex-col">
-            <NavLinks />
+            <NavLinks onNavClick={() => setIsMenuOpen(false)} />
           </div>
         )}
         
         {children}
       </main>
     </div>
+  );
+}
+
+function NavLinks({ onNavClick }: { onNavClick: () => void }) {
+  return (
+    <>
+      <nav className="flex-1 p-4 space-y-1">
+        {ADMIN_NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavClick}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted group"
+          >
+            <item.icon className="w-5 h-5 group-hover:text-accent transition-colors" />
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="p-4 border-t border-border">
+        <Link 
+          href="/home" 
+          onClick={onNavClick}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Exit Admin
+        </Link>
+      </div>
+    </>
   );
 }

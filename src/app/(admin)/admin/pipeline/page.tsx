@@ -148,20 +148,6 @@ export default function AdminPipelinePage() {
     }
   };
 
-  const TabButton = ({ tab, label, icon: Icon }: { tab: typeof activeTab; label: string; icon: React.ElementType }) => (
-    <button
-      onClick={() => setActiveTab(tab)}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-        activeTab === tab
-          ? 'bg-accent text-white shadow-lg shadow-accent/25'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-      }`}
-    >
-      <Icon className="w-4 h-4" />
-      {label}
-    </button>
-  );
-
   const isLoading = accountsLoading || campaignsLoading || postsLoading;
 
   return (
@@ -172,9 +158,9 @@ export default function AdminPipelinePage() {
           <p className="text-muted-foreground mt-1">AI-powered editorial publishing system.</p>
         </div>
         <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-xl border border-border/60">
-          <TabButton tab="overview" label="Overview" icon={Newspaper} />
-          <TabButton tab="accounts" label="Accounts" icon={Settings} />
-          <TabButton tab="posts" label="Posts" icon={FileText} />
+          <TabButton tab="overview" label="Overview" icon={Newspaper} isActive={activeTab === 'overview'} onSelect={setActiveTab} />
+          <TabButton tab="accounts" label="Accounts" icon={Settings} isActive={activeTab === 'accounts'} onSelect={setActiveTab} />
+          <TabButton tab="posts" label="Posts" icon={FileText} isActive={activeTab === 'posts'} onSelect={setActiveTab} />
         </div>
       </div>
 
@@ -551,5 +537,23 @@ function StatCard({ icon: Icon, label, value, total, color, bg }: { icon: React.
         <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
       </div>
     </Card>
+  );
+}
+
+type Tab = 'overview' | 'accounts' | 'posts';
+
+function TabButton({ tab, label, icon: Icon, isActive, onSelect }: { tab: Tab; label: string; icon: React.ElementType; isActive: boolean; onSelect: (tab: Tab) => void }) {
+  return (
+    <button
+      onClick={() => onSelect(tab)}
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+        isActive
+          ? 'bg-accent text-white shadow-lg shadow-accent/25'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      }`}
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+    </button>
   );
 }
