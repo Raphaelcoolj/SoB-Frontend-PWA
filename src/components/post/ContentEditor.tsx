@@ -187,7 +187,8 @@ export default function ContentEditor({ value, onChange, placeholder = 'Start wr
 
   return (
     <div className="border border-border rounded-lg bg-background">
-      <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-card/95 backdrop-blur-sm">
+      {/* Sticky toolbar — sits below the mobile TopBar (h-14) on small screens, at top on desktop */}
+      <div className="sticky top-14 md:top-0 z-20 flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-border bg-card shadow-sm">
         <ToolbarButton active={active.bold} onClick={handleBold} title="Bold (Ctrl+B)">
           <Bold className="w-4 h-4" />
         </ToolbarButton>
@@ -214,7 +215,7 @@ export default function ContentEditor({ value, onChange, placeholder = 'Start wr
         </ToolbarButton>
 
         {showLinkInput && (
-          <div className="absolute left-0 right-0 top-full z-20 bg-card border border-border rounded-b-lg p-2 flex items-center gap-2 shadow-lg">
+          <div className="absolute left-0 right-0 top-full z-40 bg-card border-b border-border p-2 flex items-center gap-2 shadow-lg">
             <input
               ref={linkInputRef}
               type="text"

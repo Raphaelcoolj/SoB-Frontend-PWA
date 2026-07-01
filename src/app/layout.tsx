@@ -67,6 +67,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <head>
+        {/* 
+          Explicit viewport tag — belt-and-suspenders alongside the Next.js viewport export.
+          Without width=device-width,initial-scale=1 on Android Chrome, the browser renders
+          at ~980px desktop width and downscales, causing GPU raster tile misalignment
+          that appears as colored horizontal scan-line artifacts between scroll items.
+        */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover" />
+      </head>
       <body className="bg-background text-foreground font-sans">
         <ThemeProvider
           attribute="class"
