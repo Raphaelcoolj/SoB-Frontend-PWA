@@ -79,7 +79,7 @@
   .prose-article h3 {
     @apply text-base font-semibold text-foreground mt-5 mb-2;
   }
-  .prose-article p {
+  .prose-article p, .prose-article div {
     @apply mb-3 last:mb-0;
   }
   .prose-article ul, .prose-article ol {
