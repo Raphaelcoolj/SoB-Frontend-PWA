@@ -5,7 +5,7 @@
  * sets up PWA meta tags, Google Fonts, and SEO metadata.
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '../components/ui/sonner';
@@ -50,6 +50,18 @@ export const metadata: Metadata = {
     title: 'SoB',
     description: 'Educational and social content platform for sharing and discovering knowledge.',
   },
+};
+
+/**
+ * Viewport config — must be exported separately in Next.js 13.2+.
+ * Without this, no <meta name="viewport"> is injected, causing Android Chrome
+ * to render at ~980px desktop width then downscale, creating GPU tile artifacts.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
