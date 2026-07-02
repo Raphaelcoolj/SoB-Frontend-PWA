@@ -7,7 +7,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { User, Bell, Palette, ShieldCheck, BookOpen, ChevronRight, Bookmark, FileText, MessageSquare } from 'lucide-react';
+import { User, Bell, Palette, ShieldCheck, BookOpen, ChevronRight, Bookmark, FileText, MessageSquare, Smartphone } from 'lucide-react';
 
 const SETTINGS_LINKS = [
   { href: '/settings/profile', icon: User, label: 'Edit Profile', description: 'Name, username, bio, profile photo' },
@@ -41,6 +41,34 @@ export default function SettingsPage() {
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
           </Link>
         ))}
+      </div>
+
+      {/* PWA Install Guide */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
+            <Smartphone className="w-5 h-5 text-accent" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-foreground">Install the App</p>
+            <p className="text-xs text-muted-foreground">Add SoB to your home screen for the best experience</p>
+          </div>
+        </div>
+        <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+          <p><strong className="text-foreground">iPhone / iPad (Safari):</strong></p>
+          <ol className="list-decimal list-inside space-y-1 ml-1">
+            <li>Tap the <strong className="text-foreground">Share</strong> button <span className="text-foreground">⎙</span> at the bottom of Safari</li>
+            <li>Scroll down and tap <strong className="text-foreground">Add to Home Screen</strong></li>
+            <li>Tap <strong className="text-foreground">Add</strong> in the top-right corner</li>
+            <li>Open SoB from your home screen for a full-screen, app-like experience</li>
+          </ol>
+          <p className="mt-2"><strong className="text-foreground">Android (Chrome):</strong></p>
+          <ol className="list-decimal list-inside space-y-1 ml-1">
+            <li>Tap the <strong className="text-foreground">menu</strong> button ⋮ in Chrome</li>
+            <li>Tap <strong className="text-foreground">Add to Home screen</strong></li>
+            <li>Tap <strong className="text-foreground">Install</strong></li>
+          </ol>
+        </div>
       </div>
     </div>
   );
