@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SoB Frontend
+
+Next.js frontend for Sphere of Belief (SoB) — a content platform with personalized feeds, articles, and social features.
+
+## Stack
+
+- **Framework**: Next.js (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State**: Zustand (auth store)
+- **Data Fetching**: SWR + SWR Infinite
+- **Real-time**: Socket.IO client
+- **Icons**: Lucide React
+- **UI Components**: Custom (Skeleton, etc.)
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── (main)/       # Authenticated pages
+│   │   ├── home/           # For You / Following feed + Trending
+│   │   ├── search/         # Search + Discover fields
+│   │   ├── create/         # Create post/article
+│   │   ├── post/[id]/      # Single post/article view
+│   │   ├── post/[id]/edit/ # Edit post
+│   │   ├── profile/[username]/ # User profile
+│   │   ├── bookmarks/      # Saved posts
+│   │   ├── notifications/  # Notifications
+│   │   └── settings/       # Settings pages
+│   ├── (auth)/       # Auth pages (login, register, etc.)
+│   ├── (admin)/      # Admin panel
+│   └── layout.tsx    # Root layout
+├── components/
+│   ├── post/         # PostCard, ArticleCard, PostFeed, VideoPlayer
+│   ├── search/       # SearchResults, DiscoverFields
+│   ├── trending/     # TrendingSection (horizontal scroll)
+│   ├── user/         # UserAvatar
+│   ├── shared/       # Logo, etc.
+│   └── ui/           # Skeleton
+├── hooks/            # useFeed, useFollowingFeed, useSearch, useDiscoverFeed, etc.
+├── lib/              # api.ts (fetchWithAuth), utils.ts, socket.ts
+├── store/            # Zustand stores (authStore)
+└── types/            # TypeScript interfaces (post.ts, user.ts)
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+cp .env.example .env.local
+# Set NEXT_PUBLIC_API_URL=http://localhost:5000
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Pages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Route | Description |
+|-------|-------------|
+| `/home` | Main feed with Trending horizontal scroll, For You and Following tabs |
+| `/search` | Unified search + field-based discovery |
+| `/create` | Create posts and articles (with media upload) |
+| `/post/[id]` | Full article/post view |
+| `/profile/[username]` | User profile with their posts |
+| `/bookmarks` | Bookmarked/saved posts |
+| `/notifications` | Real-time notifications |
+| `/settings/fields` | Configure priority fields for feed |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Feeds
 
-## Learn More
+### For You Feed
+Scored aggregation from `GET /api/feed/fyf`. Uses SWR Infinite for cursor-based pagination (20 per page). Supports content type filtering (`all`/`articles`/`posts`).
 
-To learn more about Next.js, take a look at the following resources:
+### Following Feed
+Randomized posts from followed users via `GET /api/feed/following`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Trending Section
+Appears on `/home` above the main feed. Horizontal scrollable cards showing this week's most-read articles from `GET /api/feed/trending`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data Flow
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. `fetchWithAuth()` in `src/lib/api.ts` handles all API calls
+2. Automatically attaches Bearer token from Zustand auth store
+3. On 401, attempts token refresh; if refresh fails, redirects to `/login`
+4. SWR handles caching, deduplication, and revalidation
+5. Socket.IO provides real-time updates (new posts, comments)

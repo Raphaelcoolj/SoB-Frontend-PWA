@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { useFeed } from '../../../hooks/useFeed';
 import { useFollowingFeed } from '../../../hooks/useFollowingFeed';
 import PostFeed from '../../../components/post/PostFeed';
+import TrendingSection from '../../../components/trending/TrendingSection';
 import Logo from '../../../components/shared/Logo';
 import Link from 'next/link';
 import { MoreVertical, Plus } from 'lucide-react';
@@ -76,6 +77,8 @@ export default function HomePage() {
           })}
         </div>
       </div>
+
+      <TrendingSection />
 
       <FeedTab key={activeTab} type={activeTab} />
 

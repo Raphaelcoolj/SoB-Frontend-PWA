@@ -61,6 +61,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
 };
 
@@ -74,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           at ~980px desktop width and downscales, causing GPU raster tile misalignment
           that appears as colored horizontal scan-line artifacts between scroll items.
         */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
       </head>
       <body className="bg-background text-foreground font-sans">
         <ThemeProvider

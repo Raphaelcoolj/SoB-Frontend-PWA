@@ -25,8 +25,8 @@ export default function AdminFeedbackPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground flex items-center gap-3">
-          <MessageSquare className="w-8 h-8 text-accent" />
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+          <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
           Feedback
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">Messages and inquiries submitted via the contact form.</p>
@@ -37,7 +37,7 @@ export default function AdminFeedbackPage() {
           {[1,2,3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
         </div>
       ) : messages.length === 0 ? (
-        <Card className="p-12 text-center text-muted-foreground text-sm border-dashed">
+        <Card className="p-6 sm:p-12 text-center text-muted-foreground text-sm border-dashed">
           <Mail className="w-8 h-8 mx-auto mb-3 opacity-40" />
           No feedback messages yet.
         </Card>

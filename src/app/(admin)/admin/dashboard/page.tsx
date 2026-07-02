@@ -77,38 +77,38 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Real-time platform performance and user engagement.</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Real-time platform performance and user engagement.</p>
       </div>
 
       {/* Top row stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat, i) => (
-          <Card key={i} className="p-6 border-border/60 shadow-sm">
+          <Card key={i} className="p-4 sm:p-6 border-border/60 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className={`p-2.5 rounded-xl ${stat.bg}`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              <div className={`p-2 rounded-xl ${stat.bg}`}>
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 {stat.label}
               </span>
             </div>
-            <div className="mt-4">
-              <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
+            <div className="mt-3 sm:mt-4">
+              <p className="text-xl sm:text-2xl font-semibold text-foreground">{stat.value}</p>
               <p className="text-[10px] text-muted-foreground mt-1">Active users this period</p>
             </div>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Activity Breakdown */}
-        <Card className="p-6 border-border/60">
-          <h3 className="font-medium text-sm mb-6 flex items-center gap-2">
+        <Card className="p-4 sm:p-6 border-border/60">
+          <h3 className="font-medium text-sm mb-4 sm:mb-6 flex items-center gap-2">
             <Activity className="w-4 h-4 text-accent" />
             Weekly Activity Breakdown
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <ActivityItem icon={FileText} label="Posts & Articles" value={breakdown.post} max={Math.max(...Object.values(breakdown) as number[])} color="bg-accent" />
             <ActivityItem icon={Heart} label="Likes" value={breakdown.like} max={Math.max(...Object.values(breakdown) as number[])} color="bg-red-500" />
             <ActivityItem icon={MessageCircle} label="Comments & Debates" value={breakdown.comment + breakdown.debate} max={Math.max(...Object.values(breakdown) as number[])} color="bg-blue-500" />
@@ -147,23 +147,23 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Overall Platform Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-8 border-accent/20 bg-accent/5 flex items-center gap-6">
-          <div className="w-16 h-16 rounded-2xl bg-accent/20 flex items-center justify-center">
-            <Users className="w-8 h-8 text-accent" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-8 border-accent/20 bg-accent/5 flex items-center gap-4 sm:gap-6">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-accent/20 flex items-center justify-center flex-shrink-0">
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
           </div>
-          <div>
-            <p className="text-3xl font-semibold text-foreground">{summary.totalUsers}</p>
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Members</p>
+          <div className="min-w-0">
+            <p className="text-2xl sm:text-3xl font-semibold text-foreground">{summary.totalUsers}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Members</p>
           </div>
         </Card>
-        <Card className="p-8 border-purple-500/20 bg-purple-500/5 flex items-center gap-6">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center">
-            <FileText className="w-8 h-8 text-purple-500" />
+        <Card className="p-4 sm:p-8 border-purple-500/20 bg-purple-500/5 flex items-center gap-4 sm:gap-6">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
           </div>
-          <div>
-            <p className="text-3xl font-semibold text-foreground">{summary.totalPosts}</p>
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Content Items</p>
+          <div className="min-w-0">
+            <p className="text-2xl sm:text-3xl font-semibold text-foreground">{summary.totalPosts}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Content Items</p>
           </div>
         </Card>
       </div>
