@@ -78,7 +78,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <TrendingSection />
+      {activeTab === 'forYou' && <TrendingSection />}
 
       <FeedTab key={activeTab} type={activeTab} />
 
