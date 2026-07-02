@@ -219,11 +219,10 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
   const cursor = dragMode ? getCursor(dragMode) : undefined;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md">
-      {/* Outer Modal Wrapper - constrained with dynamic viewport max height */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+      {/* Outer Modal Box with dedicated responsive constraints */}
       <div 
-        className="relative bg-card border border-border w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col"
-        style={{ maxHeight: '90dvh' }}
+        className="relative bg-card border border-border w-full sm:max-w-2xl sm:rounded-3xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[85dvh]"
       >
         {/* Header - fixed */}
         <div className="flex items-center justify-between p-4 sm:p-6 pb-3 border-b border-border shrink-0">
@@ -236,13 +235,9 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           </button>
         </div>
 
-        {/* Scrollable body - bound to prevent layout pushing */}
-        <div 
-          className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-3"
-          style={{ maxHeight: '50dvh' }}
-        >
-          <div className="flex flex-col gap-3">
-            {/* Image Container - dynamic responsive height calculation */}
+        {/* Dynamic, flex-bounded scroll body */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-3">
+          <div className="flex flex-col gap-3 h-full justify-center">
             <div
               ref={containerRef}
               className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
@@ -252,7 +247,8 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
               onPointerCancel={onUp}
               style={{ 
                 cursor,
-                height: 'min(45vh, 400px)' 
+                height: 'min(40vh, 380px)', // Scaled down to guarantee structural button allocation
+                maxHeight: '100%'
               }}
             >
               {imageUrl && (
@@ -305,8 +301,8 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           </div>
         </div>
 
-        {/* Buttons - always visible at bottom */}
-        <div className="flex gap-3 p-4 sm:p-6 pt-3 border-t border-border shrink-0">
+        {/* Buttons footer - explicitly locked to base layout layout bounds */}
+        <div className="flex gap-3 p-4 sm:p-6 pt-3 border-t border-border mt-auto shrink-0 bg-card">
           <Button variant="outline" className="flex-1 py-3 text-sm" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
