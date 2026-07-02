@@ -13,6 +13,13 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Agent Workflow Instructions
+After every task, an agent MUST:
+1. Update this AGENTS.md file if any new components, pages, hooks, or features were added
+2. Run `npm run build` and verify it compiles without errors
+3. Commit all changes with a structured commit message
+4. Never leave uncommitted work behind
+
 ## Stack
 - **Framework**: Next.js (App Router, canary)
 - **Language**: TypeScript
