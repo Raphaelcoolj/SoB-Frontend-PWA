@@ -13,6 +13,7 @@ import { fetchWithAuth } from '../../lib/api';
 import { toast } from 'sonner';
 import CommentCard from './CommentCard';
 import { Button } from '../ui/Button';
+import MentionTextarea from '../shared/MentionTextarea';
 import { Skeleton } from '../ui/Skeleton';
 import { Comment } from '../../types/comment';
 
@@ -193,14 +194,16 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
             </div>
           )}
           <div className="flex gap-2 items-start">
-            <textarea
-              id="comment-textarea"
-              placeholder={accessToken ? (commentType === 'debate' ? "Start a debate..." : "Add a comment...") : "Login to comment"}
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              disabled={!accessToken || isSubmitting}
-              className="w-full h-20 p-4 text-sm rounded-2xl border border-border bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent focus:outline-none transition-all resize-none"
-            />
+            <div className="flex-1">
+              <MentionTextarea
+                value={commentText}
+                onChange={setCommentText}
+                placeholder={accessToken ? (commentType === 'debate' ? "Start a debate..." : "Add a comment...") : "Login to comment"}
+                disabled={!accessToken || isSubmitting}
+                rows={3}
+                className="w-full h-20 p-4 text-sm rounded-2xl border border-border bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent focus:outline-none transition-all resize-none"
+              />
+            </div>
             <Button 
               type="submit" 
               size="sm" 

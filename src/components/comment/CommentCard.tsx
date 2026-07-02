@@ -13,6 +13,7 @@ import { Heart, Reply, MoreHorizontal, Trash2, ChevronDown, ChevronUp } from 'lu
 import useSWR from 'swr';
 import { useAuthStore } from '../../store/authStore';
 import { UserAvatar } from '../user/UserAvatar';
+import MentionText from '../shared/MentionText';
 import { fetchWithAuth } from '../../lib/api';
 import { formatDistanceToNow } from '../../lib/utils';
 import { Comment } from '../../types/comment';
@@ -87,9 +88,10 @@ export default function CommentCard({
               </Link>
               <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(comment.createdAt)}</span>
             </div>
-            <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-              {comment.body}
-            </p>
+            <MentionText
+              text={comment.body}
+              className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed"
+            />
           </div>
 
           <div className="flex items-center gap-4 pl-1">

@@ -18,6 +18,7 @@ import { Input } from '../../../../../components/ui/Input';
 import MediaUploader from '../../../../../components/post/MediaUploader';
 import ImageCropperModal from '../../../../../components/post/ImageCropperModal';
 import ContentEditor from '../../../../../components/post/ContentEditor';
+import MentionTextarea from '../../../../../components/shared/MentionTextarea';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '../../../../../lib/api';
 import { stripHtml } from '../../../../../lib/utils';
@@ -247,11 +248,13 @@ export default function EditPostPage() {
           )}
 
           {mode === 'post' ? (
-            <textarea
-              {...register('body')}
+            <MentionTextarea
+              value={bodyValue}
+              onChange={(val) => setValue('body', val, { shouldValidate: true })}
               rows={4}
               placeholder="What's happening?"
               className="w-full bg-transparent border-none text-sm resize-none focus:outline-none placeholder:text-muted-foreground"
+              maxLength={400}
             />
           ) : (
             <ContentEditor

@@ -137,6 +137,13 @@ interface PostFeedProps {
 - `POST /api/posts/:id/read-time` — Submit read time `{ seconds }`
 - `POST /api/posts/:id/like` — Toggle like
 - `POST /api/posts/:id/bookmark` — Toggle bookmark
+- `GET /api/users/mentions/search?q=` — Mention autocomplete
+
+### Mention System
+- **MentionTextarea** (`src/components/shared/MentionTextarea.tsx`) — textarea with built-in `@` autocomplete; debounced search against `/api/users/mentions/search`, dropdown with avatar+name+username, keyboard navigation (arrows/enter/escape)
+- **MentionText** (`src/components/shared/MentionText.tsx`) — renders `@username` as clickable `<Link>` to `/profile/:username` with accent color; used in PostCard (feed + detail), ArticleCard, CommentCard
+- Integrated into create post page, edit post page (post mode), and CommentSection textarea
+- Backend parses `@username` and post-link mentions on creation, fires `mention` notifications
 
 ### PWA / Viewport
 - Root `layout.tsx` exports a `Viewport` with `userScalable: false`, `maximumScale: 1` to prevent pinch-zoom on PWA
