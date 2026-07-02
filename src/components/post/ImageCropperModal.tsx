@@ -220,8 +220,9 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md">
-      <div className="relative bg-card border border-border w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl p-4 sm:p-6 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
-        <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
+      <div className="relative bg-card border border-border w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+        {/* Header - fixed */}
+        <div className="flex items-center justify-between p-4 sm:p-6 pb-3 border-b border-border shrink-0">
           <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
             <Crop className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
             Crop Image
@@ -231,66 +232,70 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           </button>
         </div>
 
-        <div className="flex-1 flex flex-col gap-3 min-h-0">
-          <div
-            ref={containerRef}
-            className="relative w-full flex-1 min-h-[200px] sm:min-h-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
-            onPointerDown={onDown}
-            onPointerMove={onMove}
-            onPointerUp={onUp}
-            onPointerCancel={onUp}
-            style={{ cursor }}
-          >
-            {imageUrl && (
-              <img
-                ref={imgRef}
-                src={imageUrl}
-                alt="Crop preview"
-                className="w-full h-full object-contain"
-                onLoad={onImgLoad}
-                draggable={false}
-              />
-            )}
-            {box && (
-              <>
-                <div className="absolute inset-0 pointer-events-none" style={{
-                  background: 'rgba(0,0,0,0.5)',
-                  clipPath: `polygon(
-                    0% 0%, 100% 0%, 100% 100%, 0% 100%,
-                    0% 0%,
-                    ${box.x}px ${box.y}px,
-                    ${box.x}px ${box.y + box.h}px,
-                    ${box.x + box.w}px ${box.y + box.h}px,
-                    ${box.x + box.w}px ${box.y}px,
-                    ${box.x}px ${box.y}px
-                  )`,
-                }} />
-                <div className="absolute border-2 border-white pointer-events-none" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />
-                <Handle cx={box.x} cy={box.y} />
-                <Handle cx={box.x + box.w} cy={box.y} />
-                <Handle cx={box.x} cy={box.y + box.h} />
-                <Handle cx={box.x + box.w} cy={box.y + box.h} />
-                <EdgeHandle cx={box.x + box.w / 2} cy={box.y} />
-                <EdgeHandle cx={box.x + box.w / 2} cy={box.y + box.h} />
-                <EdgeHandle cx={box.x} cy={box.y + box.h / 2} />
-                <EdgeHandle cx={box.x + box.w} cy={box.y + box.h / 2} />
-              </>
-            )}
-          </div>
-
-          {imageUrl && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="truncate mr-2">{file.name} ({Math.round(natural.w)}x{Math.round(natural.h)})</span>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-3">
+          <div className="flex flex-col gap-3">
+            <div
+              ref={containerRef}
+              className="relative w-full h-[50vh] sm:h-[60vh] rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
+              onPointerDown={onDown}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              style={{ cursor }}
+            >
+              {imageUrl && (
+                <img
+                  ref={imgRef}
+                  src={imageUrl}
+                  alt="Crop preview"
+                  className="w-full h-full object-contain"
+                  onLoad={onImgLoad}
+                  draggable={false}
+                />
+              )}
               {box && (
-                <span className="shrink-0">
-                  {Math.round((box.w / display.w) * natural.w)}x{Math.round((box.h / display.h) * natural.h)}px
-                </span>
+                <>
+                  <div className="absolute inset-0 pointer-events-none" style={{
+                    background: 'rgba(0,0,0,0.5)',
+                    clipPath: `polygon(
+                      0% 0%, 100% 0%, 100% 100%, 0% 100%,
+                      0% 0%,
+                      ${box.x}px ${box.y}px,
+                      ${box.x}px ${box.y + box.h}px,
+                      ${box.x + box.w}px ${box.y + box.h}px,
+                      ${box.x + box.w}px ${box.y}px,
+                      ${box.x}px ${box.y}px
+                    )`,
+                  }} />
+                  <div className="absolute border-2 border-white pointer-events-none" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />
+                  <Handle cx={box.x} cy={box.y} />
+                  <Handle cx={box.x + box.w} cy={box.y} />
+                  <Handle cx={box.x} cy={box.y + box.h} />
+                  <Handle cx={box.x + box.w} cy={box.y + box.h} />
+                  <EdgeHandle cx={box.x + box.w / 2} cy={box.y} />
+                  <EdgeHandle cx={box.x + box.w / 2} cy={box.y + box.h} />
+                  <EdgeHandle cx={box.x} cy={box.y + box.h / 2} />
+                  <EdgeHandle cx={box.x + box.w} cy={box.y + box.h / 2} />
+                </>
               )}
             </div>
-          )}
+
+            {imageUrl && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground pb-2">
+                <span className="truncate mr-2">{file.name} ({Math.round(natural.w)}x{Math.round(natural.h)})</span>
+                {box && (
+                  <span className="shrink-0">
+                    {Math.round((box.w / display.w) * natural.w)}x{Math.round((box.h / display.h) * natural.h)}px
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex gap-3 pt-3 border-t border-border mt-3 sticky bottom-0 bg-card z-10 pb-safe">
+        {/* Buttons - always visible at bottom */}
+        <div className="flex gap-3 p-4 sm:p-6 pt-3 border-t border-border shrink-0">
           <Button variant="outline" className="flex-1 py-3 text-sm" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
