@@ -16,11 +16,26 @@ import Link from 'next/link';
 import { MoreVertical, Plus } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 
+function FeedTab({ type }: { type: 'forYou' | 'following' }) {
+  const fyf = useFeed('all');
+  const following = useFollowingFeed();
+  const feed = type === 'forYou' ? fyf : following;
+
+  return (
+    <PostFeed
+      posts={feed.posts}
+      isLoadingInitial={feed.isLoadingInitial}
+      isLoadingMore={feed.isLoadingMore}
+      hasMore={feed.hasMore}
+      isEmpty={feed.isEmpty}
+      loadMore={feed.loadMore}
+      variant="flat"
+    />
+  );
+}
+
 export default function HomePage() {
   const { user: currentUser } = useAuthStore();
-  const { posts: fyfPosts, isLoadingInitial: fyfLoading, isLoadingMore: fyfLoadingMore, hasMore: fyfHasMore, isEmpty: fyfEmpty, loadMore: fyfLoadMore } = useFeed('all');
-  const { posts: followingPosts, isLoadingInitial: followingLoading, isLoadingMore: followingLoadingMore, hasMore: followingHasMore, isEmpty: followingEmpty, loadMore: followingLoadMore } = useFollowingFeed();
-
   const [activeTab, setActiveTab] = useState<'forYou' | 'following'>('forYou');
 
   return (
@@ -62,27 +77,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {activeTab === 'forYou' ? (
-        <PostFeed
-          posts={fyfPosts}
-          isLoadingInitial={fyfLoading}
-          isLoadingMore={fyfLoadingMore}
-          hasMore={fyfHasMore}
-          isEmpty={fyfEmpty}
-          loadMore={fyfLoadMore}
-          variant="flat"
-        />
-      ) : (
-        <PostFeed
-          posts={followingPosts}
-          isLoadingInitial={followingLoading}
-          isLoadingMore={followingLoadingMore}
-          hasMore={followingHasMore}
-          isEmpty={followingEmpty}
-          loadMore={followingLoadMore}
-          variant="flat"
-        />
-      )}
+      <FeedTab key={activeTab} type={activeTab} />
 
       {/* Floating Action Button (FAB) on mobile */}
       {currentUser && (

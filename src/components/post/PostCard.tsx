@@ -43,6 +43,18 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
   const [isBookmarked, setIsBookmarked] = useState((post.bookmarks || []).includes(userId));
   const [commentCount, setCommentCount] = useState((post.comments || []).length);
   const [showOptions, setShowOptions] = useState(false);
+  const optionsRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showOptions) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (optionsRef.current && !optionsRef.current.contains(e.target as Node)) {
+        setShowOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptions]);
 
   useEffect(() => {
     setCommentCount((post.comments || []).length);
@@ -171,11 +183,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
                 <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
               </div>
               <div className="relative">
-                <button onClick={() => setShowOptions(!showOptions)} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
+                <button onClick={(e) => { e.stopPropagation(); setShowOptions(!showOptions); }} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
                 {showOptions && (
-                  <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                  <div ref={optionsRef} className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
                     {isAuthor ? (
                       <>
                         <Link
@@ -321,11 +333,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
               <div className="relative">
-                <button onClick={() => setShowOptions(!showOptions)} className="text-muted-foreground hover:text-foreground">
+                <button onClick={(e) => { e.stopPropagation(); setShowOptions(!showOptions); }} className="text-muted-foreground hover:text-foreground">
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
                 {showOptions && (
-                  <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                  <div ref={optionsRef} className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
                     {isAuthor ? (
                       <>
                         <Link

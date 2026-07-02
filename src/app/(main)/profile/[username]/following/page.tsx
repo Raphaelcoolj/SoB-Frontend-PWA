@@ -28,7 +28,7 @@ export default function FollowingListPage() {
   const params = useParams();
   const username = params.username as string;
   const { accessToken } = useAuthStore();
-  const { ref, inView } = useInView();
+  const { ref, inView } = useInView({ rootMargin: '400px' });
 
   const { data: profileData } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/api/users/${username}`,

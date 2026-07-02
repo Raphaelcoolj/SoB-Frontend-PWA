@@ -10,7 +10,7 @@ import React, { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -21,6 +21,7 @@ import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
+const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
 
 interface ArticleCardProps {
   article: Post;
@@ -39,6 +40,18 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
   const [isBookmarked, setIsBookmarked] = useState(article.bookmarks.includes(userId));
   const [commentCount, setCommentCount] = useState(article.comments.length);
   const [showOptions, setShowOptions] = useState(false);
+  const optionsRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showOptions) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (optionsRef.current && !optionsRef.current.contains(e.target as Node)) {
+        setShowOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptions]);
 
   useEffect(() => {
     setCommentCount(article.comments.length);
@@ -58,6 +71,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
   // NEW: State for image lightbox
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const handleDelete = async () => {
     if (!accessToken || !isAuthor) return;
@@ -156,7 +170,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
                 {showOptions && (
-                  <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
+                  <div ref={optionsRef} className="absolute right-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-10 p-1 min-w-[120px]">
                     {isAuthor ? (
                       <>
                         <Link
@@ -175,7 +189,13 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                         </button>
                       </>
                     ) : (
-                      <span className="block px-3 py-2 text-xs text-muted-foreground">Options</span>
+                      <button
+                        onClick={() => { setShowOptions(false); setShowReportModal(true); }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 rounded-md w-full cursor-pointer"
+                      >
+                        <Flag className="w-4 h-4" />
+                        Report
+                      </button>
                     )}
                   </div>
                 )}
@@ -250,6 +270,9 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
             initialIndex={lightboxIndex}
             onClose={() => setLightboxOpen(false)}
           />
+        )}
+        {showReportModal && (
+          <ReportModal postId={article._id} onClose={() => setShowReportModal(false)} />
         )}
       </article>
     );
@@ -393,6 +416,9 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
           initialIndex={lightboxIndex}
           onClose={() => setLightboxOpen(false)}
         />
+      )}
+      {showReportModal && (
+        <ReportModal postId={article._id} onClose={() => setShowReportModal(false)} />
       )}
     </article>
   );

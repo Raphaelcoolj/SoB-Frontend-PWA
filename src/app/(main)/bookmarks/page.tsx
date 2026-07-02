@@ -43,7 +43,7 @@ const fetcher = async (url: string, token: string): Promise<BookmarkResponse> =>
 
 export default function BookmarksListPage() {
   const { accessToken } = useAuthStore();
-  const { ref, inView } = useInView();
+  const { ref, inView } = useInView({ rootMargin: '400px' });
 
   const getKey = (pageIndex: number, previousPageData: BookmarkResponse | null) => {
     if (!accessToken) return null;

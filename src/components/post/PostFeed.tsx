@@ -80,7 +80,7 @@ export default function PostFeed({
           loadMore();
         }
       },
-      { threshold: 0.1 }
+      { rootMargin: '400px' }
     );
 
     observer.observe(sentinelRef.current);
