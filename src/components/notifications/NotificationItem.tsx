@@ -8,7 +8,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, UserPlus, Flame, BookOpen } from 'lucide-react';
+import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
 
@@ -23,6 +23,8 @@ const NOTIFICATION_CONFIG: Record<string, { icon: any; color: string; label: str
   follow: { icon: UserPlus, color: 'text-accent bg-accent/10', label: 'started following you' },
   debate: { icon: Flame, color: 'text-orange-500 bg-orange-500/10', label: 'started a debate on your post' },
   new_post: { icon: BookOpen, color: 'text-emerald-500 bg-emerald-500/10', label: 'published a new post' },
+  mention: { icon: AtSign, color: 'text-purple-500 bg-purple-500/10', label: 'mentioned you' },
+  weekly_digest: { icon: Calendar, color: 'text-accent bg-accent/10', label: 'your weekly digest is ready' },
 };
 
 export default function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
