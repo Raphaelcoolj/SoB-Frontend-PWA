@@ -220,7 +220,11 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md">
-      <div className="relative bg-card border border-border w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+      {/* Outer Modal Wrapper - constrained with dynamic viewport max height */}
+      <div 
+        className="relative bg-card border border-border w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col"
+        style={{ maxHeight: '90dvh' }}
+      >
         {/* Header - fixed */}
         <div className="flex items-center justify-between p-4 sm:p-6 pb-3 border-b border-border shrink-0">
           <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
@@ -232,17 +236,24 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-3">
+        {/* Scrollable body - bound to prevent layout pushing */}
+        <div 
+          className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-3"
+          style={{ maxHeight: '50dvh' }}
+        >
           <div className="flex flex-col gap-3">
+            {/* Image Container - dynamic responsive height calculation */}
             <div
               ref={containerRef}
-              className="relative w-full h-[50vh] sm:h-[60vh] rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
+              className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
               onPointerDown={onDown}
               onPointerMove={onMove}
               onPointerUp={onUp}
               onPointerCancel={onUp}
-              style={{ cursor }}
+              style={{ 
+                cursor,
+                height: 'min(45vh, 400px)' 
+              }}
             >
               {imageUrl && (
                 <img
