@@ -5,6 +5,7 @@
  * logged-in user follows.
  */
 
+import { useEffect, useState } from 'react';
 import useSWRInfinite from 'swr/infinite';
 import { useAuthStore } from '../store/authStore';
 
@@ -31,10 +32,18 @@ const createFetcher = (token: string) => async (url: string): Promise<FeedPage> 
 
 export const useFollowingFeed = () => {
   const { accessToken } = useAuthStore();
+  const [isActive, setIsActive] = useState(true);
+
+  useEffect(() => {
+    const onVisibility = () => setIsActive(!document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   const getKey = (pageIndex: number, previousPageData: FeedPage | null) => {
     if (previousPageData && !previousPageData.nextCursor) return null;
     if (!accessToken) return null;
+    if (!isActive) return null;
 
     const cursor = previousPageData ? previousPageData.nextCursor : 0;
     const params = new URLSearchParams({ cursor: String(cursor) });
@@ -48,6 +57,7 @@ export const useFollowingFeed = () => {
     {
       revalidateFirstPage: false,
       revalidateOnFocus: false,
+      revalidateIfStale: false,
       dedupingInterval: 30000,
     }
   );

@@ -9,7 +9,7 @@ import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '../../../../../store/authStore';
 import { UserAvatar } from '../../../../../components/user/UserAvatar';
@@ -94,8 +94,19 @@ export default function FollowersListPage() {
           )}
 
           {!isReachingEnd && (
-            <div ref={ref} className="flex justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-accent" />
+            <div ref={ref} className="space-y-2">
+              {[1,2].map(i => (
+                <div key={`load-more-${i}`} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-9 h-9 rounded-full" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-2.5 w-16" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-16 rounded-lg" />
+                </div>
+              ))}
             </div>
           )}
         </div>

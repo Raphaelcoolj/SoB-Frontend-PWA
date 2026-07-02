@@ -234,7 +234,7 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
         <div className="flex-1 flex flex-col gap-3 min-h-0">
           <div
             ref={containerRef}
-            className="relative w-full flex-1 min-h-[250px] sm:min-h-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
+            className="relative w-full flex-1 min-h-[200px] sm:min-h-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-border touch-none select-none"
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
@@ -290,7 +290,7 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
           )}
         </div>
 
-        <div className="flex gap-3 pt-3 border-t border-border mt-3">
+        <div className="flex gap-3 pt-3 border-t border-border mt-3 sticky bottom-0 bg-card z-10 pb-safe">
           <Button variant="outline" className="flex-1 py-3 text-sm" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
@@ -303,7 +303,7 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
               <span className="flex items-center gap-2 justify-center">
                 <RefreshCw className="w-4 h-4 animate-spin" /> Cropping...
               </span>
-            ) : 'Apply Crop'}
+            ) : 'Save Cropped Image'}
           </Button>
         </div>
       </div>

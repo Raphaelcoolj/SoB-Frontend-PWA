@@ -7,7 +7,7 @@
 
 import React from 'react';
 import useSWRInfinite from 'swr/infinite';
-import { Loader2 } from 'lucide-react';
+
 import { useAuthStore } from '../../../store/authStore';
 import PostCard from '../../../components/post/PostCard';
 import ArticleCard from '../../../components/post/ArticleCard';
@@ -98,8 +98,8 @@ export default function BookmarksListPage() {
           )}
 
           {!isReachingEnd && (
-            <div ref={ref} className="flex justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-accent" />
+            <div ref={ref} className="space-y-4">
+              {[1,2].map(i => <Skeleton key={`load-more-${i}`} className="h-64 w-full rounded-xl" />)}
             </div>
           )}
         </div>
