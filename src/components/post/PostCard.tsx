@@ -20,6 +20,7 @@ import { socket } from '../../lib/socket';
 import { UserAvatar } from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
 import { formatDistanceToNow } from '../../lib/utils';
+import MentionText from '../shared/MentionText';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -226,9 +227,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
                   {post.title}
                 </h2>
               )}
-              <p className="text-sm text-foreground/95 leading-normal whitespace-pre-wrap line-clamp-4">
-                {post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
-              </p>
+              <MentionText
+                text={post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                className="text-sm text-foreground/95 leading-normal whitespace-pre-wrap line-clamp-4"
+                as="span"
+              />
             </Link>
 
             {/* Media (images or HLS video) */}
@@ -392,9 +395,10 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
           {isArticle && /<[a-z][\s\S]*>/i.test(post.body) ? (
             <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') }} />
           ) : (
-            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
-              {post.body}
-            </p>
+            <MentionText
+              text={post.body}
+              className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words"
+            />
           )}
         </div>
       ) : (
@@ -404,9 +408,10 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               {post.title}
             </h2>
           )}
-          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4 break-words">
-            {post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
-          </p>
+          <MentionText
+            text={post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+            className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4 break-words"
+          />
         </Link>
       )}
 
