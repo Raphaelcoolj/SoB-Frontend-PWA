@@ -171,10 +171,10 @@ export default function AdminPipelinePage() {
     <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Content Pipeline</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">Content Pipeline</h1>
           <p className="text-muted-foreground mt-1">AI-powered editorial publishing system.</p>
         </div>
-        <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-xl border border-border/60">
+        <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1 rounded-xl border border-border/60">
           <TabButton tab="overview" label="Overview" icon={Newspaper} isActive={activeTab === 'overview'} onSelect={setActiveTab} />
           <TabButton tab="accounts" label="Accounts" icon={Settings} isActive={activeTab === 'accounts'} onSelect={setActiveTab} />
           <TabButton tab="posts" label="Posts" icon={FileText} isActive={activeTab === 'posts'} onSelect={setActiveTab} />
@@ -548,7 +548,7 @@ export default function AdminPipelinePage() {
 
 function StatCard({ icon: Icon, label, value, total, color, bg }: { icon: React.ElementType; label: string; value: number; total?: number; color: string; bg: string }) {
   return (
-    <Card className="p-6 border-border/60 shadow-sm">
+    <Card className="p-4 sm:p-6 border-border/60 shadow-sm">
       <div className="flex items-center justify-between">
         <div className={`p-2.5 rounded-xl ${bg}`}>
           <Icon className={`w-5 h-5 ${color}`} />
