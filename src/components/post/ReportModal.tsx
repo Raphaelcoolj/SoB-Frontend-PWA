@@ -49,13 +49,14 @@ export default function ReportModal({ postId, onClose }: ReportModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-background border border-border shadow-xl w-full md:max-w-md md:rounded-2xl rounded-t-2xl md:mx-4 overflow-hidden max-h-[90dvh] flex flex-col animate-slide-up"
+        className="bg-background border border-border shadow-xl w-full md:max-w-md rounded-2xl overflow-hidden max-h-[85dvh] flex flex-col animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header - Stays Fixed */}
         <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-500" />
@@ -66,7 +67,8 @@ export default function ReportModal({ postId, onClose }: ReportModalProps) {
           </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto">
+        {/* Scrollable Body Content - Only the choices scroll */}
+        <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
           <p className="text-sm text-muted-foreground">Why are you reporting this post?</p>
 
           <div className="space-y-2">
@@ -99,22 +101,23 @@ export default function ReportModal({ postId, onClose }: ReportModalProps) {
             rows={3}
             className="w-full rounded-xl border border-border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30"
           />
+        </div>
 
-          <div className="flex gap-3 pt-2 pb-safe">
-            <button
-              onClick={onClose}
-              className="flex-1 h-11 md:h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors active:scale-[0.98]"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={!reason || submitting}
-              className="flex-1 h-11 md:h-10 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
-            >
-              {submitting ? 'Submitting...' : 'Submit Report'}
-            </button>
-          </div>
+        {/* Action Buttons Footer - Isolated and Always Visible at Bottom */}
+        <div className="p-4 border-t border-border bg-background flex gap-3 pb-safe shrink-0 mt-auto">
+          <button
+            onClick={onClose}
+            className="flex-1 h-11 md:h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors active:scale-[0.98]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!reason || submitting}
+            className="flex-1 h-11 md:h-10 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
+          >
+            {submitting ? 'Submitting...' : 'Submit Report'}
+          </button>
         </div>
       </div>
     </div>
