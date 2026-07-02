@@ -6,12 +6,11 @@
  * Articles feature a prominent title, rich text preview, and potentially different media layout.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit } from 'lucide-react';
-// NEW: Import ImageLightbox
-import ImageLightbox from './ImageLightbox';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -21,13 +20,15 @@ import VideoPlayer from './VideoPlayer';
 import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
 
+const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
+
 interface ArticleCardProps {
   article: Post;
   onCommentClick?: (articleId: string) => void;
   variant?: 'default' | 'flat';
 }
 
-export default function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCardProps) {
+function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCardProps) {
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
 
@@ -65,7 +66,7 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
         method: 'DELETE',
       });
       if (res.ok) {
-        window.location.reload();
+        router.push('/home');
       }
     } catch {
       // silent
@@ -396,4 +397,6 @@ export default function ArticleCard({ article, onCommentClick, variant = 'defaul
     </article>
   );
 }
+
+export default memo(ArticleCard);
 

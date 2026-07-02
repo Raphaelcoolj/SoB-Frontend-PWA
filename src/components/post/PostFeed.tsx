@@ -120,8 +120,8 @@ export default function PostFeed({
       <div ref={sentinelRef} className="h-10" />
 
       {isLoadingMore && (
-        <div className="flex justify-center py-4 px-4">
-          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        <div className={variant === 'flat' ? '-mx-4 divide-y divide-border/30' : 'space-y-4'}>
+          {[1, 2].map((i) => <PostSkeleton key={`load-more-${i}`} variant={variant} />)}
         </div>
       )}
     </div>

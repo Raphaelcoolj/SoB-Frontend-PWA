@@ -7,12 +7,11 @@
  * Supports real-time like/comment count updates via socket events from parent.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
-import ImageLightbox from './ImageLightbox';
-import ReportModal from './ReportModal';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
@@ -22,6 +21,9 @@ import { UserAvatar } from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
 import { formatDistanceToNow } from '../../lib/utils';
 
+const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
+const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
+
 interface PostCardProps {
   post: Post;
   onCommentClick?: (postId: string) => void;
@@ -30,7 +32,7 @@ interface PostCardProps {
   variant?: 'default' | 'flat';
 }
 
-export default function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 'default' }: PostCardProps) {
+function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 'default' }: PostCardProps) {
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
 
@@ -146,9 +148,6 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
   };
 
   const isArticle = post.contentType === 'article';
-
-  // DEBUG: Inspect the post object to see why _id is undefined
-  console.log('[PostCard] Inspecting post object:', post);
 
   if (variant === 'flat') {
     return (
@@ -484,3 +483,5 @@ export default function PostCard({ post, onCommentClick, fullView = false, onDel
     </article>
   );
 }
+
+export default memo(PostCard);
