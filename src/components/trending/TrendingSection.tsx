@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { Flame, BookOpen, Clock, Eye } from 'lucide-react';
+import { Flame, Clock } from 'lucide-react';
 import { fetchWithAuth } from '../../lib/api';
 import UserAvatar from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
@@ -95,10 +95,6 @@ export default function TrendingSection() {
                 </div>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  {article.uniqueViews}
-                </span>
                 {article.avgReadTimeSeconds > 0 && (
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />

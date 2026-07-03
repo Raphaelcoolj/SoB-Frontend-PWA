@@ -18,6 +18,13 @@ interface CropBox {
   h: number;
 }
 
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e';
 
 const HANDLE_HIT = 16;
@@ -37,12 +44,28 @@ function getCursor(mode: DragMode | null) {
   return map[mode] || 'default';
 }
 
+function calcImageDisplayRect(
+  containerW: number,
+  containerH: number,
+  imgW: number,
+  imgH: number
+): Rect {
+  const scale = Math.min(containerW / imgW, containerH / imgH);
+  return {
+    x: (containerW - imgW * scale) / 2,
+    y: (containerH - imgH * scale) / 2,
+    w: imgW * scale,
+    h: imgH * scale,
+  };
+}
+
 export default function ImageCropperModal({ file, isOpen, onClose, onCropComplete }: ImageCropperModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [display, setDisplay] = useState({ w: 0, h: 0 });
+  const [imgRect, setImgRect] = useState<Rect | null>(null);
   const [box, setBox] = useState<CropBox | null>(null);
   const [dragMode, setDragMode] = useState<DragMode | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -54,6 +77,23 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
     setImageUrl(url);
     return () => { URL.revokeObjectURL(url); setImageUrl(null); };
   }, [file]);
+
+  useEffect(() => {
+    if (!isOpen || !containerRef.current || !imgRef.current) return;
+    const ro = new ResizeObserver(() => {
+      if (imgRef.current && containerRef.current) {
+        const r = containerRef.current.getBoundingClientRect();
+        const nw = imgRef.current.naturalWidth;
+        const nh = imgRef.current.naturalHeight;
+        if (nw && nh) {
+          setDisplay({ w: r.width, h: r.height });
+          setImgRect(calcImageDisplayRect(r.width, r.height, nw, nh));
+        }
+      }
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [isOpen]);
 
   const pos = useCallback((clientX: number, clientY: number) => {
     const r = containerRef.current?.getBoundingClientRect();
@@ -81,25 +121,28 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
   }, []);
 
   const initBox = useCallback(() => {
-    if (display.w === 0 || display.h === 0) return;
+    if (!imgRect || imgRect.w === 0 || imgRect.h === 0) return;
     const m = 0.08;
     setBox({
-      x: display.w * m,
-      y: display.h * m,
-      w: display.w * (1 - 2 * m),
-      h: display.h * (1 - 2 * m),
+      x: imgRect.x + imgRect.w * m,
+      y: imgRect.y + imgRect.h * m,
+      w: imgRect.w * (1 - 2 * m),
+      h: imgRect.h * (1 - 2 * m),
     });
-  }, [display]);
+  }, [imgRect]);
 
   useEffect(() => {
-    if (display.w > 0) initBox();
-  }, [display, initBox]);
+    if (imgRect) initBox();
+  }, [imgRect, initBox]);
 
   const onImgLoad = () => {
     if (imgRef.current && containerRef.current) {
       const r = containerRef.current.getBoundingClientRect();
+      const nw = imgRef.current.naturalWidth;
+      const nh = imgRef.current.naturalHeight;
       setDisplay({ w: r.width, h: r.height });
-      setNatural({ w: imgRef.current.naturalWidth, h: imgRef.current.naturalHeight });
+      setNatural({ w: nw, h: nh });
+      setImgRect(calcImageDisplayRect(r.width, r.height, nw, nh));
     }
   };
 
@@ -127,63 +170,61 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
       return;
     }
     const p = pos(e.clientX, e.clientY);
-    if (!p) return;
-    const r = containerRef.current?.getBoundingClientRect();
-    if (!r) return;
-    const maxW = r.width;
-    const maxH = r.height;
+    if (!p || !imgRect) return;
     const dx = p.x - dragStart.x;
     const dy = p.y - dragStart.y;
     let { x, y, w, h } = boxOnStart;
+    const right = imgRect.x + imgRect.w;
+    const bottom = imgRect.y + imgRect.h;
 
     switch (dragMode) {
       case 'move':
-        x = clamp(x + dx, 0, maxW - w);
-        y = clamp(y + dy, 0, maxH - h);
+        x = clamp(x + dx, imgRect.x, right - w);
+        y = clamp(y + dy, imgRect.y, bottom - h);
         break;
       case 'nw': {
-        const nx = clamp(x + dx, 0, x + w - MIN_SIZE);
-        const ny = clamp(y + dy, 0, y + h - MIN_SIZE);
+        const nx = clamp(x + dx, imgRect.x, x + w - MIN_SIZE);
+        const ny = clamp(y + dy, imgRect.y, y + h - MIN_SIZE);
         w = x + w - nx;
         h = y + h - ny;
         x = nx; y = ny;
         break;
       }
       case 'ne': {
-        const ny = clamp(y + dy, 0, y + h - MIN_SIZE);
-        w = clamp(w + dx, MIN_SIZE, maxW - x);
+        const ny = clamp(y + dy, imgRect.y, y + h - MIN_SIZE);
+        w = clamp(w + dx, MIN_SIZE, right - x);
         h = y + h - ny;
         y = ny;
         break;
       }
       case 'sw': {
-        const nx = clamp(x + dx, 0, x + w - MIN_SIZE);
+        const nx = clamp(x + dx, imgRect.x, x + w - MIN_SIZE);
         w = x + w - nx;
-        h = clamp(h + dy, MIN_SIZE, maxH - y);
+        h = clamp(h + dy, MIN_SIZE, bottom - y);
         x = nx;
         break;
       }
       case 'se':
-        w = clamp(w + dx, MIN_SIZE, maxW - x);
-        h = clamp(h + dy, MIN_SIZE, maxH - y);
+        w = clamp(w + dx, MIN_SIZE, right - x);
+        h = clamp(h + dy, MIN_SIZE, bottom - y);
         break;
       case 'n': {
-        const ny = clamp(y + dy, 0, y + h - MIN_SIZE);
+        const ny = clamp(y + dy, imgRect.y, y + h - MIN_SIZE);
         h = y + h - ny;
         y = ny;
         break;
       }
       case 's':
-        h = clamp(h + dy, MIN_SIZE, maxH - y);
+        h = clamp(h + dy, MIN_SIZE, bottom - y);
         break;
       case 'w': {
-        const nx = clamp(x + dx, 0, x + w - MIN_SIZE);
+        const nx = clamp(x + dx, imgRect.x, x + w - MIN_SIZE);
         w = x + w - nx;
         x = nx;
         break;
       }
       case 'e':
-        w = clamp(w + dx, MIN_SIZE, maxW - x);
+        w = clamp(w + dx, MIN_SIZE, right - x);
         break;
     }
     setBox({ x, y, w, h });
@@ -195,12 +236,12 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
   };
 
   const apply = async () => {
-    if (!box || !imgRef.current) return;
+    if (!box || !imgRef.current || !imgRect) return;
     setIsProcessing(true);
-    const sx = (box.x / display.w) * natural.w;
-    const sy = (box.y / display.h) * natural.h;
-    const sw = (box.w / display.w) * natural.w;
-    const sh = (box.h / display.h) * natural.h;
+    const sx = ((box.x - imgRect.x) / imgRect.w) * natural.w;
+    const sy = ((box.y - imgRect.y) / imgRect.h) * natural.h;
+    const sw = (box.w / imgRect.w) * natural.w;
+    const sh = (box.h / imgRect.h) * natural.h;
     const c = document.createElement('canvas');
     c.width = sw;
     c.height = sh;
@@ -245,10 +286,9 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
               onPointerMove={onMove}
               onPointerUp={onUp}
               onPointerCancel={onUp}
-              style={{ 
+              style={{
                 cursor,
-                height: 'min(40vh, 380px)', // Scaled down to guarantee structural button allocation
-                maxHeight: '100%'
+                aspectRatio: natural.w && natural.h ? `${natural.w} / ${natural.h}` : undefined,
               }}
             >
               {imageUrl && (
@@ -291,9 +331,9 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
             {imageUrl && (
               <div className="flex items-center justify-between text-xs text-muted-foreground pb-2">
                 <span className="truncate mr-2">{file.name} ({Math.round(natural.w)}x{Math.round(natural.h)})</span>
-                {box && (
+                {box && imgRect && (
                   <span className="shrink-0">
-                    {Math.round((box.w / display.w) * natural.w)}x{Math.round((box.h / display.h) * natural.h)}px
+                    {Math.round((box.w / imgRect.w) * natural.w)}x{Math.round((box.h / imgRect.h) * natural.h)}px
                   </span>
                 )}
               </div>
