@@ -58,6 +58,7 @@ src/
 │   │   └── TrendingSection.tsx       # Horizontal scroll trending articles
 │   ├── user/UserAvatar.tsx           # Avatar with fallback initials (sm/md/lg sizes)
 │   ├── shared/Logo.tsx               # App logo
+├── shared/HashtagText.tsx        # Renders #tag as clickable search links
 │   └── ui/Skeleton.tsx               # Loading skeleton component
 ├── hooks/
 │   ├── useFeed.ts                    # SWR Infinite for For You feed (types: all/articles/posts)
@@ -145,12 +146,18 @@ interface PostFeedProps {
 - `POST /api/posts/:id/like` — Toggle like
 - `POST /api/posts/:id/bookmark` — Toggle bookmark
 - `GET /api/users/mentions/search?q=` — Mention autocomplete
+- `GET /api/search/tags/:tag` — Paginated search by hashtag
+- `GET /api/search/tags/trending` — Top 20 trending hashtags
 
-### Mention System
+### Mention & Hashtag System
 - **MentionTextarea** (`src/components/shared/MentionTextarea.tsx`) — textarea with built-in `@` autocomplete; debounced search against `/api/users/mentions/search`, dropdown with avatar+name+username, keyboard navigation (arrows/enter/escape)
-- **MentionText** (`src/components/shared/MentionText.tsx`) — renders `@username` as clickable `<Link>` to `/profile/:username` with accent color; used in PostCard (feed + detail), ArticleCard, CommentCard
+- **MentionText** (`src/components/shared/MentionText.tsx`) — renders `@username` as `<Link>` to `/profile/:username` AND `#tag` as `<Link>` to `/search?tag=...` in a single regex pass; used in PostCard, ArticleCard, CommentCard
+- **HashtagText** (`src/components/shared/HashtagText.tsx`) — standalone hashtag-only renderer (created but MentionText now handles both)
 - Integrated into create post page, edit post page (post mode), and CommentSection textarea
 - Backend parses `@username` and post-link mentions on creation, fires `mention` notifications
+- Backend auto-parses `#word` from body/title into `post.tags`, also accepts explicit `tags[]` from FormData
+- Search page reads `?tag=` query param from URL, pre-fills search input for tag clicks
+- Tag pills displayed on PostCard and ArticleCard between body and engagement row
 
 ### PWA / Viewport
 - Root `layout.tsx` exports a `Viewport` with `userScalable: false`, `maximumScale: 1` to prevent pinch-zoom on PWA

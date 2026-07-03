@@ -7,13 +7,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useSearch } from '../../../hooks/useSearch';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import SearchResults from '../../../components/search/SearchResults';
 import DiscoverFields from '../../../components/search/DiscoverFields';
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('tag') || '');
   const [selectedField, setSelectedField] = useState<{ id: string; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   

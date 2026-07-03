@@ -265,6 +265,22 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               </div>
             )}
 
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/search?tag=${encodeURIComponent(tag)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[11px] font-medium text-accent bg-accent/10 px-2 py-0.5 rounded-full hover:bg-accent/20 transition-colors"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* Engagement Row - Twitter style */}
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
