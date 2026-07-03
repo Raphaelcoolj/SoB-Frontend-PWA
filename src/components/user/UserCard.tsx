@@ -39,7 +39,7 @@ export default function UserCard({ user, showFollowButton = true }: UserCardProp
           <p className="font-medium text-sm text-foreground truncate group-hover:text-accent transition-colors">
             {user.name}
           </p>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
             <p className="text-[10px] text-muted-foreground truncate">@{user.username}</p>
             {/* NEW: Badges in card */}
             {user.earlyAdopter && (
