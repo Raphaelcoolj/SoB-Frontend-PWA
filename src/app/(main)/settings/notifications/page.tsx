@@ -69,7 +69,7 @@ export default function NotificationSettingsPage() {
       if (permission !== 'granted') throw new Error('Permission denied');
 
       console.log('Registering service worker...');
-      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });
       
       console.log('Waiting for SW readiness...');
       await navigator.serviceWorker.ready;
@@ -83,9 +83,6 @@ export default function NotificationSettingsPage() {
       
       if (!subscription) {
         console.log('No existing subscription, creating new one...');
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!vapidKey) throw new Error('VAPID key not configured');
-
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey)
