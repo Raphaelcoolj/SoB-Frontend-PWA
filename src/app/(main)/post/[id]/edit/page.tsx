@@ -75,28 +75,7 @@ export default function EditPostPage() {
   const [croppingFile, setCroppingFile] = useState<File | null>(null);
   const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const addTag = (raw: string) => {
-    const tag = raw.trim().replace(/^#/, '').toLowerCase().slice(0, 50);
-    if (tag && !tags.includes(tag) && tags.length < 10) {
-      setTags(prev => [...prev, tag]);
-    }
-    setTagInput('');
-  };
-
-  const removeTag = (tag: string) => {
-    setTags(prev => prev.filter(t => t !== tag));
-  };
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      if (tagInput.trim()) addTag(tagInput);
-    }
-  };
 
   const handleCropComplete = (croppedFile: File) => {
     setIsCropperOpen(false);
@@ -150,7 +129,6 @@ export default function EditPostPage() {
         setFieldSearch(post.field.name);
       }
       setExistingMedia(post.mediaUrls || []);
-      setTags(post.tags || []);
     }
   }, [post, reset]);
 
@@ -176,7 +154,6 @@ export default function EditPostPage() {
         formData.append('title', values.title);
       }
       
-      tags.forEach(tag => formData.append('tags', tag));
       images.forEach(img => formData.append('media', img));
 
       const res = await fetch(`${BASE_URL}/api/posts/${id}`, {
@@ -287,26 +264,6 @@ export default function EditPostPage() {
               minHeight="250px"
             />
           )}
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => (
-                <span key={tag} className="inline-flex items-center gap-1 text-xs font-medium text-accent bg-accent/10 px-2 py-1 rounded-full">
-                  #{tag}
-                  <button type="button" onClick={() => removeTag(tag)} className="hover:text-destructive ml-0.5">&times;</button>
-                </span>
-              ))}
-            </div>
-            <input
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagKeyDown}
-              placeholder="Add tags... (press Enter or comma to add)"
-              className="w-full bg-transparent text-xs text-muted-foreground border-b border-border/50 pb-1 focus:outline-none focus:border-accent/50 placeholder:text-muted-foreground/50"
-            />
-          </div>
 
           {existingMedia.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
