@@ -32,10 +32,14 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
   const Icon = config.icon;
 
   const getLink = () => {
-    if (notification.type === 'follow') return `/profile/${notification.sender.username}`;
+    if (notification.type === 'follow') return `/profile/${notification.sender?.username}`;
+    if (notification.type === 'weekly_digest') return '/';
     if (notification.post) return `/post/${notification.post._id || notification.post}`;
-    return '#';
+    return '/';
   };
+
+  const senderName = notification.sender?.name || 'SoB';
+  const senderAvatar = notification.sender?.avatar || null;
 
   return (
     <Link 
@@ -46,7 +50,7 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
       }`}
     >
       <div className="relative flex-shrink-0">
-        <UserAvatar avatar={notification.sender.avatar} name={notification.sender.name} size="md" />
+        <UserAvatar avatar={senderAvatar} name={senderName} size="md" />
         <div className={`absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-background ${config.color}`}>
           <Icon className="w-2.5 h-2.5" />
         </div>
@@ -55,7 +59,7 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-foreground leading-snug">
-            <span className="font-medium">{notification.sender.name}</span>{' '}
+            <span className="font-medium">{senderName}</span>{' '}
             <span className="text-muted-foreground">{config.label}</span>
           </p>
           <span className="text-[10px] text-muted-foreground flex-shrink-0">
