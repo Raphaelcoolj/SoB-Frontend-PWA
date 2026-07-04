@@ -15,10 +15,25 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { Button } from '../../../components/ui/Button';
 import NotificationItem from '../../../components/notifications/NotificationItem';
 
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+
+const isValidNotification = (n: any) => {
+  if (n.type === 'follow') return !!n.sender?.username;
+  if (n.type === 'weekly_digest') return true;
+  return !!(n.post?._id || n.post);
+};
+
+const isRecent = (n: any) => {
+  const age = Date.now() - new Date(n.createdAt).getTime();
+  return age < TWO_WEEKS_MS;
+};
+
 export default function NotificationsPage() {
   const { isLoading, markAllAsRead, markAsRead } = useNotifications();
   const { notifications, unreadCount } = useNotificationStore();
   useSocket(); // Activate real-time listener
+
+  const visible = notifications.filter((n) => isValidNotification(n) && isRecent(n));
 
   return (
     <div className="space-y-4 pb-20 pt-2">
@@ -52,7 +67,7 @@ export default function NotificationsPage() {
       )}
 
       {/* Empty state */}
-      {!isLoading && notifications.length === 0 && (
+      {!isLoading && visible.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 animate-in fade-in duration-700">
           <div className="w-20 h-20 rounded-3xl bg-muted flex items-center justify-center shadow-inner">
             <Bell className="w-8 h-8 text-muted-foreground" />
@@ -67,9 +82,9 @@ export default function NotificationsPage() {
       )}
 
       {/* Notifications list */}
-      {!isLoading && notifications.length > 0 && (
+      {!isLoading && visible.length > 0 && (
         <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm divide-y divide-border/50">
-          {notifications.map((n) => (
+          {visible.map((n) => (
             <NotificationItem key={n._id} notification={n} onMarkAsRead={markAsRead} />
           ))}
         </div>
