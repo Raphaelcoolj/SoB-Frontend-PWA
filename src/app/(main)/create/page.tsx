@@ -30,8 +30,8 @@ const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data
 type ContentMode = 'post' | 'article';
 
 const postSchema = z.object({
-  // NEW: Make post body optional to allow media-only posts
   body: z.string().max(400, 'Posts cannot exceed 400 characters').optional().or(z.literal('')),
+  field: z.string().optional(),
 });
 
 const articleSchema = z.object({
@@ -40,7 +40,7 @@ const articleSchema = z.object({
     (val) => stripHtml(val).length <= 10000,
     'Articles cannot exceed 10000 characters'
   ),
-  field: z.string().min(1, 'Field is required'),
+  field: z.string().optional(),
 });
 
 // NEW: Helper to validate video duration is 60 seconds or less
@@ -189,8 +189,8 @@ export default function CreatePage() {
       formData.append('body', values.body || '');
       formData.append('isSensitive', isSensitive.toString());
       
+      if (values.field) formData.append('field', values.field);
       if (mode === 'article') {
-        if (values.field) formData.append('field', values.field);
         formData.append('title', values.title);
       }
       
@@ -234,47 +234,44 @@ export default function CreatePage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-card border border-border rounded-2xl p-4 space-y-4">
         {mode === 'article' && (
-          <>
-            <Input id="title" placeholder="title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
-            
-            <div className="relative">
-              <Input
-                placeholder="Search field..."
-                value={fieldSearch}
-                onChange={(e) => {
-                  setFieldSearch(e.target.value);
-                  setShowFieldDropdown(true);
-                }}
-                onFocus={() => setShowFieldDropdown(true)}
-                className="w-full"
-              />
-              {showFieldDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-md max-h-48 overflow-y-auto">
-                  {filteredFields.length > 0 ? (
-                    filteredFields.map((f: any) => (
-                      <button
-                        key={f._id}
-                        type="button"
-                        onClick={() => {
-                          setValue('field', f._id);
-                          setFieldSearch(f.name);
-                          setShowFieldDropdown(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
-                      >
-                        {f.name}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">No fields found</div>
-                  )}
-                </div>
+          <Input id="title" placeholder="title..." className="border-none text-lg font-semibold px-0" {...register('title')} />
+        )}
+
+        <div className="relative">
+          <Input
+            placeholder={mode === 'article' ? 'Search field...' : 'Search field (optional)'}
+            value={fieldSearch}
+            onChange={(e) => {
+              setFieldSearch(e.target.value);
+              setShowFieldDropdown(true);
+            }}
+            onFocus={() => setShowFieldDropdown(true)}
+            className="w-full"
+          />
+          {showFieldDropdown && (
+            <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-md max-h-48 overflow-y-auto">
+              {filteredFields.length > 0 ? (
+                filteredFields.map((f: any) => (
+                  <button
+                    key={f._id}
+                    type="button"
+                    onClick={() => {
+                      setValue('field', f._id);
+                      setFieldSearch(f.name);
+                      setShowFieldDropdown(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                  >
+                    {f.name}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-muted-foreground">No fields found</div>
               )}
             </div>
-            <input type="hidden" {...register('field')} />
-            {errors.field && <p className="text-xs text-destructive">{errors.field.message as string}</p>}
-          </>
-        )}
+          )}
+        </div>
+        <input type="hidden" {...register('field')} />
 
         {mode === 'post' ? (
           <MentionTextarea
