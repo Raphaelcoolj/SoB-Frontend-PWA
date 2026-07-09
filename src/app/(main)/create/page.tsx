@@ -40,7 +40,7 @@ const articleSchema = z.object({
     (val) => stripHtml(val).length <= 10000,
     'Articles cannot exceed 10000 characters'
   ),
-  field: z.string().min(1, 'Field is required'),
+  field: z.string().optional(),
 });
 
 // NEW: Helper to validate video duration is 60 seconds or less
