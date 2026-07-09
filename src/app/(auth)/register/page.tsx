@@ -75,7 +75,7 @@ export default function RegisterPage() {
 
   return (
     <div className="px-6 sm:px-0 py-6">
-      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-center text-foreground">Create Account</h1>
+      <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-center text-foreground">Create Account</h1>
       <p className="text-sm text-muted-foreground text-center mt-1 mb-6">Join the SoB community</p>
       
       {/* Visual Progress Thread */}

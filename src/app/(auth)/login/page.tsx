@@ -57,7 +57,7 @@ export default function LoginPage() {
 
   return (
     <div className="px-6 sm:px-0 py-6">
-      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-center text-foreground">Welcome Back</h1>
+      <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-center text-foreground">Welcome Back</h1>
       <p className="text-sm text-muted-foreground text-center mt-1 mb-8">Log in to access your SoB account</p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

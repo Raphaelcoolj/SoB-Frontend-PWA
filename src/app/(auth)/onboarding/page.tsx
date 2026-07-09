@@ -187,7 +187,7 @@ export default function OnboardingPage() {
       {/* Visual Progress Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
             {step === 1 ? 'Setup Profile' : step === 2 ? 'Date of Birth' : 'Choose Topics'}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -293,7 +293,7 @@ export default function OnboardingPage() {
               <Calendar className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-foreground">When is your birthday?</h2>
+              <h2 className="text-base sm:text-lg font-bold text-foreground">When is your birthday?</h2>
               <p className="text-xs text-muted-foreground max-w-[280px]">
                 This helps us customize your learning path and verify your age. You must be at least 13.
               </p>
