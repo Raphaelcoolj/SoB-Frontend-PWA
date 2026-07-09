@@ -5,7 +5,7 @@
  * @description User onboarding: username, optional bio, avatar, and 5 priority fields.
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { Camera, Star, Pencil, ChevronDown, Calendar, ArrowLeft } from 'lucide-react';
@@ -18,6 +18,10 @@ import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import ImageCropperModal from '../../../components/post/ImageCropperModal';
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
@@ -67,6 +71,58 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCheckedRef = useRef('');
+
+  const checkUsername = useCallback(async (username: string) => {
+    if (username.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    setUsernameStatus('checking');
+    try {
+      const res = await fetch(`${API_URL}/api/auth/check-username?username=${encodeURIComponent(username)}`);
+      const data = await res.json();
+      if (data.success) {
+        setUsernameStatus(data.data.available ? 'available' : 'taken');
+      } else {
+        setUsernameStatus('idle');
+      }
+    } catch {
+      setUsernameStatus('idle');
+    }
+  }, []);
+
+  const handleUsernameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    setFormData(prev => ({ ...prev, username: raw }));
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    if (raw.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(raw)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    if (raw === lastCheckedRef.current) return;
+    checkTimerRef.current = setTimeout(() => {
+      lastCheckedRef.current = raw;
+      checkUsername(raw);
+    }, 400);
+  }, [checkUsername]);
+
+  useEffect(() => {
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    };
+  }, []);
 
   const { data: fieldsData } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/fields`, fetcher);
   const fields = fieldsData?.fields || [];
@@ -248,13 +304,26 @@ export default function OnboardingPage() {
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <Label htmlFor="username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Username</Label>
-              <Input 
+              <Input
                 id="username"
-                placeholder="@username" 
-                required 
-                value={formData.username} 
-                onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')})} 
+                placeholder="@username"
+                required
+                value={formData.username}
+                onChange={handleUsernameChange}
+                error={usernameStatus === 'taken' || usernameStatus === 'invalid'}
               />
+              {usernameStatus === 'checking' && (
+                <p className="text-xs text-muted-foreground ml-1">Checking...</p>
+              )}
+              {usernameStatus === 'invalid' && (
+                <p className="text-xs text-destructive ml-1">Username can only contain letters, numbers, and underscores</p>
+              )}
+              {usernameStatus === 'taken' && (
+                <p className="text-xs text-destructive ml-1">Username not available</p>
+              )}
+              {usernameStatus === 'available' && (
+                <p className="text-xs text-emerald-500 ml-1">Username available</p>
+              )}
             </div>
             
             <div className="space-y-1.5">
@@ -275,8 +344,19 @@ export default function OnboardingPage() {
           </div>
 
           <div className="pt-2">
-            <Button 
-              onClick={() => formData.username.length >= 3 ? setStep(2) : toast.error('Username must be at least 3 characters')} 
+            <Button
+              onClick={() => {
+                if (usernameStatus === 'taken') {
+                  toast.error('This username is taken. Please choose another.');
+                } else if (usernameStatus === 'invalid') {
+                  toast.error('Username can only contain letters, numbers, and underscores');
+                } else if (formData.username.length < 3) {
+                  toast.error('Username must be at least 3 characters');
+                } else {
+                  setStep(2);
+                }
+              }}
+              disabled={usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking'}
               className="w-full h-12 flex items-center justify-center gap-2 group text-sm font-semibold"
             >
               Continue

@@ -5,7 +5,7 @@
  * @description Multi-step user registration page with a visual progress indicator.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../../store/authStore';
@@ -15,6 +15,10 @@ import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { Label } from '../../../components/ui/Label';
 import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 const STEPS = ['Account', 'Username', 'Password'];
 
@@ -31,6 +35,58 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCheckedRef = useRef('');
+
+  const checkUsername = useCallback(async (username: string) => {
+    if (username.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    setUsernameStatus('checking');
+    try {
+      const res = await fetch(`${API_URL}/api/auth/check-username?username=${encodeURIComponent(username)}`);
+      const data = await res.json();
+      if (data.success) {
+        setUsernameStatus(data.data.available ? 'available' : 'taken');
+      } else {
+        setUsernameStatus('idle');
+      }
+    } catch {
+      setUsernameStatus('idle');
+    }
+  }, []);
+
+  const handleUsernameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    setFormData(prev => ({ ...prev, username: raw }));
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    if (raw.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(raw)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    if (raw === lastCheckedRef.current) return;
+    checkTimerRef.current = setTimeout(() => {
+      lastCheckedRef.current = raw;
+      checkUsername(raw);
+    }, 400);
+  }, [checkUsername]);
+
+  useEffect(() => {
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,10 +155,46 @@ export default function RegisterPage() {
         
         {step === 2 && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            <Input placeholder="Username (3-20 chars)" required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+            <div className="space-y-1.5">
+              <Input
+                placeholder="Username (3-20 chars)"
+                required
+                value={formData.username}
+                onChange={handleUsernameChange}
+                error={usernameStatus === 'taken' || usernameStatus === 'invalid'}
+              />
+              {usernameStatus === 'checking' && (
+                <p className="text-xs text-muted-foreground ml-1">Checking...</p>
+              )}
+              {usernameStatus === 'invalid' && (
+                <p className="text-xs text-destructive ml-1">Username can only contain letters, numbers, and underscores</p>
+              )}
+              {usernameStatus === 'taken' && (
+                <p className="text-xs text-destructive ml-1">Username not available</p>
+              )}
+              {usernameStatus === 'available' && (
+                <p className="text-xs text-emerald-500 ml-1">Username available</p>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full" onClick={() => setStep(1)}>Back</Button>
-              <Button className="w-full" onClick={() => formData.username ? setStep(3) : toast.error('Username required')}>Continue</Button>
+              <Button
+                className="w-full"
+                disabled={usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking'}
+                onClick={() => {
+                  if (usernameStatus === 'taken') {
+                    toast.error('This username is taken. Please choose another.');
+                  } else if (usernameStatus === 'invalid') {
+                    toast.error('Username can only contain letters, numbers, and underscores');
+                  } else if (!formData.username) {
+                    toast.error('Username required');
+                  } else {
+                    setStep(3);
+                  }
+                }}
+              >
+                Continue
+              </Button>
             </div>
           </div>
         )}
