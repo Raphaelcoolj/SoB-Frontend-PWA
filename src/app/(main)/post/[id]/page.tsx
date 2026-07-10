@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
     const description = post.body?.slice(0, 150) || 'Check out this post on SoB';
 
-    const imageUrl = post.mediaUrls?.[0] || post.author.avatar || '/icons/icon-512.png';
+    const imageUrl = post.mediaUrls?.[0] || post.author.avatar || '/android-chrome-512x512.png';
 
     return {
       title,

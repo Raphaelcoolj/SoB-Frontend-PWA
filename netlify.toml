@@ -21,3 +21,8 @@
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/.well-known/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
