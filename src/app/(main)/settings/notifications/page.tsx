@@ -42,7 +42,7 @@ export default function NotificationSettingsPage() {
       setIsEmailEnabled(!!user.emailNotifications?.length);
       const userEmailFields = (user.emailNotifications || []).map(f => typeof f === 'string' ? f : f._id);
       setSelectedFields(userEmailFields);
-      setIsPushEnabled(!!user.pushSubscription?.endpoint);
+      setIsPushEnabled((user as any)?.pushEnabled ?? !!user.pushSubscription?.endpoint);
     }
   }, [user]);
 
@@ -102,6 +102,10 @@ export default function NotificationSettingsPage() {
       }
 
       console.log('Subscription saved successfully');
+      await fetchWithAuth('/api/users/me/notifications', {
+        method: 'PUT',
+        body: JSON.stringify({ pushEnabled: true }),
+      });
       setIsPushEnabled(true);
       toast.success('Push notifications enabled!');
       
@@ -129,6 +133,10 @@ export default function NotificationSettingsPage() {
         if (subscription) await subscription.unsubscribe();
       }
       await fetchWithAuth('/api/users/push-subscription', { method: 'DELETE' });
+      await fetchWithAuth('/api/users/me/notifications', {
+        method: 'PUT',
+        body: JSON.stringify({ pushEnabled: false }),
+      });
       setIsPushEnabled(false);
       toast.success('Push notifications disabled');
     } catch (error) {
@@ -152,7 +160,7 @@ export default function NotificationSettingsPage() {
       const finalFields = isEmailEnabled ? selectedFields : [];
       const res = await fetchWithAuth('/api/users/me/notifications', { 
         method: 'PUT', 
-        body: JSON.stringify({ emailNotifications: finalFields }) 
+        body: JSON.stringify({ emailNotifications: finalFields, pushEnabled: isPushEnabled }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update preferences');
