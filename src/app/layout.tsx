@@ -20,6 +20,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://spherebrilliq.netlify.app'),
   title: {
     default: 'SoB — A Social Platform',
     template: '%s | SoB',
@@ -45,10 +46,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://sob-frontend.netlify.app',
+    url: 'https://spherebrilliq.netlify.app',
     siteName: 'SoB',
     title: 'SoB',
     description: 'Educational and social content platform for sharing and discovering knowledge.',
+    images: [{ url: '/android-chrome-512x512.png', width: 512, height: 512 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SoB',
+    description: 'Educational and social content platform for sharing and discovering knowledge.',
+    images: ['/android-chrome-512x512.png'],
   },
 };
 

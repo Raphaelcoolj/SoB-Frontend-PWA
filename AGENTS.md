@@ -167,3 +167,11 @@ interface PostFeedProps {
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile
 - Admin layout has a mobile hamburger menu and `overflow-x-hidden` on the main content area
 - Tab buttons in the pipeline page use `flex-wrap` to wrap on small screens
+
+### Open Graph / Deep Linking (2026-07-10)
+- **Root layout** (`src/app/layout.tsx`): Added `metadataBase`, `og:image`, and `twitter:card` to root metadata
+- **Post OG fix** (`src/app/(main)/post/[id]/page.tsx`): Fixed fallback OG image path from `/icons/icon-512.png` to `/android-chrome-512x512.png`
+- **Home layout** (`src/app/(main)/home/layout.tsx`): Added static OG metadata for home/feed page
+- **Profile layout** (`src/app/(main)/profile/[username]/layout.tsx`): Added dynamic `generateMetadata` fetching profile data for OG and Twitter card
+- **Android App Links** (`public/.well-known/assetlinks.json`): Created with placeholder SHA256 fingerprint for Android App Links setup
+- **Netlify** (`netlify.toml`): Added cache header for `/.well-known/*`
