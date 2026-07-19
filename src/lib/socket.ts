@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { useAuthStore } from '@/store/authStore';
 
 /**
  * @file socket.ts
@@ -26,14 +27,25 @@ let listenersRegistered = false;
  * @param token - JWT access token
  */
 export const connectSocket = (token: string) => {
-  if (socket.connected) return;
-  
   socket.auth = { token };
+
+  if (socket.connected) return;
   socket.connect();
 
   if (!listenersRegistered) {
     socket.on('user:online', (userId: string) => onlineUserIds.add(userId));
     socket.on('user:offline', (userId: string) => onlineUserIds.delete(userId));
+
+    socket.on('connect_error', (err) => {
+      if (err.message?.includes('Authentication')) {
+        const { accessToken } = useAuthStore.getState();
+        if (accessToken) {
+          socket.auth = { token: accessToken };
+          if (!socket.connected) socket.connect();
+        }
+      }
+    });
+
     listenersRegistered = true;
   }
 };
