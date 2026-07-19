@@ -30,15 +30,17 @@ export const fetchWithAuth = async (
 ): Promise<Response> => {
   const { accessToken, refreshToken, setTokens } = useAuthStore.getState()
 
-  const makeRequest = (token: string | null) =>
-    fetch(`${BASE_URL}${endpoint}`, {
+  const makeRequest = (token: string | null) => {
+    const isFormData = options.body instanceof FormData
+    return fetch(`${BASE_URL || ''}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(options.headers as Record<string, string> || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     })
+  }
 
   let response = await makeRequest(accessToken)
 
