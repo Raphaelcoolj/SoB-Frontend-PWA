@@ -148,7 +148,17 @@ function ChatConversation() {
   useEffect(() => {
     if (!accessToken || !conversationId) return;
     connectSocket(accessToken);
-    socket.emit('chat:join', conversationId);
+
+    const joinRoom = () => {
+      socket.emit('chat:join', conversationId);
+    };
+
+    if (socket.connected) {
+      joinRoom();
+    } else {
+      socket.once('connect', joinRoom);
+    }
+
     fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
 
     const onMessage = (data: { conversationId: string; message: Message }) => {
@@ -159,14 +169,11 @@ function ChatConversation() {
       }
     };
     socket.on('chat:message', onMessage);
-    return () => { socket.emit('chat:leave', conversationId); socket.off('chat:message', onMessage); };
+    return () => {
+      socket.emit('chat:leave', conversationId);
+      socket.off('chat:message', onMessage);
+    };
   }, [conversationId, accessToken, isOwnMessage, mutateMessages]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
 
   const resetTextarea = () => {
     if (textareaRef.current) {
