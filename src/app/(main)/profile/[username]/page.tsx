@@ -15,7 +15,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
-import { Settings2, Sparkles, Crown, Lock, EyeOff, Flag, ArrowLeft, Search, MoreVertical, Plus } from 'lucide-react';
+import { Settings2, Sparkles, Crown, Lock, EyeOff, Flag, ArrowLeft, Search, MoreVertical, Plus, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import FollowButton from '../../../../components/user/FollowButton';
@@ -303,6 +303,16 @@ export default function ProfilePage() {
                     className="w-full h-9 rounded-full text-xs font-semibold border border-border bg-card text-foreground hover:bg-muted transition-all duration-200 active:scale-95"
                   />
                 </div>
+              )}
+              {/* Message button — only when viewer has a connection */}
+              {!isBlockedByViewer && !isOwnProfile && (profile.isFollowing || profile.isFollowedBy) && (
+                <Link
+                  href={`/chats/${profile._id}`}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 h-9 rounded-full text-xs font-semibold border border-border bg-accent text-white hover:opacity-90 transition-all duration-200 active:scale-95 cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Message
+                </Link>
               )}
               {/* Block button */}
               {currentUser && (

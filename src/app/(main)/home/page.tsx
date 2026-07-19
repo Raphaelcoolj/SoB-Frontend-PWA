@@ -12,7 +12,7 @@ import { useFeed } from '../../../hooks/useFeed';
 import { useFollowingFeed } from '../../../hooks/useFollowingFeed';
 import PostFeed from '../../../components/post/PostFeed';
 import TrendingSection from '../../../components/trending/TrendingSection';
-import Logo from '../../../components/shared/Logo';
+import UserAvatar from '../../../components/user/UserAvatar';
 import Link from 'next/link';
 import { MoreVertical, Plus } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
@@ -43,11 +43,18 @@ export default function HomePage() {
     <div className="space-y-4 pb-20 -mt-4 lg:-mt-6">
       {/* Sticky Home Top Header Bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md will-change-transform border-b border-border/40 -mx-4 pt-2.5 pb-0">
-        {/* Logo + Actions row — mobile only (sidebar shows logo on larger screens) */}
+        {/* Avatar + Actions row — mobile only (sidebar shows logo on larger screens) */}
         <div className="md:hidden px-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <Logo />
-          </div>
+          <Link
+            href={currentUser ? `/profile/${currentUser.username}` : '/login'}
+            className="flex items-center"
+          >
+            {currentUser ? (
+              <UserAvatar avatar={currentUser.avatar} name={currentUser.name} size="md" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-muted" />
+            )}
+          </Link>
           <div className="flex items-center gap-2">
             {/* Options button → settings */}
             <Link href="/settings" className="p-2 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer">
