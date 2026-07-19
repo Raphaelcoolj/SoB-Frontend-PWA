@@ -32,7 +32,8 @@ export const fetchWithAuth = async (
 
   const makeRequest = (token: string | null) => {
     const isFormData = options.body instanceof FormData
-    return fetch(`${BASE_URL || ''}${endpoint}`, {
+    const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL || ''}${endpoint}`
+    return fetch(url, {
       ...options,
       headers: {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
