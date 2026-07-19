@@ -11,22 +11,24 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Bell, User, Shield } from 'lucide-react';
+import { Home, Search, Bell, Shield, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import { useChatUnread } from '../../hooks/useChatUnread';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuthStore();
-  const { unreadCount } = useNotificationStore();
+  const { unreadCount: notifUnread } = useNotificationStore();
+  const chatUnread = useChatUnread();
 
   // Navigation items mapping paths to icons
   const navItems = [
     { label: 'Home', path: '/home', icon: Home },
     { label: 'Search', path: '/search', icon: Search },
     { label: 'Notifications', path: '/notifications', icon: Bell, badge: true },
-    { label: 'Profile', path: user ? `/profile/${user.username}` : '/login', icon: User },
     ...(user?.role === 'admin' ? [{ label: 'Admin', path: '/admin/dashboard', icon: Shield }] : []),
+    { label: 'Chats', path: '/chats', icon: MessageCircle, badge: true, chatBadge: true },
   ];
 
   return (
@@ -46,10 +48,15 @@ export default function BottomNav() {
           >
             <IconComponent className="w-6 h-6 stroke-[2]" />
             
-            {/* Notification Badge indicator */}
-            {item.badge && unreadCount > 0 && (
+            {/* Badge indicator */}
+            {item.chatBadge && chatUnread > 0 && (
+              <span className="absolute top-1.5 right-1.5 bg-accent text-accent-foreground text-[10px] font-medium rounded-full w-4 h-4 flex items-center justify-center border border-background animate-pulse">
+                {chatUnread > 99 ? '99+' : chatUnread}
+              </span>
+            )}
+            {item.badge && !item.chatBadge && notifUnread > 0 && (
               <span className="absolute top-1.5 right-1.5 bg-destructive text-destructive-foreground text-[10px] font-medium rounded-full w-4 h-4 flex items-center justify-center border border-background animate-pulse">
-                {unreadCount > 99 ? '99+' : unreadCount}
+                {notifUnread > 99 ? '99+' : notifUnread}
               </span>
             )}
             

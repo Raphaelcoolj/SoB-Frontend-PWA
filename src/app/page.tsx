@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation';
 
-/**
- * @file page.tsx (root)
- * @description Landing page — redirects to home.
- */
+export default async function RootPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = await props.searchParams;
 
-export default function RootPage() {
+  if (searchParams.token && searchParams.refreshToken) {
+    const isOnboarded = searchParams.isOnboarded || 'false';
+    redirect(`/oauth-callback?token=${searchParams.token}&refreshToken=${searchParams.refreshToken}&isOnboarded=${isOnboarded}`);
+  }
+
   redirect('/home');
 }
 

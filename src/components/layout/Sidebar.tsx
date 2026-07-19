@@ -11,16 +11,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusCircle, Bell, User, Settings, ShieldAlert } from 'lucide-react';
+import { Home, Search, PlusCircle, Bell, User, Settings, ShieldAlert, MessageCircle } from 'lucide-react';
 import Logo from '../shared/Logo';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useAuth } from '../../hooks/useAuth';
+import { useChatUnread } from '../../hooks/useChatUnread';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
+  const chatUnread = useChatUnread();
   const { logout } = useAuth();
 
   const navItems = [
@@ -29,6 +31,7 @@ export default function Sidebar() {
     { label: 'Create', path: '/create', icon: PlusCircle },
     { label: 'Notifications', path: '/notifications', icon: Bell, badge: true },
     { label: 'Profile', path: user?.username ? `/profile/${user.username}` : '/home', icon: User },
+    { label: 'Chats', path: '/chats', icon: MessageCircle, badge: true, chatBadge: true },
     { label: 'Settings', path: '/settings', icon: Settings },
   ];
 
@@ -58,7 +61,12 @@ export default function Sidebar() {
               <Icon className="w-5 h-5 stroke-[2]" />
               <span className="flex-1">{item.label}</span>
               
-              {item.badge && unreadCount > 0 && (
+              {item.chatBadge && chatUnread > 0 && (
+                <span className="bg-accent text-accent-foreground text-[10px] font-medium px-2 py-0.5 rounded-full">
+                  {chatUnread}
+                </span>
+              )}
+              {item.badge && !item.chatBadge && unreadCount > 0 && (
                 <span className="bg-destructive text-destructive-foreground text-[10px] font-medium px-2 py-0.5 rounded-full">
                   {unreadCount}
                 </span>

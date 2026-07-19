@@ -10,16 +10,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusCircle, Bell, User, Settings, ShieldAlert, LogOut } from 'lucide-react';
+import { Home, Search, PlusCircle, Bell, User, Settings, ShieldAlert, LogOut, MessageCircle } from 'lucide-react';
 import Logo from '../shared/Logo';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useAuth } from '../../hooks/useAuth';
+import { useChatUnread } from '../../hooks/useChatUnread';
 
 export default function TabletNav() {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
+  const chatUnread = useChatUnread();
   const { logout } = useAuth();
 
   const navItems = [
@@ -28,6 +30,7 @@ export default function TabletNav() {
     { label: 'Create', path: '/create', icon: PlusCircle },
     { label: 'Notifications', path: '/notifications', icon: Bell, badge: true },
     { label: 'Profile', path: user ? `/profile/${user.username}` : '/login', icon: User },
+    { label: 'Chats', path: '/chats', icon: MessageCircle, badge: true, chatBadge: true },
     { label: 'Settings', path: '/settings', icon: Settings },
   ];
 
@@ -58,7 +61,12 @@ export default function TabletNav() {
               <Icon className="w-6 h-6 stroke-[2]" />
               
               {/* Notification bubble badge */}
-              {item.badge && unreadCount > 0 && (
+              {item.chatBadge && chatUnread > 0 && (
+                <span className="absolute top-2 right-2 bg-accent border border-background rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] font-medium text-accent-foreground">
+                  {chatUnread}
+                </span>
+              )}
+              {item.badge && !item.chatBadge && unreadCount > 0 && (
                 <span className="absolute top-2 right-2 bg-destructive border border-background rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] font-medium text-destructive-foreground">
                   {unreadCount}
                 </span>

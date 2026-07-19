@@ -10,10 +10,12 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MoreVertical } from 'lucide-react';
-import Logo from '../shared/Logo';
+import { useAuthStore } from '../../store/authStore';
+import UserAvatar from '../user/UserAvatar';
 
 export default function TopBar() {
   const pathname = usePathname();
+  const { user } = useAuthStore();
 
   // Hide mobile TopBar on profile and home routes since they render their own custom headers
   if (pathname.startsWith('/profile') || pathname === '/home') {
@@ -25,7 +27,16 @@ export default function TopBar() {
 
   return (
     <header className="md:hidden sticky top-0 z-40 w-full h-14 px-4 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-md will-change-transform">
-      <Logo />
+      <Link
+        href={user ? `/profile/${user.username}` : '/login'}
+        className="flex items-center"
+      >
+        {user ? (
+          <UserAvatar avatar={user.avatar} name={user.name} size="md" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-muted" />
+        )}
+      </Link>
       
       <div className="flex items-center gap-2">
         {showSettingsLink && (

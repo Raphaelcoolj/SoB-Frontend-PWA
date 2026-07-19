@@ -14,6 +14,13 @@ export const socket: Socket = io(SOCKET_URL, {
   transports: ['websocket', 'polling'],
 });
 
+// Online user tracking
+const onlineUserIds = new Set<string>();
+
+export const isOnline = (userId: string) => onlineUserIds.has(userId);
+
+let listenersRegistered = false;
+
 /**
  * Helper to connect socket with authentication token.
  * @param token - JWT access token
@@ -23,6 +30,12 @@ export const connectSocket = (token: string) => {
   
   socket.auth = { token };
   socket.connect();
+
+  if (!listenersRegistered) {
+    socket.on('user:online', (userId: string) => onlineUserIds.add(userId));
+    socket.on('user:offline', (userId: string) => onlineUserIds.delete(userId));
+    listenersRegistered = true;
+  }
 };
 
 /**
