@@ -13,8 +13,14 @@ import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
-const fetcher = (url: string) =>
-  fetchWithAuth(url, { method: 'GET' }).then((r) => r.json()).then((d) => d.data);
+const fetcher = async (url: string) => {
+  const res = await fetchWithAuth(url, { method: 'GET' })
+  const json = await res.json()
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || `Request failed (${res.status})`)
+  }
+  return json.data
+}
 
 interface Message {
   _id: string;
@@ -120,11 +126,11 @@ function ChatConversation() {
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const convKey = otherUserId ? `${BASE}/api/chats/with/${otherUserId}` : null;
-  const { data: convData, isLoading: convLoading } = useSWR<ConversationData>(convKey, fetcher);
+  const { data: convData, isLoading: convLoading, error: convError } = useSWR<ConversationData>(convKey, fetcher);
   const conversationId = convData?.conversation?._id;
 
   const msgKey = conversationId ? `${BASE}/api/chats/${conversationId}/messages` : null;
-  const { data: msgData, isLoading: msgLoading, mutate: mutateMessages } = useSWR<{ messages: Message[] }>(
+  const { data: msgData, isLoading: msgLoading, mutate: mutateMessages, error: msgError } = useSWR<{ messages: Message[] }>(
     msgKey, fetcher, { refreshInterval: 3000 }
   );
 
@@ -208,11 +214,13 @@ function ChatConversation() {
           replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender } : undefined,
         }),
       });
-      const json = await res.json();
-      if (json?.data?.message) {
-        setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
-        mutateMessages();
-        setReplyTo(null);
+      setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.data?.message) {
+          mutateMessages();
+          setReplyTo(null);
+        }
       }
     } catch {
       setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -273,13 +281,27 @@ function ChatConversation() {
     );
   }
 
+  if (convError) {
+    return (
+      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-background md:pl-20 lg:pl-64">
+        <p className="text-destructive font-semibold text-lg">Error</p>
+        <p className="text-muted-foreground text-sm mt-1 text-center max-w-xs">
+          {convError instanceof Error ? convError.message : 'Failed to load conversation'}
+        </p>
+        <button onClick={() => router.push('/chats')} className="text-accent text-sm mt-2 hover:underline cursor-pointer">
+          Back to chats
+        </button>
+      </div>
+    );
+  }
+
   const otherUser = convData?.conversation?.otherUser;
 
   if (!otherUser) {
     return (
       <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-background md:pl-20 lg:pl-64">
         <p className="text-muted-foreground">User not found</p>
-        <button onClick={() => router.push('/chats')} className="text-accent text-sm mt-2 hover:underline cursor-pointer">
+        <button onClick={() => router.push('/chats')} className="text-accent text-sm mt-1 hover:underline cursor-pointer">
           Back to chats
         </button>
       </div>

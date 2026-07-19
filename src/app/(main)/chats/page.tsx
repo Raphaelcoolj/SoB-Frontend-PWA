@@ -12,8 +12,14 @@ import UserAvatar from '../../../components/user/UserAvatar';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
-const fetcher = (url: string) =>
-  fetchWithAuth(url, { method: 'GET' }).then((r) => r.json()).then((d) => d.data);
+const fetcher = async (url: string) => {
+  const res = await fetchWithAuth(url, { method: 'GET' })
+  const json = await res.json()
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || `Request failed (${res.status})`)
+  }
+  return json.data
+}
 
 interface Conversation {
   _id: string;
