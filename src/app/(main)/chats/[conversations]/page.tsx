@@ -10,6 +10,9 @@ import { fetchWithAuth } from '../../../../lib/api';
 import { socket, connectSocket } from '../../../../lib/socket';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
+import dynamic from 'next/dynamic';
+
+const ImageLightbox = dynamic(() => import('../../../../components/post/ImageLightbox'), { ssr: false });
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -118,6 +121,8 @@ function ChatConversation() {
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string } } | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -359,7 +364,7 @@ function ChatConversation() {
 
   return (
     // Break out of main layout's max-width/padding by using fixed positioning
-    <div className="fixed inset-0 z-40 flex flex-col bg-background md:pl-20 lg:pl-64">
+    <div className="fixed inset-0 z-40 flex flex-col bg-background md:pl-20 lg:pl-64 h-dvh">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
         <button
@@ -384,9 +389,9 @@ function ChatConversation() {
           <div className="space-y-4 pt-4">
             {[70, 50, 80, 40, 65].map((w, i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} items-end gap-2`}>
-                {i % 2 !== 0 && <div className="w-6 h-6 rounded-full bg-secondary animate-pulse flex-shrink-0" />}
+                {i % 2 !== 0 && <div className="w-6 h-6 rounded-full bg-muted animate-pulse flex-shrink-0" />}
                 <div
-                  className="h-9 rounded-2xl bg-secondary animate-pulse"
+                  className="h-9 rounded-2xl bg-muted animate-pulse"
                   style={{ width: `${w}%`, maxWidth: '68%' }}
                 />
               </div>
@@ -452,65 +457,82 @@ function ChatConversation() {
 
                       {/* Bubble */}
                       <div
-                        className={`max-w-[68%] w-fit rounded-2xl overflow-hidden relative ${
-                          mediaItem?.type === 'image' && !msg.text
-                            ? 'bg-transparent shadow-none'
-                            : mine
-                            ? 'bg-accent text-white rounded-br-[4px] shadow-sm'
-                            : 'bg-muted text-foreground rounded-bl-[4px] shadow-sm'
+                        className={`max-w-[68%] w-fit relative ${
+                          mediaItem?.type === 'image'
+                            ? ''
+                            : 'rounded-2xl overflow-hidden ' + (mine
+                                ? 'bg-accent text-white rounded-br-[4px] shadow-sm'
+                                : 'bg-muted text-foreground rounded-bl-[4px] shadow-sm')
                         } ${isTemp ? 'opacity-70' : ''}`}
                       >
-                        {/* Reply indicator */}
-                        {msg.replyTo && (
-                          <div className="px-3.5 pt-2.5 pb-1">
-                            <div className={`pl-2.5 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
-                              <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
-                                {msg.replyTo.sender.name}
-                              </p>
-                              <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
-                                {msg.replyTo.text}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Image */}
-                        {mediaItem?.type === 'image' && (
-                          <img
-                            src={mediaItem.url}
-                            alt="Image"
-                            className="w-full max-h-[350px] object-contain bg-black/5 cursor-pointer rounded-2xl"
-                            onClick={() => window.open(mediaItem.url, '_blank')}
-                          />
-                        )}
-
-                        {/* Voice */}
+                        {/* Voice (always its own box) */}
                         {mediaItem?.type === 'voice' && (
                           <div className="px-3 py-2">
                             <VoiceBubble url={mediaItem.url} duration={mediaItem.duration} isMine={mine} />
                           </div>
                         )}
 
-                        {/* Text */}
-                        {msg.text && (
-                          <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1' : 'pt-2.5 pb-1'}`}>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
-                          </div>
+                        {/* Image — always transparent background */}
+                        {mediaItem?.type === 'image' && (
+                          <img
+                            src={mediaItem.url}
+                            alt="Image"
+                            className="w-full max-h-[350px] object-contain bg-black/5 cursor-pointer rounded-2xl"
+                            onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
+                          />
                         )}
 
-                        {/* Timestamp + read receipt */}
+                        {/* Text + timestamp — background wrapper (only when image present, otherwise outer div handles it) */}
                         <div className={
-                          mediaItem?.type === 'image' && !msg.text
-                            ? "absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]"
-                            : "px-3.5 pb-2 flex items-center justify-end gap-1"
+                          mediaItem?.type === 'image'
+                            ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden ${msg.text || msg.replyTo ? 'mt-1' : ''}`
+                            : ''
                         }>
-                          <span className={mediaItem?.type === 'image' && !msg.text ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'}>
-                            {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
-                          </span>
-                          {mine && !isTemp && (
-                            <CheckCheck className={`w-3.5 h-3.5 ${mediaItem?.type === 'image' && !msg.text ? 'text-white/90' : msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                          {/* Reply indicator */}
+                          {msg.replyTo && (
+                            <div className="px-3.5 pt-2.5 pb-1">
+                              <div className={`pl-2.5 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
+                                <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
+                                  {msg.replyTo.sender.name}
+                                </p>
+                                <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
+                                  {msg.replyTo.text}
+                                </p>
+                              </div>
+                            </div>
                           )}
+
+                          {/* Text */}
+                          {msg.text && (
+                            <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1.5' : 'pt-2.5 pb-1.5'}`}>
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                            </div>
+                          )}
+
+                          {/* Timestamp + read receipt */}
+                          <div className={
+                            mediaItem?.type === 'image' && !msg.text && !msg.replyTo
+                              ? "hidden"
+                              : "px-3.5 pb-2.5 flex items-center justify-end gap-1"
+                          }>
+                            <span className={`${mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px]`}>
+                              {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
+                            </span>
+                            {mine && !isTemp && (
+                              <CheckCheck className={`w-3.5 h-3.5 ${mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                            )}
+                          </div>
                         </div>
+
+                        {/* Image-only overlay timestamp */}
+                        {mediaItem?.type === 'image' && !msg.text && !msg.replyTo && (
+                          <div className="absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]">
+                            <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
+                            {mine && !isTemp && (
+                              <CheckCheck className="w-3.5 h-3.5 text-white/90" />
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Hover reply button — right of receiver bubble */}
@@ -548,13 +570,13 @@ function ChatConversation() {
       )}
 
       {/* Input area */}
-      <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-t border-border/50 px-4 py-3">
+      <div className="flex-shrink-0 bg-background border-t border-border/50 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom,12px))] shadow-[0_-1px_3px_rgba(0,0,0,0.08)]">
         <div className="flex items-end gap-2">
           {/* Attach button — hidden during recording/voice preview */}
           {!isRecording && !recordedAudioUrl && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-all flex-shrink-0 cursor-pointer"
+              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-all flex-shrink-0 cursor-pointer"
             >
               <Plus className="w-5 h-5 text-muted-foreground" />
             </button>
@@ -601,7 +623,7 @@ function ChatConversation() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               rows={1}
-              className="flex-1 bg-secondary text-foreground placeholder:text-muted-foreground/60 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent/30 transition-all resize-none min-h-[40px] max-h-[120px]"
+              className="flex-1 bg-muted text-foreground placeholder:text-muted-foreground/60 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent/30 transition-all resize-none min-h-[40px] max-h-[120px]"
               disabled={sending}
             />
           )}
@@ -622,7 +644,7 @@ function ChatConversation() {
             <div className="flex gap-1.5">
               <button
                 onClick={() => { setRecordedAudioUrl(null); setRecordingDuration(0); }}
-                className="w-10 h-10 rounded-full bg-secondary text-muted-foreground flex items-center justify-center hover:bg-secondary/80 transition-all active:scale-95 cursor-pointer flex-shrink-0"
+                className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center hover:bg-muted/80 transition-all active:scale-95 cursor-pointer flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -734,6 +756,15 @@ function ChatConversation() {
             setSelectedFile(null);
           }}
           onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxOpen && (
+        <ImageLightbox
+          images={[lightboxUrl]}
+          initialIndex={0}
+          onClose={() => setLightboxOpen(false)}
         />
       )}
     </div>

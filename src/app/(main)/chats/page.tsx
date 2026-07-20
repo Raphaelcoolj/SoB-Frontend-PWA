@@ -139,7 +139,7 @@ export default function ChatsPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search people..."
-          className="w-full bg-secondary/80 text-foreground placeholder:text-muted-foreground/60 rounded-xl pl-10 pr-9 py-2.5 text-sm outline-none border border-border/40 focus:border-accent/60 focus:ring-2 focus:ring-accent/20 transition-all duration-200"
+          className="w-full bg-muted/80 text-foreground placeholder:text-muted-foreground/60 rounded-xl pl-10 pr-9 py-2.5 text-sm outline-none border border-border/40 focus:border-accent/60 focus:ring-2 focus:ring-accent/20 transition-all duration-200"
         />
         {searchQuery && (
           <button
@@ -160,7 +160,7 @@ export default function ChatsPage() {
               <button
                 key={conn._id}
                 onClick={() => router.push(`/chats/${conn._id}`)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/50 transition-colors text-left animate-[fadeIn_0.3s_ease-out]"
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left animate-[fadeIn_0.3s_ease-out]"
                 style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}
               >
                 <UserAvatar avatar={conn.avatar} name={conn.name} size="sm" />
@@ -233,10 +233,10 @@ export default function ChatsPage() {
             <div className="space-y-4 pt-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3 p-3 animate-[fadeIn_0.3s_ease-out]">
-                  <div className="w-12 h-12 rounded-full bg-secondary animate-pulse ring-2 ring-border/30" />
+                  <div className="w-12 h-12 rounded-full bg-muted animate-pulse ring-2 ring-border/30" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 w-24 bg-secondary animate-pulse rounded-md" />
-                    <div className="h-3 w-48 bg-secondary animate-pulse rounded-md" />
+                    <div className="h-4 w-24 bg-muted animate-pulse rounded-md" />
+                    <div className="h-3 w-48 bg-muted animate-pulse rounded-md" />
                   </div>
                 </div>
               ))}
@@ -266,7 +266,7 @@ export default function ChatsPage() {
                     <Link
                       key={conv._id}
                       href={`/chats/${conv.otherUser._id}`}
-                      className="flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-secondary/50 transition-all duration-200 active:scale-[0.99] animate-[fadeIn_0.3s_ease-out]"
+                      className="flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 active:scale-[0.99] animate-[fadeIn_0.3s_ease-out]"
                       style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
                     >
                       <div className="relative">
