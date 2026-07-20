@@ -364,7 +364,7 @@ function ChatConversation() {
 
   return (
     // Break out of main layout's max-width/padding by using fixed positioning
-    <div className="fixed inset-0 z-40 flex flex-col bg-background md:pl-20 lg:pl-64">
+    <div className="fixed inset-0 z-40 flex flex-col bg-background md:pl-20 lg:pl-64 h-dvh">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
         <button
@@ -570,7 +570,7 @@ function ChatConversation() {
       )}
 
       {/* Input area */}
-      <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-t border-border/50 px-4 py-3">
+      <div className="flex-shrink-0 bg-background border-t border-border/50 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom,12px))] shadow-[0_-1px_3px_rgba(0,0,0,0.08)]">
         <div className="flex items-end gap-2">
           {/* Attach button — hidden during recording/voice preview */}
           {!isRecording && !recordedAudioUrl && (
