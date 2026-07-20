@@ -163,6 +163,21 @@ interface PostFeedProps {
 - Root `layout.tsx` exports a `Viewport` with `userScalable: false`, `maximumScale: 1` to prevent pinch-zoom on PWA
 - Also includes a `<meta>` tag fallback with `user-scalable=no, maximum-scale=1`
 
+### Chat Pages (2026-07-21)
+
+| Route | File | Description |
+|-------|------|-------------|
+| `/chats` | `(main)/chats/page.tsx` | Chat list: connections grid + conversations list, real-time updates via socket `chat:message` event, search by name/username |
+| `/chats/[conversations]` | `(main)/chats/[conversations]/page.tsx` | Full-screen conversation: text/image/voice messages, reply-to (swipe/hover), optimistic UI with server response replacement, image cropping |
+| `/chats/settings` | `(main)/chats/settings/page.tsx` | Chat privacy settings: never delete messages, allow messages from (everyone/connections/nobody) |
+
+### Key Chat Behaviors
+- **Optimistic sends**: Text and media messages appear instantly; temp IDs replaced with server response on success, removed on failure
+- **Real-time delivery**: Socket.IO `chat:message` event pushes incoming messages to both participants
+- **No lastMessage filter**: All conversations (even without messages) are visible in the list — no hidden conversations
+- **Read receipts**: `CheckCheck` icon shown after recipient reads (readAt populated)
+- **Online indicators**: Green dot on avatars via `user:online`/`user:offline` socket events
+
 ### Admin Pages
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile
 - Admin layout has a mobile hamburger menu and `overflow-x-hidden` on the main content area

@@ -45,7 +45,7 @@ export default function ChatsPage() {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading } = useSWR<{ conversations: Conversation[] }>(
+  const { data, isLoading, mutate: mutateConversations } = useSWR<{ conversations: Conversation[] }>(
     `${BASE}/api/chats`,
     fetcher,
     { refreshInterval: 5000 }
@@ -56,7 +56,7 @@ export default function ChatsPage() {
     fetcher
   );
 
-  const conversations = data?.conversations.filter((c) => c.lastMessage) || [];
+  const conversations = data?.conversations || [];
   const connections = connectionsData?.users?.filter(
     (c) => c._id !== currentUser?._id
   ) || [];
@@ -94,14 +94,20 @@ export default function ChatsPage() {
       });
     };
 
+    const handleMessage = () => {
+      mutateConversations();
+    };
+
     socket.on('user:online', handleOnline);
     socket.on('user:offline', handleOffline);
+    socket.on('chat:message', handleMessage);
 
     return () => {
       socket.off('user:online', handleOnline);
       socket.off('user:offline', handleOffline);
+      socket.off('chat:message', handleMessage);
     };
-  }, [accessToken]);
+  }, [accessToken, mutateConversations]);
 
   const getLastMessagePreview = useCallback((conv: Conversation) => {
     if (!conv.lastMessage) return 'Start a conversation';
