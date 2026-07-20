@@ -10,6 +10,9 @@ import { fetchWithAuth } from '../../../../lib/api';
 import { socket, connectSocket } from '../../../../lib/socket';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
+import dynamic from 'next/dynamic';
+
+const ImageLightbox = dynamic(() => import('../../../../components/post/ImageLightbox'), { ssr: false });
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -118,6 +121,8 @@ function ChatConversation() {
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string } } | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -452,65 +457,82 @@ function ChatConversation() {
 
                       {/* Bubble */}
                       <div
-                        className={`max-w-[68%] w-fit rounded-2xl overflow-hidden relative ${
-                          mediaItem?.type === 'image' && !msg.text
-                            ? 'bg-transparent shadow-none'
-                            : mine
-                            ? 'bg-accent text-white rounded-br-[4px] shadow-sm'
-                            : 'bg-muted text-foreground rounded-bl-[4px] shadow-sm'
+                        className={`max-w-[68%] w-fit relative ${
+                          mediaItem?.type === 'image'
+                            ? ''
+                            : 'rounded-2xl overflow-hidden ' + (mine
+                                ? 'bg-accent text-white rounded-br-[4px] shadow-sm'
+                                : 'bg-muted text-foreground rounded-bl-[4px] shadow-sm')
                         } ${isTemp ? 'opacity-70' : ''}`}
                       >
-                        {/* Reply indicator */}
-                        {msg.replyTo && (
-                          <div className="px-3.5 pt-2.5 pb-1">
-                            <div className={`pl-2.5 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
-                              <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
-                                {msg.replyTo.sender.name}
-                              </p>
-                              <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
-                                {msg.replyTo.text}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Image */}
-                        {mediaItem?.type === 'image' && (
-                          <img
-                            src={mediaItem.url}
-                            alt="Image"
-                            className="w-full max-h-[350px] object-contain bg-black/5 cursor-pointer rounded-2xl"
-                            onClick={() => window.open(mediaItem.url, '_blank')}
-                          />
-                        )}
-
-                        {/* Voice */}
+                        {/* Voice (always its own box) */}
                         {mediaItem?.type === 'voice' && (
                           <div className="px-3 py-2">
                             <VoiceBubble url={mediaItem.url} duration={mediaItem.duration} isMine={mine} />
                           </div>
                         )}
 
-                        {/* Text */}
-                        {msg.text && (
-                          <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1.5' : 'pt-2.5 pb-1.5'}`}>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
-                          </div>
+                        {/* Image — always transparent background */}
+                        {mediaItem?.type === 'image' && (
+                          <img
+                            src={mediaItem.url}
+                            alt="Image"
+                            className="w-full max-h-[350px] object-contain bg-black/5 cursor-pointer rounded-2xl"
+                            onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
+                          />
                         )}
 
-                        {/* Timestamp + read receipt */}
+                        {/* Text + timestamp — background wrapper (only when image present, otherwise outer div handles it) */}
                         <div className={
-                          mediaItem?.type === 'image' && !msg.text
-                            ? "absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]"
-                            : "px-3.5 pb-2.5 flex items-center justify-end gap-1"
+                          mediaItem?.type === 'image'
+                            ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden ${msg.text || msg.replyTo ? 'mt-1' : ''}`
+                            : ''
                         }>
-                          <span className={mediaItem?.type === 'image' && !msg.text ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'}>
-                            {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
-                          </span>
-                          {mine && !isTemp && (
-                            <CheckCheck className={`w-3.5 h-3.5 ${mediaItem?.type === 'image' && !msg.text ? 'text-white/90' : msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                          {/* Reply indicator */}
+                          {msg.replyTo && (
+                            <div className="px-3.5 pt-2.5 pb-1">
+                              <div className={`pl-2.5 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
+                                <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
+                                  {msg.replyTo.sender.name}
+                                </p>
+                                <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
+                                  {msg.replyTo.text}
+                                </p>
+                              </div>
+                            </div>
                           )}
+
+                          {/* Text */}
+                          {msg.text && (
+                            <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1.5' : 'pt-2.5 pb-1.5'}`}>
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                            </div>
+                          )}
+
+                          {/* Timestamp + read receipt */}
+                          <div className={
+                            mediaItem?.type === 'image' && !msg.text && !msg.replyTo
+                              ? "hidden"
+                              : "px-3.5 pb-2.5 flex items-center justify-end gap-1"
+                          }>
+                            <span className={mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'}>
+                              {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
+                            </span>
+                            {mine && !isTemp && (
+                              <CheckCheck className={`w-3.5 h-3.5 ${mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                            )}
+                          </div>
                         </div>
+
+                        {/* Image-only overlay timestamp */}
+                        {mediaItem?.type === 'image' && !msg.text && !msg.replyTo && (
+                          <div className="absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]">
+                            <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
+                            {mine && !isTemp && (
+                              <CheckCheck className="w-3.5 h-3.5 text-white/90" />
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Hover reply button — right of receiver bubble */}
@@ -734,6 +756,15 @@ function ChatConversation() {
             setSelectedFile(null);
           }}
           onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxOpen && (
+        <ImageLightbox
+          images={[lightboxUrl]}
+          initialIndex={0}
+          onClose={() => setLightboxOpen(false)}
         />
       )}
     </div>
