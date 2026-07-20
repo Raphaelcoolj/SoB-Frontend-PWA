@@ -187,12 +187,13 @@ function ChatConversation() {
     }
   };
 
-  const handleSend = useCallback(async (mediaData?: { type: 'image' | 'voice'; url: string }[]) => {
-    const sendText = mediaData ? '' : text.trim();
-    if ((!sendText && !mediaData) || sending || !conversationId || !currentUser) return;
+  const handleSend = useCallback(async () => {
+    const sendText = text.trim();
+    if (!sendText || sending || !conversationId || !currentUser) return;
 
     setSending(true);
-    if (!mediaData) { setText(''); resetTextarea(); }
+    setText('');
+    resetTextarea();
 
     const tempId = `temp-${Date.now()}`;
     const optimistic: Message = {
@@ -200,7 +201,6 @@ function ChatConversation() {
       sender: { _id: currentUser._id, name: currentUser.name, username: currentUser.username, avatar: currentUser.avatar },
       text: sendText,
       createdAt: new Date().toISOString(),
-      media: mediaData?.length ? mediaData[0] : undefined,
       replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender } : undefined,
     };
     setLocalMessages((prev) => [...prev, optimistic]);
@@ -210,17 +210,19 @@ function ChatConversation() {
         method: 'POST',
         body: JSON.stringify({
           text: sendText,
-          media: mediaData?.length ? mediaData[0] : undefined,
           replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender } : undefined,
         }),
       });
-      setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
       if (res.ok) {
         const json = await res.json();
         if (json?.data?.message) {
-          mutateMessages();
+          setLocalMessages((prev) => prev.map((m) => (m._id === tempId ? json.data.message : m)));
           setReplyTo(null);
+        } else {
+          setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
         }
+      } else {
+        setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
       }
     } catch {
       setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -228,7 +230,7 @@ function ChatConversation() {
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [text, sending, conversationId, currentUser, mutateMessages, replyTo]);
+  }, [text, sending, conversationId, currentUser, replyTo]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
