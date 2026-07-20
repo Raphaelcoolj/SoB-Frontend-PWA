@@ -282,7 +282,7 @@ function ChatConversation() {
 
   if (convLoading) {
     return (
-      <div className="fixed inset-0 z-40 flex items-center justify-center bg-background md:pl-20 lg:pl-64">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background md:pl-20 lg:pl-64">
         <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -290,7 +290,7 @@ function ChatConversation() {
 
   if (convError) {
     return (
-      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-background md:pl-20 lg:pl-64">
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-background md:pl-20 lg:pl-64">
         <p className="text-destructive font-semibold text-lg">Error</p>
         <p className="text-muted-foreground text-sm mt-1 text-center max-w-xs">
           {convError instanceof Error ? convError.message : 'Failed to load conversation'}
@@ -306,7 +306,7 @@ function ChatConversation() {
 
   if (!otherUser) {
     return (
-      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-background md:pl-20 lg:pl-64">
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-background md:pl-20 lg:pl-64">
         <p className="text-muted-foreground">User not found</p>
         <button onClick={() => router.push('/chats')} className="text-accent text-sm mt-1 hover:underline cursor-pointer">
           Back to chats
@@ -364,7 +364,7 @@ function ChatConversation() {
 
   return (
     // Break out of main layout's max-width/padding by using fixed positioning
-    <div className="fixed inset-0 z-40 flex flex-col bg-background md:pl-20 lg:pl-64 h-dvh">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background md:pl-20 lg:pl-64 h-dvh">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
         <button
