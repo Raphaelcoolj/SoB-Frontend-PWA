@@ -515,7 +515,7 @@ function ChatConversation() {
                               ? "hidden"
                               : "px-3.5 pb-2.5 flex items-center justify-end gap-1"
                           }>
-                            <span className={mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'}>
+                            <span className={`${mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px]`}>
                               {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
                             </span>
                             {mine && !isTemp && (
