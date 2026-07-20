@@ -493,7 +493,7 @@ function ChatConversation() {
 
                         {/* Text */}
                         {msg.text && (
-                          <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1' : 'pt-2.5 pb-1'}`}>
+                          <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1.5' : 'pt-2.5 pb-1.5'}`}>
                             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
                           </div>
                         )}
@@ -502,7 +502,7 @@ function ChatConversation() {
                         <div className={
                           mediaItem?.type === 'image' && !msg.text
                             ? "absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]"
-                            : "px-3.5 pb-2 flex items-center justify-end gap-1"
+                            : "px-3.5 pb-2.5 flex items-center justify-end gap-1"
                         }>
                           <span className={mediaItem?.type === 'image' && !msg.text ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'}>
                             {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
