@@ -457,7 +457,7 @@ function ChatConversation() {
                             ? 'bg-transparent shadow-none'
                             : mine
                             ? 'bg-accent text-white rounded-br-[4px] shadow-sm'
-                            : 'bg-secondary text-foreground rounded-bl-[4px] shadow-sm'
+                            : 'bg-muted text-foreground rounded-bl-[4px] shadow-sm'
                         } ${isTemp ? 'opacity-70' : ''}`}
                       >
                         {/* Reply indicator */}
