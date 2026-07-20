@@ -384,9 +384,9 @@ function ChatConversation() {
           <div className="space-y-4 pt-4">
             {[70, 50, 80, 40, 65].map((w, i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} items-end gap-2`}>
-                {i % 2 !== 0 && <div className="w-6 h-6 rounded-full bg-secondary animate-pulse flex-shrink-0" />}
+                {i % 2 !== 0 && <div className="w-6 h-6 rounded-full bg-muted animate-pulse flex-shrink-0" />}
                 <div
-                  className="h-9 rounded-2xl bg-secondary animate-pulse"
+                  className="h-9 rounded-2xl bg-muted animate-pulse"
                   style={{ width: `${w}%`, maxWidth: '68%' }}
                 />
               </div>
@@ -554,7 +554,7 @@ function ChatConversation() {
           {!isRecording && !recordedAudioUrl && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-all flex-shrink-0 cursor-pointer"
+              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-all flex-shrink-0 cursor-pointer"
             >
               <Plus className="w-5 h-5 text-muted-foreground" />
             </button>
@@ -601,7 +601,7 @@ function ChatConversation() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               rows={1}
-              className="flex-1 bg-secondary text-foreground placeholder:text-muted-foreground/60 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent/30 transition-all resize-none min-h-[40px] max-h-[120px]"
+              className="flex-1 bg-muted text-foreground placeholder:text-muted-foreground/60 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent/30 transition-all resize-none min-h-[40px] max-h-[120px]"
               disabled={sending}
             />
           )}
@@ -622,7 +622,7 @@ function ChatConversation() {
             <div className="flex gap-1.5">
               <button
                 onClick={() => { setRecordedAudioUrl(null); setRecordingDuration(0); }}
-                className="w-10 h-10 rounded-full bg-secondary text-muted-foreground flex items-center justify-center hover:bg-secondary/80 transition-all active:scale-95 cursor-pointer flex-shrink-0"
+                className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center hover:bg-muted/80 transition-all active:scale-95 cursor-pointer flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
