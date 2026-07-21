@@ -724,11 +724,7 @@ function ChatConversation() {
                         )}
 
                         {(msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && (
-                          <div className={
-                            (mediaItem?.type === 'image' || mediaItem?.type === 'video')
-                              ? 'px-3 pt-2'
-                              : ''
-                          }>
+                          <div>
                             {msg.replyTo && (
                               <div
                                 className="px-2.5 pt-2 pb-0.5 cursor-pointer"
