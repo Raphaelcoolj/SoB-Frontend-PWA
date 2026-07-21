@@ -45,6 +45,7 @@ export default function ChatsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openMenuConvId, setOpenMenuConvId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +175,24 @@ export default function ChatsPage() {
       }
     } catch {
       toast.error('Failed to update setting');
+    }
+  };
+
+  const handleDeleteConversation = async (convId: string, userName: string) => {
+    setOpenMenuConvId(null);
+    try {
+      const res = await fetchWithAuth(`${BASE}/api/chats/${convId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success(`Deleted conversation with ${userName}`);
+        mutateConversations();
+      } else {
+        const json = await res.json();
+        toast.error(json.message || 'Failed to delete conversation');
+      }
+    } catch {
+      toast.error('Failed to delete conversation');
     }
   };
 
@@ -333,8 +352,12 @@ export default function ChatsPage() {
                   return (
                     <div
                       key={conv._id}
-                      className="relative flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 animate-[fadeIn_0.3s_ease-out] group"
+                      className="relative flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 animate-[fadeIn_0.3s_ease-out] group select-none"
                       style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
+                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
+                      onTouchStart={() => { longPressTimerRef.current = setTimeout(() => setOpenMenuConvId(conv._id), 500); }}
+                      onTouchEnd={() => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; } }}
+                      onTouchMove={() => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; } }}
                     >
                       <Link
                         href={`/chats/${conv.otherUser._id}`}
@@ -385,7 +408,7 @@ export default function ChatsPage() {
                       </Link>
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
-                        className="flex-shrink-0 p-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
+                        className="flex-shrink-0 p-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all"
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
@@ -395,6 +418,14 @@ export default function ChatsPage() {
                           className="absolute right-4 top-14 z-50 w-52 bg-card border border-border rounded-xl shadow-xl p-1.5"
                           onClick={(e) => e.stopPropagation()}
                         >
+                          <button
+                            onClick={() => handleDeleteConversation(conv._id, conv.otherUser.name.split(' ')[0])}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-red-500/10 transition-colors text-red-500"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete conversation
+                          </button>
+                          <div className="h-px bg-border/40 my-1" />
                           <button
                             onClick={() => handleBlock(conv.otherUser._id, conv.otherUser.name)}
                             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors text-foreground"

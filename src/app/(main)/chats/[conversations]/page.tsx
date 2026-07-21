@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2, MoreVertical } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
@@ -137,6 +137,8 @@ function ChatConversation() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; messageIds: string[] }>({ open: false, messageIds: [] });
   const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -489,6 +491,18 @@ function ChatConversation() {
     return acc;
   }, []);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setChatMenuOpen(false);
+      }
+    };
+    if (chatMenuOpen) {
+      document.addEventListener('mousedown', handler);
+      return () => document.removeEventListener('mousedown', handler);
+    }
+  }, [chatMenuOpen]);
+
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -514,6 +528,40 @@ function ChatConversation() {
               <p className="text-[11px] text-muted-foreground">@{otherUser.username}</p>
             </div>
           </Link>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setChatMenuOpen(!chatMenuOpen)}
+              className="p-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+            {chatMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-56 bg-popover border border-border rounded-xl shadow-xl z-[70] py-1.5 animate-[fadeIn_0.15s_ease-out]">
+                <button
+                  onClick={() => { setChatMenuOpen(false); router.push(`/chats/settings?userId=${otherUser._id}`); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  Chat settings
+                </button>
+                <div className="h-px bg-border/50 mx-3 my-1" />
+                <button
+                  onClick={() => { setChatMenuOpen(false); /* TODO: block user */ }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                  <span className="text-red-500">Block user</span>
+                </button>
+                <button
+                  onClick={() => { setChatMenuOpen(false); /* TODO: report user */ }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  Report
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         /* Selection mode header */
