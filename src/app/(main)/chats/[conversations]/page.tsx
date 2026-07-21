@@ -135,6 +135,7 @@ function ChatConversation() {
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; messageIds: string[] }>({ open: false, messageIds: [] });
+  const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -517,14 +518,27 @@ function ChatConversation() {
           <div className="flex-1">
             <p className="text-sm font-semibold text-foreground">{selectedMessages.size} selected</p>
           </div>
-          <button
-            onClick={handleDeleteMessages}
-            disabled={selectedMessages.size === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-semibold hover:bg-destructive/20 transition-all disabled:opacity-40 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Delete
-          </button>
+          {selectedMessages.size === 1 ? (
+            <button
+              onClick={() => {
+                const msgId = Array.from(selectedMessages)[0];
+                const msg = displayedMessages.find(m => m._id === msgId);
+                if (msg) setActionSheetMsg(msg);
+              }}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer"
+            >
+              <span className="font-bold text-lg leading-none">...</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleDeleteMessages}
+              disabled={selectedMessages.size === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-semibold hover:bg-destructive/20 transition-all disabled:opacity-40 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
+          )}
         </div>
       )}
 
@@ -655,13 +669,19 @@ function ChatConversation() {
                         )}
 
                         {mediaItem?.type === 'image' && (
-                          <div className={`${mine ? 'bg-accent' : 'bg-muted'} rounded-2xl overflow-hidden p-0.5 ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
+                          <div className={`${mine ? 'bg-accent' : 'bg-muted'} rounded-2xl overflow-hidden p-0.5 relative ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
                             <img
                               src={mediaItem.url}
                               alt="Image"
                               className="w-full max-h-[350px] object-cover cursor-pointer rounded-xl"
                               onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
                             />
+                            <div className={`absolute bottom-1.5 left-1.5 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px] ${msg.text || msg.replyTo ? 'opacity-90' : ''}`}>
+                              <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
+                              {mine && !isTemp && (
+                                <CheckCheck className="w-3 h-3 text-white/90" />
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -717,33 +737,27 @@ function ChatConversation() {
                               </div>
                             )}
 
-                            <div className="relative px-3 py-1.5 min-w-[70px]">
+                            <div className={`relative px-3 py-1.5 ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'min-w-[70px]'}`}>
                               {msg.text && (
-                                <span className="text-[15px] leading-snug whitespace-pre-wrap break-words inline-block pb-3">
+                                <span className={`text-[15px] leading-snug whitespace-pre-wrap break-words inline-block ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'}`}>
                                   {msg.text}
                                 </span>
                               )}
-                              <div className="absolute bottom-1.5 right-2 flex items-center gap-1">
-                                <span className={`${mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px] leading-none`}>
-                                  {isTemp ? 'Sending' : formatTime(msg.createdAt)}
-                                </span>
-                                {mine && !isTemp && (
-                                  <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
-                                )}
-                              </div>
+                              {(mediaItem?.type !== 'image' && mediaItem?.type !== 'video') && (
+                                <div className="absolute bottom-1.5 right-2 flex items-center gap-1">
+                                  <span className={`${mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px] leading-none`}>
+                                    {isTemp ? 'Sending' : formatTime(msg.createdAt)}
+                                  </span>
+                                  {mine && !isTemp && (
+                                    <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
 
-                        {/* Media-only overlay timestamp */}
-                        {(mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text && !msg.replyTo && (
-                          <div className="absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]">
-                            <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
-                            {mine && !isTemp && (
-                              <CheckCheck className="w-3.5 h-3.5 text-white/90" />
-                            )}
-                          </div>
-                        )}
+
                       </div>
 
                       {/* Hover Actions Menu Button */}
@@ -1159,6 +1173,81 @@ function ChatConversation() {
           initialIndex={0}
           onClose={() => setLightboxOpen(false)}
         />
+      )}
+
+      {/* Single-message action sheet */}
+      {actionSheetMsg && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center" onClick={() => setActionSheetMsg(null)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+          <div
+            className="relative w-full max-w-sm mx-auto rounded-t-2xl bg-card border border-border/60 shadow-2xl p-5 pb-8 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
+            <div className="flex gap-2 justify-around mb-4">
+              {['❤️', '👍', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => {
+                    if (conversationId) {
+                      fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages/${actionSheetMsg._id}/react`, {
+                        method: 'POST',
+                        body: JSON.stringify({ emoji }),
+                      }).then(() => { mutateMessages(); setActionSheetMsg(null); clearSelection(); }).catch(() => {});
+                    }
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted text-xl transition-all active:scale-125 cursor-pointer"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => {
+                  setReplyTo({ _id: actionSheetMsg._id, text: actionSheetMsg.text || '', sender: { name: actionSheetMsg.sender.name }, mediaUrl: actionSheetMsg.media ? (Array.isArray(actionSheetMsg.media) ? actionSheetMsg.media[0]?.url : actionSheetMsg.media?.url) : undefined, mediaType: actionSheetMsg.media ? (Array.isArray(actionSheetMsg.media) ? actionSheetMsg.media[0]?.type : actionSheetMsg.media?.type) : undefined });
+                  setActionSheetMsg(null);
+                  clearSelection();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl hover:bg-muted text-sm font-medium text-foreground transition-colors flex items-center gap-3 cursor-pointer"
+              >
+                <Reply className="w-4 h-4 text-muted-foreground" />
+                Reply
+              </button>
+              {isOwnMessage(actionSheetMsg.sender._id) && (
+                <button
+                  onClick={() => {
+                    const diffMins = (Date.now() - new Date(actionSheetMsg.createdAt).getTime()) / 60000;
+                    if (diffMins > 15) alert('You can only edit messages within 15 minutes of sending.');
+                    else { setEditingMessage(actionSheetMsg); setText(actionSheetMsg.text || ''); setActionSheetMsg(null); clearSelection(); }
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl hover:bg-muted text-sm font-medium text-foreground transition-colors flex items-center gap-3 cursor-pointer"
+                >
+                  <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Edit
+                </button>
+              )}
+            </div>
+            <div className="border-t border-border/40 mt-3 pt-3">
+              <button
+                onClick={() => {
+                  setDeleteModal({ open: true, messageIds: [actionSheetMsg._id] });
+                  setActionSheetMsg(null);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl hover:bg-destructive/10 text-sm font-medium text-destructive transition-colors flex items-center gap-3 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete message
+              </button>
+            </div>
+            <button
+              onClick={() => { setActionSheetMsg(null); clearSelection(); }}
+              className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Delete confirmation modal */}
