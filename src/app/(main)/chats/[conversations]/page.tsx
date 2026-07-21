@@ -500,47 +500,46 @@ function ChatConversation() {
                           />
                         )}
 
-                        {/* Text + timestamp — background wrapper (only when image present, otherwise outer div handles it) */}
-                        <div className={
-                          mediaItem?.type === 'image'
-                            ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden ${msg.text || msg.replyTo ? 'mt-1' : ''}`
-                            : ''
-                        }>
-                          {/* Reply indicator */}
-                          {msg.replyTo && (
-                            <div className="px-3.5 pt-2.5 pb-1">
-                              <div className={`pl-2.5 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
-                                <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
-                                  {msg.replyTo.sender.name}
-                                </p>
-                                <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
-                                  {msg.replyTo.text}
-                                </p>
+                        {/* Text + timestamp wrapper */}
+                        {(msg.text || msg.replyTo || mediaItem?.type !== 'image') && (
+                          <div className={
+                            mediaItem?.type === 'image'
+                              ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden mt-1`
+                              : ''
+                          }>
+                            {/* Reply indicator */}
+                            {msg.replyTo && (
+                              <div className="px-2.5 pt-2 pb-0.5">
+                                <div className={`pl-2 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
+                                  <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
+                                    {msg.replyTo.sender.name}
+                                  </p>
+                                  <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
+                                    {msg.replyTo.text}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Text & inline timestamp */}
+                            <div className="relative px-3 py-1.5 min-w-[70px]">
+                              {msg.text && (
+                                <span className="text-[15px] leading-snug whitespace-pre-wrap break-words inline-block pb-3">
+                                  {msg.text}
+                                </span>
+                              )}
+                              {/* Floating timestamp bottom right */}
+                              <div className="absolute bottom-1.5 right-2 flex items-center gap-1">
+                                <span className={`${mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px] leading-none`}>
+                                  {isTemp ? 'Sending' : formatTime(msg.createdAt)}
+                                </span>
+                                {mine && !isTemp && (
+                                  <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                                )}
                               </div>
                             </div>
-                          )}
-
-                          {/* Text */}
-                          {msg.text && (
-                            <div className={`px-3.5 ${mediaItem ? 'pt-1.5 pb-1.5' : 'pt-2.5 pb-1.5'}`}>
-                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
-                            </div>
-                          )}
-
-                          {/* Timestamp + read receipt */}
-                          <div className={
-                            mediaItem?.type === 'image' && !msg.text && !msg.replyTo
-                              ? "hidden"
-                              : "px-3.5 pb-2.5 flex items-center justify-end gap-1"
-                          }>
-                            <span className={`${mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px]`}>
-                              {isTemp ? 'Sending...' : formatTime(msg.createdAt)}
-                            </span>
-                            {mine && !isTemp && (
-                              <CheckCheck className={`w-3.5 h-3.5 ${mediaItem?.type === 'image' && !msg.text && !msg.replyTo ? 'text-white/90' : msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
-                            )}
                           </div>
-                        </div>
+                        )}
 
                         {/* Image-only overlay timestamp */}
                         {mediaItem?.type === 'image' && !msg.text && !msg.replyTo && (
