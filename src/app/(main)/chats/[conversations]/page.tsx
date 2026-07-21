@@ -36,6 +36,8 @@ interface Message {
     | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }
     | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }[];
   replyTo?: { _id: string; text: string; sender: { name: string } };
+  reactions?: Record<string, string>;
+  isEdited?: boolean;
 }
 
 interface ConversationData {
@@ -122,11 +124,14 @@ function ChatConversation() {
   const [recordingTick, setRecordingTick] = useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string }; mediaUrl?: string; mediaType?: string } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -190,16 +195,57 @@ function ChatConversation() {
     };
   }, [conversationId, accessToken, isOwnMessage, mutateMessages]);
 
+  const handleScrollToMessage = (id: string) => {
+    const el = messageRefs.current[id];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('bg-muted/50', 'transition-colors', 'duration-500');
+      setTimeout(() => el.classList.remove('bg-muted/50'), 1500);
+    }
+  };
+
+  const handleReactToMessage = (msgId: string, emoji: string) => {
+    setLocalMessages(prev => prev.map(m => {
+      if (m._id === msgId) {
+        const reactions = { ...m.reactions };
+        const myId = currentUser?._id || '';
+        if (reactions[myId] === emoji) delete reactions[myId];
+        else reactions[myId] = emoji;
+        return { ...m, reactions };
+      }
+      return m;
+    }));
+    setActiveMenuId(null);
+  };
+
+  const handleCopy = (msgText: string) => {
+    navigator.clipboard.writeText(msgText);
+    setActiveMenuId(null);
+  };
+
+  const handleDelete = (msgId: string) => {
+    setLocalMessages(prev => prev.filter(m => m._id !== msgId));
+    setActiveMenuId(null);
+  };
+
   const resetTextarea = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
   };
 
-  const handleSend = useCallback(async () => {
+  const handleSend = async () => {
     const sendText = text.trim();
-    if (!sendText || sending || !conversationId || !currentUser) return;
+    if (!sendText && !previewImage && !selectedFile && !recordedAudioUrl) return;
 
+    if (editingMessage) {
+      setLocalMessages(prev => prev.map(m => m._id === editingMessage._id ? { ...m, text: sendText, isEdited: true } : m));
+      setText('');
+      setEditingMessage(null);
+      return;
+    }
+
+    if (!conversationId || !currentUser) return;
     setSending(true);
     setText('');
     resetTextarea();
@@ -226,20 +272,23 @@ function ChatConversation() {
         const json = await res.json();
         if (json?.data?.message) {
           setLocalMessages((prev) => prev.map((m) => (m._id === tempId ? json.data.message : m)));
-          setReplyTo(null);
         } else {
           setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
         }
       } else {
         setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
       }
-    } catch {
+      setText('');
+      setReplyTo(null);
+      setEditingMessage(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to send');
       setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
     } finally {
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [text, sending, conversationId, currentUser, replyTo]);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -254,18 +303,15 @@ function ChatConversation() {
     } else {
       setIsCropperOpen(true);
     }
-    // Reset so same file can be re-selected
     e.target.value = '';
   };
 
   const handleDocumentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !conversationId) return;
-    // Treat document as direct upload (no crop)
     setSelectedFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
-    // For non-image documents, just set a placeholder
     if (file.type.startsWith('image/')) {
       reader.readAsDataURL(file);
     } else {
@@ -350,7 +396,6 @@ function ChatConversation() {
   };
 
   const formatDateLabel = (isoDate: string) => {
-    // isoDate is already YYYY-MM-DD, safe to append time
     const d = new Date(`${isoDate}T00:00:00`);
     const today = new Date();
     const yesterday = new Date(today);
@@ -365,12 +410,10 @@ function ChatConversation() {
     });
   };
 
-  // Use ISO date (YYYY-MM-DD) as the group key — locale-independent and parseable
   const groupedMessages = displayedMessages.reduce<{ date: string; messages: Message[] }[]>((acc, msg) => {
     if (!msg.createdAt) return acc;
     const d = new Date(msg.createdAt);
     if (isNaN(d.getTime())) return acc;
-    // e.g. "2026-07-19"
     const date = d.toISOString().slice(0, 10);
     const last = acc[acc.length - 1];
     if (last && last.date === date) { last.messages.push(msg); }
@@ -383,13 +426,10 @@ function ChatConversation() {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   };
 
-  // Static waveform bar heights for recording animation
   const waveHeights = Array.from({ length: 24 }, (_, i) => i);
 
   return (
-    // Fixed positioned container pinned to all edges prevents whole-body scrolling on iOS Safari
     <div className="fixed z-[60] flex flex-col bg-background md:pl-20 lg:pl-64" style={{ top: 0, bottom: 0, left: 0, right: 0 }}>
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
         <button
           onClick={() => router.push('/chats')}
@@ -406,10 +446,8 @@ function ChatConversation() {
         </Link>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 scroll-smooth">
         {msgLoading && messages.length === 0 && localMessages.length === 0 ? (
-          /* Loading skeleton */
           <div className="space-y-4 pt-4">
             {[70, 50, 80, 40, 65].map((w, i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} items-end gap-2`}>
@@ -434,7 +472,6 @@ function ChatConversation() {
         ) : (
           groupedMessages.map((group) => (
             <div key={group.date}>
-              {/* Date separator */}
               <div className="flex justify-center my-4">
                 <span className="text-[11px] font-medium text-muted-foreground/60 bg-muted/60 px-3 py-1 rounded-full select-none">
                   {formatDateLabel(group.date)}
@@ -450,7 +487,9 @@ function ChatConversation() {
                   return (
                     <div
                       key={msg._id}
-                      className={`flex ${mine ? 'justify-end' : 'justify-start'} items-end gap-2 group`}
+                      id={`msg-${msg._id}`}
+                      ref={(el) => { if (el) messageRefs.current[msg._id] = el; }}
+                      className={`flex ${mine ? 'justify-end' : 'justify-start'} items-end gap-2 group relative`}
                       onMouseEnter={() => setHoveredMsgId(msg._id)}
                       onMouseLeave={() => setHoveredMsgId(null)}
                       onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
@@ -468,14 +507,12 @@ function ChatConversation() {
                         }
                       }}
                     >
-                      {/* Receiver avatar (left side) */}
                       {!mine && (
                         <Link href={`/profile/${msg.sender.username}`} className="flex-shrink-0 self-end mb-0.5">
                           <UserAvatar avatar={msg.sender.avatar} name={msg.sender.name} size="xs" />
                         </Link>
                       )}
 
-                      {/* Hover reply button — left of mine bubble, right of other bubble */}
                       {mine && hoveredMsgId === msg._id && !isTemp && (
                         <button
                           onClick={() => setReplyTo({
@@ -491,9 +528,8 @@ function ChatConversation() {
                         </button>
                       )}
 
-                      {/* Bubble */}
                       <div
-                        className={`max-w-[68%] w-fit relative ${
+                        className={`max-w-[80%] w-fit relative ${
                           (mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text
                             ? ''
                             : 'rounded-2xl overflow-hidden ' + (mine
@@ -501,24 +537,23 @@ function ChatConversation() {
                                 : 'bg-muted text-foreground rounded-bl-[4px] shadow-sm')
                         } ${isTemp ? 'opacity-70' : ''}`}
                       >
-                        {/* Voice (always its own box) */}
                         {mediaItem?.type === 'voice' && (
                           <div className="px-3 py-2">
                             <VoiceBubble url={mediaItem.url} duration={mediaItem.duration} isMine={mine} />
                           </div>
                         )}
 
-                        {/* Image — no padding or bg */}
                         {mediaItem?.type === 'image' && (
-                          <img
-                            src={mediaItem.url}
-                            alt="Image"
-                            className="w-full max-h-[350px] object-cover cursor-pointer rounded-2xl"
-                            onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
-                          />
+                          <div className={`${mine ? 'bg-accent' : 'bg-muted'} rounded-2xl overflow-hidden ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
+                            <img
+                              src={mediaItem.url}
+                              alt="Image"
+                              className="w-full max-h-[350px] object-cover cursor-pointer"
+                              onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
+                            />
+                          </div>
                         )}
 
-                        {/* Video */}
                         {mediaItem?.type === 'video' && (
                           <div className="relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
                             <video
@@ -530,7 +565,6 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {/* Document */}
                         {mediaItem?.type === 'document' && (
                           <div className={`flex items-center gap-3 p-3 ${mine ? 'bg-white/10' : 'bg-background'} rounded-xl mx-1.5 mt-1.5`}>
                             <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
@@ -550,16 +584,17 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {/* Text + timestamp wrapper */}
                         {(msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && (
                           <div className={
                             (mediaItem?.type === 'image' || mediaItem?.type === 'video')
                               ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden mt-1`
                               : ''
                           }>
-                            {/* Reply indicator */}
                             {msg.replyTo && (
-                              <div className="px-2.5 pt-2 pb-0.5">
+                              <div
+                                className="px-2.5 pt-2 pb-0.5 cursor-pointer"
+                                onClick={() => handleScrollToMessage(msg.replyTo!._id)}
+                              >
                                 <div className={`pl-2 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
                                   <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
                                     {msg.replyTo.sender.name}
@@ -571,14 +606,12 @@ function ChatConversation() {
                               </div>
                             )}
 
-                            {/* Text & inline timestamp */}
                             <div className="relative px-3 py-1.5 min-w-[70px]">
                               {msg.text && (
                                 <span className="text-[15px] leading-snug whitespace-pre-wrap break-words inline-block pb-3">
                                   {msg.text}
                                 </span>
                               )}
-                              {/* Floating timestamp bottom right */}
                               <div className="absolute bottom-1.5 right-2 flex items-center gap-1">
                                 <span className={`${mine ? 'text-white/60' : 'text-muted-foreground/60'} text-[10px] leading-none`}>
                                   {isTemp ? 'Sending' : formatTime(msg.createdAt)}
@@ -602,20 +635,58 @@ function ChatConversation() {
                         )}
                       </div>
 
-                      {/* Hover reply button — right of receiver bubble */}
-                      {!mine && hoveredMsgId === msg._id && !isTemp && (
-                        <button
-                          onClick={() => setReplyTo({
-                            _id: msg._id,
-                            text: msg.text || '',
-                            sender: { name: msg.sender.name },
-                            mediaUrl: mediaItem?.url,
-                            mediaType: mediaItem?.type
-                          })}
-                          className="flex-shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-accent transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                        >
-                          <CornerUpLeft className="w-3.5 h-3.5 scale-x-[-1]" />
-                        </button>
+                      {/* Hover Actions Menu Button */}
+                      {hoveredMsgId === msg._id && !isTemp && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setActiveMenuId(activeMenuId === msg._id ? null : msg._id)}
+                            className="flex-shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-accent transition-colors cursor-pointer"
+                          >
+                            <span className="font-bold pb-2 inline-block leading-none">...</span>
+                          </button>
+                          
+                          {/* Context Menu Modal for this message */}
+                          {activeMenuId === msg._id && (
+                            <div className={`absolute bottom-full ${mine ? 'right-0' : 'left-0'} mb-2 w-48 bg-card border rounded-xl shadow-lg p-2 z-50 flex flex-col`}>
+                              <div className="flex gap-2 justify-around border-b pb-2 mb-2">
+                                {['❤️', '👍', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                                  <button key={emoji} onClick={() => handleReactToMessage(msg._id, emoji)} className="hover:scale-125 transition-transform text-lg">{emoji}</button>
+                                ))}
+                              </div>
+                              <button
+                                className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
+                                onClick={() => { setReplyTo({ _id: msg._id, text: msg.text || '', sender: { name: msg.sender.name }, mediaUrl: mediaItem?.url, mediaType: mediaItem?.type }); setActiveMenuId(null); }}
+                              >
+                                Reply
+                              </button>
+                              {msg.text && (
+                                <button className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors" onClick={() => handleCopy(msg.text)}>
+                                  Copy Text
+                                </button>
+                              )}
+                              <button className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors" onClick={() => { alert('Forwarding not implemented yet.'); setActiveMenuId(null); }}>
+                                Forward
+                              </button>
+                              {mine && (
+                                <>
+                                  <button
+                                    className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
+                                    onClick={() => {
+                                      const diffMins = (Date.now() - new Date(msg.createdAt).getTime()) / 60000;
+                                      if (diffMins > 15) alert('You can only edit messages within 15 minutes of sending.');
+                                      else { setEditingMessage(msg); setText(msg.text || ''); setActiveMenuId(null); }
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button className="text-left px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-md transition-colors" onClick={() => handleDelete(msg._id)}>
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
