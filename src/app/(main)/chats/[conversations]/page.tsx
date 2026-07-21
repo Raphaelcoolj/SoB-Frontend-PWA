@@ -212,6 +212,7 @@ function ChatConversation() {
   };
 
   const handleReactToMessage = (msgId: string, emoji: string) => {
+    // Optimistic update
     setLocalMessages(prev => prev.map(m => {
       if (m._id === msgId) {
         const reactions = { ...m.reactions };
@@ -223,6 +224,13 @@ function ChatConversation() {
       return m;
     }));
     setActiveMenuId(null);
+    // Send to server
+    if (conversationId) {
+      fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages/${msgId}/react`, {
+        method: 'POST',
+        body: JSON.stringify({ emoji }),
+      }).catch(() => {});
+    }
   };
 
   const handleCopy = (msgText: string) => {
@@ -718,7 +726,7 @@ function ChatConversation() {
                         {(msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && (
                           <div className={
                             (mediaItem?.type === 'image' || mediaItem?.type === 'video')
-                              ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden mt-1`
+                              ? 'px-3 pt-2'
                               : ''
                           }>
                             {msg.replyTo && (
@@ -757,6 +765,32 @@ function ChatConversation() {
                           </div>
                         )}
 
+                        {/* Reactions display */}
+                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                          <div className={`flex flex-wrap gap-0.5 ${mine ? 'justify-end' : 'justify-start'} relative ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '-mt-2 mr-2 ml-2 mb-1' : 'mr-2 ml-2 mb-0.5'}`}>
+                            {Object.entries(
+                              Object.entries(msg.reactions).reduce((acc, [, emoji]) => {
+                                acc[emoji] = (acc[emoji] || 0) + 1;
+                                return acc;
+                              }, {} as Record<string, number>)
+                            ).map(([emoji, count]) => (
+                              <span
+                                key={emoji}
+                                className={`
+                                  inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs leading-none shadow-sm border
+                                  ${mine ? 'bg-gray-800/90 border-gray-700' : 'bg-card border-border'}
+                                `}
+                                style={{
+                                  backdropFilter: 'blur(4px)',
+                                  WebkitBackdropFilter: 'blur(4px)',
+                                }}
+                              >
+                                <span className="text-sm">{emoji}</span>
+                                {count > 1 && <span className="text-[10px] text-muted-foreground font-medium">{count}</span>}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
                       </div>
 
@@ -1189,12 +1223,9 @@ function ChatConversation() {
                 <button
                   key={emoji}
                   onClick={() => {
-                    if (conversationId) {
-                      fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages/${actionSheetMsg._id}/react`, {
-                        method: 'POST',
-                        body: JSON.stringify({ emoji }),
-                      }).then(() => { mutateMessages(); setActionSheetMsg(null); clearSelection(); }).catch(() => {});
-                    }
+                    handleReactToMessage(actionSheetMsg._id, emoji);
+                    setActionSheetMsg(null);
+                    clearSelection();
                   }}
                   className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted text-xl transition-all active:scale-125 cursor-pointer"
                 >
