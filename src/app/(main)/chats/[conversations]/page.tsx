@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop } from 'lucide-react';
+import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
@@ -123,9 +123,11 @@ function ChatConversation() {
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
   const touchStartXRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -250,6 +252,22 @@ function ChatConversation() {
     e.target.value = '';
   };
 
+  const handleDocumentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !conversationId) return;
+    // Treat document as direct upload (no crop)
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
+    // For non-image documents, just set a placeholder
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file);
+    } else {
+      setPreviewImage('document');
+    }
+    e.target.value = '';
+  };
+
   const handleCropComplete = (croppedFile: File) => {
     setIsCropperOpen(false);
     setSelectedFile(croppedFile);
@@ -364,7 +382,7 @@ function ChatConversation() {
 
   return (
     // Break out of main layout's max-width/padding by using fixed positioning
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background md:pl-20 lg:pl-64 h-dvh">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background md:pl-20 lg:pl-64" style={{ height: '100dvh' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
         <button
@@ -569,19 +587,23 @@ function ChatConversation() {
         </div>
       )}
 
-      {/* Input area */}
-      <div className="flex-shrink-0 bg-background border-t border-border/50 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom,12px))] shadow-[0_-1px_3px_rgba(0,0,0,0.08)]">
+      {/* Input area — flex-shrink-0 keeps it pinned above keyboard */}
+      <div
+        className="flex-shrink-0 bg-background border-t border-border/50 px-4 py-3 shadow-[0_-1px_3px_rgba(0,0,0,0.08)]"
+        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
+      >
         <div className="flex items-end gap-2">
           {/* Attach button — hidden during recording/voice preview */}
           {!isRecording && !recordedAudioUrl && (
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowAttachMenu(true)}
               className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-all flex-shrink-0 cursor-pointer"
             >
               <Plus className="w-5 h-5 text-muted-foreground" />
             </button>
           )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+          <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
+          <input ref={docInputRef} type="file" accept="*/*" className="hidden" onChange={handleDocumentSelect} />
 
           {/* Recording waveform bar */}
           {isRecording && (
@@ -710,8 +732,62 @@ function ChatConversation() {
         </div>
       </div>
 
+      {/* Attachment type picker popup */}
+      {showAttachMenu && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center"
+          onClick={() => setShowAttachMenu(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+          {/* Sheet */}
+          <div
+            className="relative w-full max-w-lg mx-auto rounded-t-2xl bg-card border border-border/60 shadow-2xl p-4 pb-8 md:pb-4 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-center text-sm font-semibold text-foreground mb-4">Add Attachment</p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Image / Video */}
+              <button
+                onClick={() => { setShowAttachMenu(false); fileInputRef.current?.click(); }}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-muted hover:bg-accent/10 border border-border/40 transition-all active:scale-95 cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-accent/15 flex items-center justify-center group-hover:bg-accent/25 transition-colors">
+                  <ImageIcon className="w-6 h-6 text-accent" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-foreground">Image / Video</p>
+                  <p className="text-[11px] text-muted-foreground/70">Camera roll</p>
+                </div>
+              </button>
+              {/* Document */}
+              <button
+                onClick={() => { setShowAttachMenu(false); docInputRef.current?.click(); }}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-muted hover:bg-purple-500/10 border border-border/40 transition-all active:scale-95 cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-purple-500/15 flex items-center justify-center group-hover:bg-purple-500/25 transition-colors">
+                  <FileText className="w-6 h-6 text-purple-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-foreground">Document</p>
+                  <p className="text-[11px] text-muted-foreground/70">PDF, Word, etc.</p>
+                </div>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowAttachMenu(false)}
+              className="w-full py-2.5 rounded-xl bg-muted text-sm font-semibold text-foreground hover:bg-muted/80 transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Image preview modal */}
-      {previewImage && (
+      {previewImage && previewImage !== 'document' && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6">
           <div className="bg-card border border-border rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl">
             <div className="relative">
@@ -739,6 +815,42 @@ function ChatConversation() {
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <><ImageIcon className="w-4 h-4" /> Send Image</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document preview modal */}
+      {previewImage === 'document' && selectedFile && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl">
+            <div className="flex flex-col items-center justify-center p-8 gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/15 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-purple-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-foreground text-sm">{selectedFile.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+              </div>
+            </div>
+            <div className="flex gap-2 p-3">
+              <button
+                onClick={() => { setPreviewImage(null); setSelectedFile(null); }}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUploadMedia}
+                disabled={uploadingMedia}
+                className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              >
+                {uploadingMedia ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <><File className="w-4 h-4" /> Send File</>
                 )}
               </button>
             </div>
