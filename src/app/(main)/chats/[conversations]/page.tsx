@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download } from 'lucide-react';
+import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2 } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
@@ -38,6 +38,8 @@ interface Message {
   replyTo?: { _id: string; text: string; sender: { name: string } };
   reactions?: Record<string, string>;
   isEdited?: boolean;
+  deleted?: boolean;
+  deletedFor?: string[];
 }
 
 interface ConversationData {
@@ -130,12 +132,16 @@ function ChatConversation() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; messageIds: string[] }>({ open: false, messageIds: [] });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const touchStartXRef = useRef(0);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -294,6 +300,58 @@ function ChatConversation() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
+  const toggleMessageSelection = (msgId: string) => {
+    setSelectedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(msgId)) {
+        next.delete(msgId);
+        if (next.size === 0) {
+          setSelectionMode(false);
+        }
+      } else {
+        next.add(msgId);
+      }
+      return next;
+    });
+  };
+
+  const handleLongPress = (msgId: string) => {
+    if (!selectionMode) {
+      setSelectionMode(true);
+      setSelectedMessages(new Set([msgId]));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedMessages(new Set());
+    setSelectionMode(false);
+  };
+
+  const handleDeleteMessages = async () => {
+    const ids = Array.from(selectedMessages);
+    setDeleteModal({ open: true, messageIds: ids });
+  };
+
+  const confirmDelete = async (deleteFor: 'me' | 'everyone') => {
+    const { messageIds } = deleteModal;
+    setDeleteModal({ open: false, messageIds: [] });
+    clearSelection();
+
+    try {
+      await Promise.all(
+        messageIds.map((msgId) =>
+          fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages/${msgId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ deleteFor }),
+          })
+        )
+      );
+      mutateMessages();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -430,21 +488,45 @@ function ChatConversation() {
 
   return (
     <div className="fixed z-[60] flex flex-col bg-background md:pl-20 lg:pl-64" style={{ top: 0, bottom: 0, left: 0, right: 0 }}>
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
-        <button
-          onClick={() => router.push('/chats')}
-          className="p-1.5 -ml-1 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-2.5 min-w-0 flex-1">
-          <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{otherUser.name}</p>
-            <p className="text-[11px] text-muted-foreground">@{otherUser.username}</p>
+      {/* Normal header */}
+      {!selectionMode ? (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
+          <button
+            onClick={() => router.push('/chats')}
+            className="p-1.5 -ml-1 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-2.5 min-w-0 flex-1">
+            <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{otherUser.name}</p>
+              <p className="text-[11px] text-muted-foreground">@{otherUser.username}</p>
+            </div>
+          </Link>
+        </div>
+      ) : (
+        /* Selection mode header */
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
+          <button
+            onClick={clearSelection}
+            className="p-1.5 -ml-1 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">{selectedMessages.size} selected</p>
           </div>
-        </Link>
-      </div>
+          <button
+            onClick={handleDeleteMessages}
+            disabled={selectedMessages.size === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-semibold hover:bg-destructive/20 transition-all disabled:opacity-40 cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-4 py-3 scroll-smooth">
         {msgLoading && messages.length === 0 && localMessages.length === 0 ? (
@@ -489,13 +571,17 @@ function ChatConversation() {
                       key={msg._id}
                       id={`msg-${msg._id}`}
                       ref={(el) => { if (el) messageRefs.current[msg._id] = el; }}
-                      className={`flex ${mine ? 'justify-end' : 'justify-start'} items-end gap-2 group relative`}
-                      onMouseEnter={() => setHoveredMsgId(msg._id)}
+                      className={`flex ${mine ? 'justify-end' : 'justify-start'} items-end gap-2 group relative ${selectedMessages.has(msg._id) ? 'opacity-80' : ''}`}
+                      onMouseEnter={() => { if (!selectionMode) setHoveredMsgId(msg._id); }}
                       onMouseLeave={() => setHoveredMsgId(null)}
-                      onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
+                      onTouchStart={(e) => {
+                        touchStartXRef.current = e.touches[0].clientX;
+                        longPressTimerRef.current = setTimeout(() => handleLongPress(msg._id), 500);
+                      }}
                       onTouchMove={(e) => {
                         const delta = e.touches[0].clientX - touchStartXRef.current;
-                        if (delta > 50 && !isTemp) {
+                        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+                        if (delta > 50 && !isTemp && !selectionMode) {
                           setReplyTo({
                             _id: msg._id,
                             text: msg.text || '',
@@ -506,14 +592,39 @@ function ChatConversation() {
                           touchStartXRef.current = Infinity;
                         }
                       }}
+                      onTouchEnd={() => {
+                        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+                      }}
+                      onClick={(e) => {
+                        if (selectionMode) {
+                          e.preventDefault();
+                          toggleMessageSelection(msg._id);
+                        }
+                      }}
                     >
+                      {/* Selection checkbox — shown in selection mode */}
+                      {selectionMode && (
+                        <div
+                          className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer self-end mb-1 ${
+                            selectedMessages.has(msg._id)
+                              ? 'bg-accent border-accent text-white'
+                              : 'border-muted-foreground/40'
+                          }`}
+                          onClick={(e) => { e.stopPropagation(); toggleMessageSelection(msg._id); }}
+                        >
+                          {selectedMessages.has(msg._id) && (
+                            <span className="text-[10px] font-bold">&#10003;</span>
+                          )}
+                        </div>
+                      )}
+
                       {!mine && (
                         <Link href={`/profile/${msg.sender.username}`} className="flex-shrink-0 self-end mb-0.5">
                           <UserAvatar avatar={msg.sender.avatar} name={msg.sender.name} size="xs" />
                         </Link>
                       )}
 
-                      {mine && hoveredMsgId === msg._id && !isTemp && (
+                      {mine && hoveredMsgId === msg._id && !isTemp && !selectionMode && (
                         <button
                           onClick={() => setReplyTo({
                             _id: msg._id,
@@ -1048,6 +1159,65 @@ function ChatConversation() {
           initialIndex={0}
           onClose={() => setLightboxOpen(false)}
         />
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center" onClick={() => setDeleteModal({ open: false, messageIds: [] })}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+          <div
+            className="relative w-full max-w-sm mx-auto rounded-t-2xl bg-card border border-border/60 shadow-2xl p-5 pb-8 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-5" />
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mb-3">
+                <Trash2 className="w-6 h-6 text-destructive" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Delete message{deleteModal.messageIds.length > 1 ? 's' : ''}?</h3>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed max-w-[260px]">
+                Choose how to delete the selected message{deleteModal.messageIds.length > 1 ? 's' : ''}.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => confirmDelete('me')}
+                className="w-full py-3 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-muted/80 transition-all active:scale-[0.98] cursor-pointer flex items-center gap-3 px-4"
+              >
+                <div className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Delete for me</p>
+                  <p className="text-[11px] text-muted-foreground/70">Remove from your view only</p>
+                </div>
+              </button>
+              {deleteModal.messageIds.every((id) => {
+                const msg = displayedMessages.find((m) => m._id === id);
+                return msg && isOwnMessage(msg.sender._id);
+              }) && (
+                <button
+                  onClick={() => confirmDelete('everyone')}
+                  className="w-full py-3 rounded-xl bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-all active:scale-[0.98] cursor-pointer flex items-center gap-3 px-4"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-destructive/15 border border-destructive/20 flex items-center justify-center flex-shrink-0">
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold">Delete for everyone</p>
+                    <p className="text-[11px] text-destructive/70">Unsend — removes for both</p>
+                  </div>
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setDeleteModal({ open: false, messageIds: [] })}
+              className="w-full mt-3 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
