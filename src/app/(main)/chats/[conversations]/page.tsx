@@ -544,11 +544,11 @@ function ChatConversation() {
                         )}
 
                         {mediaItem?.type === 'image' && (
-                          <div className={`${mine ? 'bg-accent' : 'bg-muted'} rounded-2xl overflow-hidden ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
+                          <div className={`${mine ? 'bg-accent' : 'bg-muted'} rounded-2xl overflow-hidden p-0.5 ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
                             <img
                               src={mediaItem.url}
                               alt="Image"
-                              className="w-full max-h-[350px] object-cover cursor-pointer"
+                              className="w-full max-h-[350px] object-cover cursor-pointer rounded-xl"
                               onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
                             />
                           </div>
