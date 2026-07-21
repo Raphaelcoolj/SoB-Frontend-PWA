@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Search, X, Sparkles, Crown, MessageSquare } from 'lucide-react';
+import { MessageCircle, Search, X, Sparkles, Crown, MessageSquare, MoreHorizontal, Shield, Flag, Trash2, Clock } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../store/authStore';
 import { fetchWithAuth } from '../../../lib/api';
 import { socket, connectSocket } from '../../../lib/socket';
 import UserAvatar from '../../../components/user/UserAvatar';
+import { toast } from 'sonner';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -43,6 +44,8 @@ export default function ChatsPage() {
   const { user: currentUser, accessToken } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+  const [openMenuConvId, setOpenMenuConvId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, mutate: mutateConversations } = useSWR<{ conversations: Conversation[] }>(
@@ -108,6 +111,71 @@ export default function ChatsPage() {
       socket.off('chat:message', handleMessage);
     };
   }, [accessToken, mutateConversations]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuConvId(null);
+      }
+    };
+    if (openMenuConvId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuConvId]);
+
+  const handleBlock = async (userId: string, userName: string) => {
+    setOpenMenuConvId(null);
+    try {
+      const res = await fetchWithAuth(`${BASE}/api/users/${userId}/block`, { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.isBlocked) {
+          toast.success(`Blocked ${userName}`);
+        } else {
+          toast.success(`Unblocked ${userName}`);
+        }
+        mutateConversations();
+      }
+    } catch {
+      toast.error('Failed to block user');
+    }
+  };
+
+  const handleReport = async (userId: string) => {
+    setOpenMenuConvId(null);
+    const reason = prompt('Report reason: spam, harassment, hate_speech, violence, sexual_content, self_harm, impersonation, other');
+    if (!reason) return;
+    try {
+      const res = await fetchWithAuth(`${BASE}/api/reports/user`, {
+        method: 'POST',
+        body: JSON.stringify({ reportedUserId: userId, reason }),
+      });
+      if (res.ok) {
+        toast.success('User reported');
+      } else {
+        const json = await res.json();
+        toast.error(json.message || 'Failed to report');
+      }
+    } catch {
+      toast.error('Failed to report user');
+    }
+  };
+
+  const toggleNeverDelete = async (userId: string, currentValue: boolean) => {
+    setOpenMenuConvId(null);
+    try {
+      const res = await fetchWithAuth(`${BASE}/api/chats/settings`, {
+        method: 'PUT',
+        body: JSON.stringify({ neverDeleteMessages: !currentValue }),
+      });
+      if (res.ok) {
+        toast.success(!currentValue ? 'Messages will never be deleted' : 'Messages will auto-delete after 24h');
+      }
+    } catch {
+      toast.error('Failed to update setting');
+    }
+  };
 
   const getLastMessagePreview = useCallback((conv: Conversation) => {
     if (!conv.lastMessage) return 'Start a conversation';
@@ -263,55 +331,102 @@ export default function ChatsPage() {
                 {conversations.map((conv, i) => {
                   const isUserOnline = onlineIds.has(conv.otherUser._id);
                   return (
-                    <Link
+                    <div
                       key={conv._id}
-                      href={`/chats/${conv.otherUser._id}`}
-                      className="flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 active:scale-[0.99] animate-[fadeIn_0.3s_ease-out]"
+                      className="relative flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 animate-[fadeIn_0.3s_ease-out] group"
                       style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
                     >
-                      <div className="relative">
-                        <UserAvatar
-                          avatar={conv.otherUser.avatar}
-                          name={conv.otherUser.name}
-                          size="md"
-                          className="ring-2 ring-border/50 shadow-sm"
-                        />
-                        {isUserOnline && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background shadow-sm z-10" />
-                        )}
-                        {conv.unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border-2 border-background shadow-sm z-10">
-                            {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-sm font-semibold text-foreground truncate">
-                              {conv.otherUser.name}
-                            </span>
-                            {conv.otherUser.earlyAdopter && (
-                              <Sparkles className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                            )}
-                            {conv.otherUser.founderBadge && (
-                              <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
-                            )}
-                          </div>
-                          {conv.lastMessage?.createdAt && (
-                            <span className="text-[11px] text-muted-foreground/70 flex-shrink-0 ml-2">
-                              {new Date(conv.lastMessage.createdAt).toLocaleDateString(undefined, {
-                                month: 'short',
-                                day: 'numeric',
-                              })}
+                      <Link
+                        href={`/chats/${conv.otherUser._id}`}
+                        className="flex items-center gap-3 flex-1 min-w-0 active:scale-[0.99] transition-all duration-200"
+                      >
+                        <div className="relative">
+                          <UserAvatar
+                            avatar={conv.otherUser.avatar}
+                            name={conv.otherUser.name}
+                            size="md"
+                            className="ring-2 ring-border/50 shadow-sm"
+                          />
+                          {isUserOnline && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background shadow-sm z-10" />
+                          )}
+                          {conv.unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border-2 border-background shadow-sm z-10">
+                              {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
                             </span>
                           )}
                         </div>
-                        <p className={`text-sm truncate mt-0.5 ${conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/80'}`}>
-                          {getLastMessagePreview(conv)}
-                        </p>
-                      </div>
-                    </Link>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {conv.otherUser.name}
+                              </span>
+                              {conv.otherUser.earlyAdopter && (
+                                <Sparkles className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                              )}
+                              {conv.otherUser.founderBadge && (
+                                <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                              )}
+                            </div>
+                            {conv.lastMessage?.createdAt && (
+                              <span className="text-[11px] text-muted-foreground/70 flex-shrink-0 ml-2">
+                                {new Date(conv.lastMessage.createdAt).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-sm truncate mt-0.5 ${conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/80'}`}>
+                            {getLastMessagePreview(conv)}
+                          </p>
+                        </div>
+                      </Link>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
+                        className="flex-shrink-0 p-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                      {openMenuConvId === conv._id && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-4 top-14 z-50 w-52 bg-card border border-border rounded-xl shadow-xl p-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => handleBlock(conv.otherUser._id, conv.otherUser.name)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors text-foreground"
+                          >
+                            <Shield className="w-4 h-4 text-muted-foreground" />
+                            Block {conv.otherUser.name.split(' ')[0]}
+                          </button>
+                          <button
+                            onClick={() => handleReport(conv.otherUser._id)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors text-foreground"
+                          >
+                            <Flag className="w-4 h-4 text-muted-foreground" />
+                            Report
+                          </button>
+                          <div className="h-px bg-border/40 my-1" />
+                          <button
+                            onClick={() => toggleNeverDelete(conv.otherUser._id, false)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors text-foreground"
+                          >
+                            <Trash2 className="w-4 h-4 text-muted-foreground" />
+                            Never delete
+                          </button>
+                          <button
+                            onClick={() => toggleNeverDelete(conv.otherUser._id, true)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors text-foreground"
+                          >
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            24hrs delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

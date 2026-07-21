@@ -12,6 +12,7 @@ import UserAvatar from '../../../../components/user/UserAvatar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
 import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
 
 const ImageLightbox = dynamic(() => import('../../../../components/post/ImageLightbox'), { ssr: false });
 
@@ -297,7 +298,7 @@ function ChatConversation() {
       setReplyTo(null);
       setEditingMessage(null);
     } catch (err: any) {
-      alert(err.message || 'Failed to send');
+      toast.error(err.message || 'Failed to send');
       setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
     } finally {
       setSending(false);
@@ -687,7 +688,7 @@ function ChatConversation() {
                             <div className={`absolute bottom-1.5 left-1.5 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px] ${msg.text || msg.replyTo ? 'opacity-90' : ''}`}>
                               <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
                               {mine && !isTemp && (
-                                <CheckCheck className="w-3 h-3 text-white/90" />
+                                <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-400' : 'text-gray-400'}`} />
                               )}
                             </div>
                           </div>
@@ -753,7 +754,7 @@ function ChatConversation() {
                                     {isTemp ? 'Sending' : formatTime(msg.createdAt)}
                                   </span>
                                   {mine && !isTemp && (
-                                    <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                                    <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-400' : 'text-gray-400'}`} />
                                   )}
                                 </div>
                               )}
@@ -819,7 +820,7 @@ function ChatConversation() {
                                   Copy Text
                                 </button>
                               )}
-                              <button className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors" onClick={() => { alert('Forwarding not implemented yet.'); setActiveMenuId(null); }}>
+                              <button className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors" onClick={() => { toast.info('Forwarding coming soon'); setActiveMenuId(null); }}>
                                 Forward
                               </button>
                               {mine && (
@@ -828,7 +829,7 @@ function ChatConversation() {
                                     className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
                                     onClick={() => {
                                       const diffMins = (Date.now() - new Date(msg.createdAt).getTime()) / 60000;
-                                      if (diffMins > 15) alert('You can only edit messages within 15 minutes of sending.');
+                                      if (diffMins > 15) toast.error('You can only edit messages within 15 minutes of sending.');
                                       else { setEditingMessage(msg); setText(msg.text || ''); setActiveMenuId(null); }
                                     }}
                                   >
