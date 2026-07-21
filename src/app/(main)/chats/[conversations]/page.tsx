@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File } from 'lucide-react';
+import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
 import { socket, connectSocket } from '../../../../lib/socket';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
+import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
 import dynamic from 'next/dynamic';
 
 const ImageLightbox = dynamic(() => import('../../../../components/post/ImageLightbox'), { ssr: false });
@@ -32,8 +33,8 @@ interface Message {
   createdAt: string;
   readAt?: string;
   media?:
-    | { type: 'image' | 'voice'; url: string; duration?: number }
-    | { type: 'image' | 'voice'; url: string; duration?: number }[];
+    | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }
+    | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }[];
   replyTo?: { _id: string; text: string; sender: { name: string } };
 }
 
@@ -114,12 +115,13 @@ function ChatConversation() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [isVideoTrimmerOpen, setIsVideoTrimmerOpen] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTick, setRecordingTick] = useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
-  const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string } } | null>(null);
+  const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string }; mediaUrl?: string; mediaType?: string } | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
@@ -247,7 +249,11 @@ function ChatConversation() {
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
-    setIsCropperOpen(true);
+    if (file.type.startsWith('video/')) {
+      setIsVideoTrimmerOpen(true);
+    } else {
+      setIsCropperOpen(true);
+    }
     // Reset so same file can be re-selected
     e.target.value = '';
   };
@@ -381,8 +387,8 @@ function ChatConversation() {
   const waveHeights = Array.from({ length: 24 }, (_, i) => i);
 
   return (
-    // Break out of main layout's max-width/padding by using fixed positioning
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background md:pl-20 lg:pl-64" style={{ height: '100dvh' }}>
+    // Fixed positioned container pinned to all edges prevents whole-body scrolling on iOS Safari
+    <div className="fixed z-[60] flex flex-col bg-background md:pl-20 lg:pl-64" style={{ top: 0, bottom: 0, left: 0, right: 0 }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
         <button
@@ -451,7 +457,13 @@ function ChatConversation() {
                       onTouchMove={(e) => {
                         const delta = e.touches[0].clientX - touchStartXRef.current;
                         if (delta > 50 && !isTemp) {
-                          setReplyTo({ _id: msg._id, text: msg.text || (mediaItem?.type === 'image' ? 'Sent an image' : mediaItem?.type === 'voice' ? 'Sent a voice note' : ''), sender: { name: msg.sender.name } });
+                          setReplyTo({
+                            _id: msg._id,
+                            text: msg.text || '',
+                            sender: { name: msg.sender.name },
+                            mediaUrl: mediaItem?.url,
+                            mediaType: mediaItem?.type
+                          });
                           touchStartXRef.current = Infinity;
                         }
                       }}
@@ -466,7 +478,13 @@ function ChatConversation() {
                       {/* Hover reply button — left of mine bubble, right of other bubble */}
                       {mine && hoveredMsgId === msg._id && !isTemp && (
                         <button
-                          onClick={() => setReplyTo({ _id: msg._id, text: msg.text || (mediaItem?.type === 'image' ? 'Sent an image' : mediaItem?.type === 'voice' ? 'Sent a voice note' : ''), sender: { name: msg.sender.name } })}
+                          onClick={() => setReplyTo({
+                            _id: msg._id,
+                            text: msg.text || '',
+                            sender: { name: msg.sender.name },
+                            mediaUrl: mediaItem?.url,
+                            mediaType: mediaItem?.type
+                          })}
                           className="flex-shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-accent transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                         >
                           <CornerUpLeft className="w-3.5 h-3.5" />
@@ -476,7 +494,7 @@ function ChatConversation() {
                       {/* Bubble */}
                       <div
                         className={`max-w-[68%] w-fit relative ${
-                          mediaItem?.type === 'image'
+                          (mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text
                             ? ''
                             : 'rounded-2xl overflow-hidden ' + (mine
                                 ? 'bg-accent text-white rounded-br-[4px] shadow-sm'
@@ -490,20 +508,52 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {/* Image — always transparent background */}
+                        {/* Image — no padding or bg */}
                         {mediaItem?.type === 'image' && (
                           <img
                             src={mediaItem.url}
                             alt="Image"
-                            className="w-full max-h-[350px] object-contain bg-black/5 cursor-pointer rounded-2xl"
+                            className="w-full max-h-[350px] object-cover cursor-pointer rounded-2xl"
                             onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
                           />
                         )}
 
+                        {/* Video */}
+                        {mediaItem?.type === 'video' && (
+                          <div className="relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+                            <video
+                              src={mediaItem.url}
+                              className="w-full max-h-[350px] object-cover opacity-80"
+                              controls
+                              preload="metadata"
+                            />
+                          </div>
+                        )}
+
+                        {/* Document */}
+                        {mediaItem?.type === 'document' && (
+                          <div className={`flex items-center gap-3 p-3 ${mine ? 'bg-white/10' : 'bg-background'} rounded-xl mx-1.5 mt-1.5`}>
+                            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                              <FileText className="w-5 h-5 text-purple-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-semibold truncate ${mine ? 'text-white' : 'text-foreground'}`}>
+                                {(mediaItem as any).filename || 'Document'}
+                              </p>
+                              <p className={`text-[11px] mt-0.5 ${mine ? 'text-white/60' : 'text-muted-foreground'}`}>
+                                {(mediaItem as any).size ? `${((mediaItem as any).size / 1024).toFixed(0)} KB` : 'File'}
+                              </p>
+                            </div>
+                            <a href={mediaItem.url} download className={`p-2 rounded-full ${mine ? 'hover:bg-white/10' : 'hover:bg-muted'} transition-colors`}>
+                              <Download className={`w-4 h-4 ${mine ? 'text-white/80' : 'text-muted-foreground'}`} />
+                            </a>
+                          </div>
+                        )}
+
                         {/* Text + timestamp wrapper */}
-                        {(msg.text || msg.replyTo || mediaItem?.type !== 'image') && (
+                        {(msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && (
                           <div className={
-                            mediaItem?.type === 'image'
+                            (mediaItem?.type === 'image' || mediaItem?.type === 'video')
                               ? `${mine ? 'bg-accent text-white rounded-br-[4px]' : 'bg-muted text-foreground rounded-bl-[4px]'} rounded-2xl overflow-hidden mt-1`
                               : ''
                           }>
@@ -541,8 +591,8 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {/* Image-only overlay timestamp */}
-                        {mediaItem?.type === 'image' && !msg.text && !msg.replyTo && (
+                        {/* Media-only overlay timestamp */}
+                        {(mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text && !msg.replyTo && (
                           <div className="absolute bottom-2 right-2 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px]">
                             <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
                             {mine && !isTemp && (
@@ -555,7 +605,13 @@ function ChatConversation() {
                       {/* Hover reply button — right of receiver bubble */}
                       {!mine && hoveredMsgId === msg._id && !isTemp && (
                         <button
-                          onClick={() => setReplyTo({ _id: msg._id, text: msg.text || (mediaItem?.type === 'image' ? 'Sent an image' : mediaItem?.type === 'voice' ? 'Sent a voice note' : ''), sender: { name: msg.sender.name } })}
+                          onClick={() => setReplyTo({
+                            _id: msg._id,
+                            text: msg.text || '',
+                            sender: { name: msg.sender.name },
+                            mediaUrl: mediaItem?.url,
+                            mediaType: mediaItem?.type
+                          })}
                           className="flex-shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-accent transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                         >
                           <CornerUpLeft className="w-3.5 h-3.5 scale-x-[-1]" />
@@ -573,12 +629,40 @@ function ChatConversation() {
 
       {/* Reply bar */}
       {replyTo && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-accent/5 border-t border-accent/10 flex-shrink-0">
-          <div className="w-0.5 h-8 rounded-full bg-accent flex-shrink-0" />
-          <Reply className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-accent/5 border-t border-accent/10 flex-shrink-0">
+          <div className="w-0.5 h-9 rounded-full bg-accent flex-shrink-0" />
+          
+          {/* Render media thumbnail if present */}
+          {(replyTo.mediaType === 'image' || replyTo.mediaType === 'video') ? (
+            <div className="w-9 h-9 rounded overflow-hidden flex-shrink-0 bg-black/5">
+              {replyTo.mediaType === 'image' ? (
+                <img src={replyTo.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-black flex items-center justify-center">
+                  <Play className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+          ) : replyTo.mediaType === 'voice' ? (
+            <div className="w-9 h-9 rounded bg-accent/10 flex items-center justify-center flex-shrink-0">
+              <Mic className="w-4 h-4 text-accent" />
+            </div>
+          ) : replyTo.mediaType === 'document' ? (
+            <div className="w-9 h-9 rounded bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-4 h-4 text-purple-500" />
+            </div>
+          ) : null}
+
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-accent truncate">{replyTo.sender.name}</p>
-            <p className="text-[11px] text-muted-foreground/70 truncate">{replyTo.text}</p>
+            <p className="text-[11px] text-muted-foreground/80 truncate">
+              {replyTo.text || (
+                replyTo.mediaType === 'image' ? 'Photo' :
+                replyTo.mediaType === 'video' ? 'Video' :
+                replyTo.mediaType === 'voice' ? 'Voice note' :
+                replyTo.mediaType === 'document' ? 'Document' : ''
+              )}
+            </p>
           </div>
           <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex-shrink-0">
             <X className="w-4 h-4" />
@@ -867,6 +951,22 @@ function ChatConversation() {
             setSelectedFile(null);
           }}
           onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {/* Video Trimmer Modal */}
+      {selectedFile && isVideoTrimmerOpen && (
+        <VideoTrimmerModal
+          file={selectedFile}
+          isOpen={isVideoTrimmerOpen}
+          onClose={() => {
+            setIsVideoTrimmerOpen(false);
+            setSelectedFile(null);
+          }}
+          onTrimComplete={(trimmedFile) => {
+            setIsVideoTrimmerOpen(false);
+            handleCropComplete(trimmedFile);
+          }}
         />
       )}
 
