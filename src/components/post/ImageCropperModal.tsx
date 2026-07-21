@@ -122,7 +122,7 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
 
   const initBox = useCallback(() => {
     if (!imgRect || imgRect.w === 0 || imgRect.h === 0) return;
-    const m = 0.08;
+    const m = 0;
     setBox({
       x: imgRect.x + imgRect.w * m,
       y: imgRect.y + imgRect.h * m,
