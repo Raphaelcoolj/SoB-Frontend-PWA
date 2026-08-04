@@ -186,6 +186,8 @@ interface PostFeedProps {
 - **Doc card body** now dark (`bg-[#1C1C1E]`) with white title/size/text/time so white text is readable
 - **SquarePen "New message" button** in `ConversationsSidebar.tsx` desktop header opens a modal: searchable connection list (reuses `connections` from `/api/users/connections`), navigates to `/chats/:id`
 - **ImageLightbox** now resets index on `initialIndex` change and renders nothing when empty
+- **PDF preview**: document cards render an inline `<iframe>` of the PDF when `isPdf()` matches (mimeType `application/pdf`, `.pdf` filename, or `.pdf` in URL); other doc types keep the icon + "DOCUMENT PREVIEW" header
+- **Real-time read receipts**: listens to `chat:read` socket event, sets `readAt` on own messages in `localMessages` and revalidates SWR messages so the sender's blue ticks update instantly
 
 ### Admin Pages
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile

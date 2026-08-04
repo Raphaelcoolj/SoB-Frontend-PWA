@@ -29,6 +29,12 @@ const getMediaExt = (type: string) => {
   }
 };
 
+const isPdf = (media: { filename?: string; mimeType?: string; url: string }) => {
+  const name = (media.filename || '').toLowerCase();
+  const mime = (media.mimeType || '').toLowerCase();
+  return mime === 'application/pdf' || name.endsWith('.pdf') || media.url.toLowerCase().includes('.pdf');
+};
+
 const fetcher = async (url: string) => {
   const res = await fetchWithAuth(url, { method: 'GET' })
   const json = await res.json()
@@ -219,12 +225,20 @@ function ChatConversation() {
         mutateMessages();
       }
     };
+    const onRead = (data: { conversationId: string; readAt: string; readerId: string }) => {
+      if (data.conversationId !== conversationId) return;
+      const readAt = data.readAt;
+      setLocalMessages((prev) => prev.map((m) => (m.sender._id === currentUser?._id && !m.readAt ? { ...m, readAt } : m)));
+      mutateMessages();
+    };
     socket.on('chat:message', onMessage);
+    socket.on('chat:read', onRead);
     return () => {
       socket.emit('chat:leave', conversationId);
       socket.off('chat:message', onMessage);
+      socket.off('chat:read', onRead);
     };
-  }, [conversationId, accessToken, isOwnMessage, mutateMessages]);
+  }, [conversationId, accessToken, isOwnMessage, mutateMessages, currentUser?._id]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -882,13 +896,22 @@ function ChatConversation() {
 
                         {mediaItem?.type === 'document' && (
                           <div className="border border-accent/40 rounded-2xl overflow-hidden w-full max-w-[280px] flex flex-col shadow-sm">
-                            {/* Header */}
-                            <div className="bg-muted flex flex-col items-center justify-center py-4 gap-1.5 border-b border-border/60">
-                              <div className="w-9 h-9 rounded-full bg-foreground/5 flex items-center justify-center border border-foreground/10">
-                                <FileText className="w-4 h-4 text-foreground/80" />
+                            {/* Preview / Header */}
+                            {isPdf(mediaItem) ? (
+                              <iframe
+                                src={mediaItem.url}
+                                title={mediaItem.filename || 'PDF preview'}
+                                className="w-full h-40 bg-white pointer-events-none"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="bg-muted flex flex-col items-center justify-center py-4 gap-1.5 border-b border-border/60">
+                                <div className="w-9 h-9 rounded-full bg-foreground/5 flex items-center justify-center border border-foreground/10">
+                                  <FileText className="w-4 h-4 text-foreground/80" />
+                                </div>
+                                <span className="text-[10px] font-bold text-foreground/70 tracking-widest uppercase">DOCUMENT PREVIEW</span>
                               </div>
-                              <span className="text-[10px] font-bold text-foreground/70 tracking-widest uppercase">DOCUMENT PREVIEW</span>
-                            </div>
+                            )}
                             {/* Body */}
                             <div className="bg-[#1C1C1E] p-3 text-white flex flex-col gap-2">
                               <div>
