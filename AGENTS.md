@@ -57,6 +57,7 @@ src/
 │   ├── trending/
 │   │   └── TrendingSection.tsx       # Horizontal scroll trending articles
 │   ├── user/UserAvatar.tsx           # Avatar with fallback initials (sm/md/lg sizes)
+│   ├── layout/ConversationsSidebar.tsx # Reusable chats list sidebar (desktop split-pane / mobile)
 │   ├── shared/Logo.tsx               # App logo
 ├── shared/HashtagText.tsx        # Renders #tag as clickable search links
 │   └── ui/Skeleton.tsx               # Loading skeleton component
