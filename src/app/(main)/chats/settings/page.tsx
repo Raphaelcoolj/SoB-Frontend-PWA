@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = (url: string) =>
-  fetchWithAuth(url, { method: 'GET' }).then((r) => r.json()).then((d) => d.data);
+  fetchWithAuth(url, { method: 'GET' }).then((r) => r.json()).then((d) => d.data?.settings);
 
 export default function ChatSettingsPage() {
   const { data, isLoading, mutate } = useSWR<{ neverDeleteMessages?: boolean; allowMessagesFrom?: 'everyone' | 'connections' | 'nobody' }>(
