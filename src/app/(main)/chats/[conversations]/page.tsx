@@ -863,7 +863,7 @@ function ChatConversation() {
                       )}
 
                       <div
-                        className={`max-w-[80%] w-fit relative ${
+                        className={`max-w-[80%] min-w-0 w-fit relative ${
                           (mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text
                             ? ''
                             : mediaItem?.type === 'document'
@@ -1001,7 +1001,7 @@ function ChatConversation() {
                                 </div>
                               </div>
                               {msg.text && (
-                                <p className="text-xs leading-relaxed mt-1 text-white border-t border-white/15 pt-2 break-words">
+                                <p className="text-xs leading-relaxed mt-1 text-white border-t border-white/15 pt-2 [overflow-wrap:anywhere]">
                                   {msg.text}
                                 </p>
                               )}
@@ -1036,7 +1036,7 @@ function ChatConversation() {
 
                             <div className={`relative px-3 py-1.5 ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'min-w-[70px]'}`}>
                               {msg.text && (
-                                <span className={`text-[15px] leading-snug whitespace-pre-wrap break-words inline-block ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-white' : 'text-foreground'}`}>
+                                <span className={`text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] block w-full ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-white' : 'text-foreground'}`}>
                                   {msg.text}
                                 </span>
                               )}
