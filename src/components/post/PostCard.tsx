@@ -21,6 +21,7 @@ import { UserAvatar } from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
 import { formatDistanceToNow } from '../../lib/utils';
 import MentionText from '../shared/MentionText';
+import PollBlock from './PollBlock';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -265,6 +266,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               </div>
             )}
 
+            {/* Poll */}
+            {post.poll && (
+              <PollBlock poll={post.poll} postId={post._id} />
+            )}
+
             {/* Engagement Row - Twitter style */}
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
@@ -444,6 +450,13 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               />
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Poll */}
+      {post.poll && (
+        <div className="px-4 pb-3">
+          <PollBlock poll={post.poll} postId={post._id} />
         </div>
       )}
 

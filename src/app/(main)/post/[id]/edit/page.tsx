@@ -10,7 +10,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { FileText, MessageSquare, Image as ImageIcon, Video, ArrowLeft, Loader2 } from 'lucide-react';
+import { FileText, MessageSquare, Image as ImageIcon, Video, ArrowLeft, Loader2, BarChart3 } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../../store/authStore';
 import { Button } from '../../../../../components/ui/Button';
@@ -19,6 +19,7 @@ import MediaUploader from '../../../../../components/post/MediaUploader';
 import ImageCropperModal from '../../../../../components/post/ImageCropperModal';
 import ContentEditor from '../../../../../components/post/ContentEditor';
 import MentionTextarea from '../../../../../components/shared/MentionTextarea';
+import PollComposer, { DraftPoll } from '../../../../../components/post/PollComposer';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '../../../../../lib/api';
 import { stripHtml } from '../../../../../lib/utils';
@@ -75,6 +76,7 @@ export default function EditPostPage() {
   const [croppingFile, setCroppingFile] = useState<File | null>(null);
   const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [poll, setPoll] = useState<DraftPoll | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCropComplete = (croppedFile: File) => {
@@ -129,6 +131,15 @@ export default function EditPostPage() {
         setFieldSearch(post.field.name);
       }
       setExistingMedia(post.mediaUrls || []);
+      if (post.poll) {
+        setPoll({
+          question: post.poll.question || '',
+          options: (post.poll.options || []).map((o: { text: string }) => o.text),
+          allowMultiple: !!post.poll.allowMultiple,
+        });
+      } else {
+        setPoll(null);
+      }
     }
   }, [post, reset]);
 
@@ -139,10 +150,25 @@ export default function EditPostPage() {
     setSubmitting(true);
 
     // NEW: Enforce that posts have either text body or attached media (existing or new)
-    if (mode === 'post' && !values.body?.trim() && images.length === 0 && existingMedia.length === 0) {
-      toast.error('Post must contain either text or media (image/video)');
+    if (mode === 'post' && !values.body?.trim() && images.length === 0 && existingMedia.length === 0 && !poll) {
+      toast.error('Post must contain either text, media (image/video), or a poll');
       setSubmitting(false);
       return;
+    }
+
+    if (poll) {
+      const question = poll.question.trim();
+      const options = poll.options.map((o) => o.trim()).filter(Boolean);
+      if (!question) {
+        toast.error('Poll question is required');
+        setSubmitting(false);
+        return;
+      }
+      if (options.length < 2) {
+        toast.error('Poll must have at least 2 options');
+        setSubmitting(false);
+        return;
+      }
     }
 
     try {
@@ -152,6 +178,15 @@ export default function EditPostPage() {
       if (mode === 'article') {
         if (values.field) formData.append('field', values.field);
         formData.append('title', values.title);
+      }
+
+      if (poll) {
+        const pollPayload = {
+          question: poll.question.trim(),
+          options: poll.options.map((o) => o.trim()).filter(Boolean).slice(0, 5),
+          allowMultiple: poll.allowMultiple,
+        };
+        formData.append('poll', JSON.stringify(pollPayload));
       }
       
       images.forEach(img => formData.append('media', img));
@@ -299,10 +334,26 @@ export default function EditPostPage() {
             }}
           />
 
+          {poll && (
+            <PollComposer
+              value={poll}
+              onChange={setPoll}
+              onRemove={() => setPoll(null)}
+            />
+          )}
+
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="flex gap-2 text-muted-foreground">
               <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><ImageIcon className="w-5 h-5" /></button>
               <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><Video className="w-5 h-5" /></button>
+              <button
+                type="button"
+                onClick={() => setPoll(poll ? null : { question: '', options: ['', ''], allowMultiple: false })}
+                className={`hover:text-accent ${poll ? 'text-accent' : ''}`}
+                title="Add or edit poll"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </button>
             </div>
             <div className="flex items-center gap-3">
                <div className="flex flex-col items-end">

@@ -3,6 +3,17 @@ import { Field } from './user';
 
 export type ContentType = 'article' | 'post';
 
+export interface PollOption {
+  text: string;
+  votes: string[]; // User IDs
+}
+
+export interface Poll {
+  question: string;
+  options: PollOption[];
+  allowMultiple?: boolean;
+}
+
 export interface Post {
   _id: string;
   author: User;
@@ -10,6 +21,7 @@ export interface Post {
   title?: string;
   body: string;
   mediaUrls: string[];
+  poll?: Poll | null;
   field: string | Field;
   tags: string[];
   likes: string[]; // User IDs

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2, MoreVertical, Clock } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
@@ -33,6 +33,18 @@ const isPdf = (media: { filename?: string; mimeType?: string; url: string }) => 
   const name = (media.filename || '').toLowerCase();
   const mime = (media.mimeType || '').toLowerCase();
   return mime === 'application/pdf' || name.endsWith('.pdf') || media.url.toLowerCase().includes('.pdf');
+};
+
+const getDocDisplayName = (media: { filename?: string; url: string }) => {
+  if (media.filename && !media.filename.startsWith('http')) return media.filename;
+  try {
+    const url = new URL(media.url);
+    const path = decodeURIComponent(url.pathname);
+    const name = path.split('/').pop()?.split('?')[0] || '';
+    return name ? name : 'Document';
+  } catch {
+    return media.filename || 'Document';
+  }
 };
 
 const fetcher = async (url: string) => {
@@ -411,7 +423,7 @@ function ChatConversation() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    // Enter inserts a newline; sending is via the send button only.
   };
 
   const toggleMessageSelection = (msgId: string) => {
@@ -595,7 +607,7 @@ function ChatConversation() {
 
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    el.style.height = el.scrollHeight + 'px';
   };
 
   const handleToggleBlock = async () => {
@@ -636,7 +648,19 @@ function ChatConversation() {
           </button>
           <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 min-w-0 flex-1">
             <div className="relative flex-shrink-0">
-              <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
+              {!convData?.conversation?.neverDeleteMessages ? (
+                <div className="rounded-full p-[2px] bg-gradient-to-tr from-amber-400/80 to-amber-500/80">
+                  <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
+                </div>
+              ) : (
+                <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
+              )}
+              {/* Auto-delete clock indicator on the DP border */}
+              {!convData?.conversation?.neverDeleteMessages && (
+                <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center border border-background" title="Auto-delete: 24h">
+                  <Clock className="w-2 h-2" />
+                </div>
+              )}
               {/* Online indicator */}
               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background hidden lg:block" />
             </div>
@@ -648,15 +672,6 @@ function ChatConversation() {
                   <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-px rounded-full bg-red-500/10 text-red-500 text-[9px] font-semibold uppercase tracking-wide">
                     <X className="w-2.5 h-2.5" />
                     Blocked
-                  </span>
-                )}
-                {convData?.conversation?.neverDeleteMessages ? (
-                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-px rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-semibold uppercase tracking-wide">
-                    Never delete
-                  </span>
-                ) : (
-                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-px rounded-full bg-muted text-muted-foreground text-[9px] font-semibold uppercase tracking-wide">
-                    Auto-delete 24h
                   </span>
                 )}
               </div>
@@ -954,7 +969,7 @@ function ChatConversation() {
                             <div className="bg-[#1C1C1E] p-3 text-white flex flex-col gap-2">
                               <div>
                                 <a href={mediaItem.url} download className="font-bold text-xs hover:underline flex items-center gap-1.5 break-all text-white">
-                                  {mediaItem.filename || 'Document'}
+                                  {getDocDisplayName(mediaItem)}
                                 </a>
                                 <div className="flex items-center justify-between gap-2 mt-0.5">
                                   <p className="text-[10px] text-white/70">
@@ -1177,7 +1192,7 @@ function ChatConversation() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               rows={1}
-              className="flex-1 bg-muted/80 text-foreground border border-border/40 placeholder:text-muted-foreground/50 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-accent/30 transition-all resize-none min-h-[40px] max-h-[120px]"
+              className="flex-1 bg-muted/80 text-foreground border border-border/40 placeholder:text-muted-foreground/50 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-accent/30 transition-all resize-none overflow-hidden min-h-[40px]"
               style={{ resize: 'none' }}
               disabled={sending}
             />
@@ -1262,11 +1277,6 @@ function ChatConversation() {
               <Mic className="w-4 h-4" />
             </button>
           )}
-        </div>
-        <div className="hidden lg:block text-center mt-2.5">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/35 font-semibold select-none">
-            Press Enter to send
-          </span>
         </div>
       </div>
 

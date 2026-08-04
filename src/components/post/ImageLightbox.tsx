@@ -18,8 +18,6 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
 
-  if (!images || images.length === 0) return null;
-
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % images.length);
   }, [images.length]);
@@ -50,6 +48,8 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
 
   // Touch swipe handling
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  if (!images || images.length === 0) return null;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartX(e.touches[0].clientX);

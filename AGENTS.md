@@ -164,6 +164,15 @@ interface PostFeedProps {
 - Root `layout.tsx` exports a `Viewport` with `userScalable: false`, `maximumScale: 1` to prevent pinch-zoom on PWA
 - Also includes a `<meta>` tag fallback with `user-scalable=no, maximum-scale=1`
 
+### Polls on Posts & Articles (2026-08-04)
+
+- **`src/components/post/PollBlock.tsx`** — interactive poll with horizontal progress bars; shows counts only after the current user votes. Single-choice polls replace/toggle the vote; multiple-choice polls toggle each option. Votes via `POST /api/posts/:id/vote`, optimistic UI + server reconciliation
+- **`src/components/post/PollComposer.tsx`** — poll builder (question, 2–5 options, multiple-votes toggle) used by create + edit pages
+- **`src/types/post.ts`** — added `Poll` / `PollOption` interfaces and `poll?: Poll | null` on `Post`
+- **`src/app/(main)/create/page.tsx`** — `BarChart3` poll icon added to the toolbar beside the image/video upload icons (posts and articles); the poll is serialized into FormData as `poll` JSON. Poll-only posts allowed
+- **`src/app/(main)/post/[id]/edit/page.tsx`** — loads existing poll into the composer, saves/clears it via `poll` FormData
+- **`src/components/post/PostCard.tsx`** + **`src/components/post/ArticleCard.tsx`** — render `PollBlock` in both flat and default variants when `post.poll` exists
+
 ### Chat Pages (2026-07-21)
 
 | Route | File | Description |
