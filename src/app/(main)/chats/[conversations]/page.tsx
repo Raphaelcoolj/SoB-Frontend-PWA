@@ -74,6 +74,8 @@ interface ConversationData {
     _id: string;
     otherUser: { _id: string; name: string; username: string; avatar?: string };
     unreadCount: number;
+    isBlocked?: boolean;
+    neverDeleteMessages?: boolean;
   };
 }
 
@@ -177,7 +179,7 @@ function ChatConversation() {
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const convKey = otherUserId ? `${BASE}/api/chats/with/${otherUserId}` : null;
-  const { data: convData, isLoading: convLoading, error: convError } = useSWR<ConversationData>(convKey, fetcher);
+  const { data: convData, isLoading: convLoading, error: convError, mutate: mutateConv } = useSWR<ConversationData>(convKey, fetcher);
   const conversationId = convData?.conversation?._id;
 
   const msgKey = conversationId ? `${BASE}/api/chats/${conversationId}/messages` : null;
@@ -596,6 +598,22 @@ function ChatConversation() {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   };
 
+  const handleToggleBlock = async () => {
+    if (!otherUser) return;
+    const nextBlocked = !convData?.conversation?.isBlocked;
+    try {
+      const res = await fetchWithAuth(`${BASE}/api/users/${otherUser._id}/block`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error('Failed');
+      mutateConv();
+      toast.success(nextBlocked ? `Blocked ${otherUser.name}` : `Unblocked ${otherUser.name}`);
+    } catch {
+      toast.error('Failed to update block status');
+    }
+  };
+
   const waveHeights = Array.from({ length: 24 }, (_, i) => i);
 
   return (
@@ -624,7 +642,24 @@ function ChatConversation() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate leading-tight">{otherUser.name}</p>
-              <p className="text-[11px] text-muted-foreground/70 truncate">@{otherUser.username}</p>
+              <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                <p className="text-[11px] text-muted-foreground/70 truncate">@{otherUser.username}</p>
+                {convData?.conversation?.isBlocked && (
+                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-px rounded-full bg-red-500/10 text-red-500 text-[9px] font-semibold uppercase tracking-wide">
+                    <X className="w-2.5 h-2.5" />
+                    Blocked
+                  </span>
+                )}
+                {convData?.conversation?.neverDeleteMessages ? (
+                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-px rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-semibold uppercase tracking-wide">
+                    Never delete
+                  </span>
+                ) : (
+                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-px rounded-full bg-muted text-muted-foreground text-[9px] font-semibold uppercase tracking-wide">
+                    Auto-delete 24h
+                  </span>
+                )}
+              </div>
             </div>
           </Link>
           <div className="relative" ref={menuRef}>
@@ -648,11 +683,11 @@ function ChatConversation() {
                 </button>
                 <div className="h-px bg-border/50 mx-3 my-1" />
                 <button
-                  onClick={() => { setChatMenuOpen(false); /* TODO: block user */ }}
+                  onClick={() => { setChatMenuOpen(false); handleToggleBlock(); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
                 >
                   <X className="w-4 h-4 text-red-500" />
-                  <span className="text-red-500">Block user</span>
+                  <span className="text-red-500">{convData?.conversation?.isBlocked ? 'Unblock user' : 'Block user'}</span>
                 </button>
                 <button
                   onClick={() => { setChatMenuOpen(false); /* TODO: report user */ }}
@@ -1143,6 +1178,7 @@ function ChatConversation() {
               placeholder="Type a message..."
               rows={1}
               className="flex-1 bg-muted/80 text-foreground border border-border/40 placeholder:text-muted-foreground/50 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-accent/30 transition-all resize-none min-h-[40px] max-h-[120px]"
+              style={{ resize: 'none' }}
               disabled={sending}
             />
           )}
