@@ -608,7 +608,7 @@ function ChatConversation() {
       <div className="flex-1 flex flex-col h-full min-w-0 bg-background relative">
         {/* Normal header */}
         {!selectionMode ? (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 flex-shrink-0 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 flex-shrink-0 bg-background/95 backdrop-blur-sm relative z-30">
           {/* Back arrow */}
           <button
             onClick={() => router.push('/chats')}
@@ -667,7 +667,7 @@ function ChatConversation() {
         </div>
       ) : (
         /* Selection mode header */
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm relative z-30">
           <button
             onClick={clearSelection}
             className="p-1.5 -ml-1 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer"
