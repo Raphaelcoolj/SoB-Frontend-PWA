@@ -194,6 +194,7 @@ interface PostFeedProps {
 - **`/chats` MoreHorizontal button hidden below `lg`**: On the mobile-variant conversation rows in `ConversationsSidebar.tsx`, the horizontal overflow button is now `hidden lg:flex`, so tablets/phones rely on long-press to open the per-conversation menu (long-press already wired via `onContextMenu`/`onTouchStart` 500ms timer)
 - **Chat-settings dropdown z-index fix**: In `[conversations]/page.tsx` the normal and selection-mode headers now use `relative z-30`. The `backdrop-blur-sm` on the header created a stacking context that painted below the later message-list sibling, so the `z-[70]` dropdown appeared behind chat bubbles. Raising the header to `relative z-30` lifts its dropdown above the messages
 - **Seamless chat screen**: Removed the visible separators in `[conversations]/page.tsx` so header, messages, and input blend into one screen — dropped the header `border-b` (both normal and selection modes), the reply-bar `border-t border-accent/10`, and the input composer's `shadow-[0_-1px_3px_rgba(0,0,0,0.15)]`
+- **Chat input safe-area margin**: The input composer's bottom padding is now `calc(env(safe-area-inset-bottom, 12px) + 6px)` so it clears Android/iOS system nav bars on mobile
 
 ### Admin Pages
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile

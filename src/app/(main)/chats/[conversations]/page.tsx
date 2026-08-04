@@ -1087,7 +1087,7 @@ function ChatConversation() {
       {/* Input area — flex-shrink-0 keeps it pinned above keyboard */}
       <div
         className="flex-shrink-0 bg-background px-4 py-3"
-        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 6px)' }}
       >
         <div className="flex items-end gap-2">
           {/* Attach button — hidden during recording/voice preview */}
