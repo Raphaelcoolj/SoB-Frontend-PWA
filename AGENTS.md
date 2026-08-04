@@ -189,6 +189,10 @@ interface PostFeedProps {
 - **PDF preview**: document cards render an inline `<iframe>` of the PDF when `isPdf()` matches (mimeType `application/pdf`, `.pdf` filename, or `.pdf` in URL); other doc types keep the icon + "DOCUMENT PREVIEW" header
 - **Real-time read receipts**: listens to `chat:read` socket event, sets `readAt` on own messages in `localMessages` and revalidates SWR messages so the sender's blue ticks update instantly
 
+### Chat Menu Styling & Responsiveness (2026-08-04)
+- **Opaque chat-settings dropdowns**: The conversation header dropdown and the sidebar conversation menus in `[conversations]/page.tsx` and `ConversationsSidebar.tsx` now carry an inline `style={{ backgroundColor: 'var(--color-popover, #18181B)' }}` fallback so the menus never render transparent on deployments that lack the `--color-popover` CSS variable (deployed `main` predates the `9733c2d` commit that added it)
+- **`/chats` MoreHorizontal button hidden below `lg`**: On the mobile-variant conversation rows in `ConversationsSidebar.tsx`, the horizontal overflow button is now `hidden lg:flex`, so tablets/phones rely on long-press to open the per-conversation menu (long-press already wired via `onContextMenu`/`onTouchStart` 500ms timer)
+
 ### Admin Pages
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile
 - Admin layout has a mobile hamburger menu and `overflow-x-hidden` on the main content area

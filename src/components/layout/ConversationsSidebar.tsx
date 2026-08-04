@@ -395,6 +395,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                         ref={menuRef}
                         className="absolute right-2 top-11 z-50 w-44 bg-popover border border-border/60 rounded-xl shadow-2xl p-1 animate-[fadeIn_0.1s_ease-out]"
                         onClick={(e) => e.stopPropagation()}
+                        style={{ backgroundColor: 'var(--color-popover, #18181B)' }}
                       >
                         <button
                           onClick={() => handleDeleteConversation(conv._id, conv.otherUser.name.split(' ')[0])}
@@ -699,7 +700,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                       </Link>
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
-                        className="flex-shrink-0 p-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all cursor-pointer"
+                        className="hidden lg:flex flex-shrink-0 p-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all cursor-pointer"
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
@@ -708,6 +709,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                           ref={menuRef}
                           className="absolute right-4 top-14 z-50 w-52 bg-popover border border-border rounded-xl shadow-xl p-1.5"
                           onClick={(e) => e.stopPropagation()}
+                          style={{ backgroundColor: 'var(--color-popover, #18181B)' }}
                         >
                           <button
                             onClick={() => handleDeleteConversation(conv._id, conv.otherUser.name.split(' ')[0])}

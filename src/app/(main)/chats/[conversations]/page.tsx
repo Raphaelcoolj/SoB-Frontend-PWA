@@ -635,7 +635,10 @@ function ChatConversation() {
               <MoreVertical className="w-5 h-5" />
             </button>
             {chatMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-popover border border-border rounded-xl shadow-xl z-[70] py-1.5 animate-[fadeIn_0.15s_ease-out]">
+              <div
+                className="absolute right-0 top-full mt-1 w-56 bg-popover border border-border rounded-xl shadow-xl z-[70] py-1.5 animate-[fadeIn_0.15s_ease-out]"
+                style={{ backgroundColor: 'var(--color-popover, #18181B)' }}
+              >
                 <button
                   onClick={() => { setChatMenuOpen(false); router.push(`/chats/settings?userId=${otherUser._id}`); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
