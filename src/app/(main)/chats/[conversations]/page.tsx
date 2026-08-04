@@ -14,10 +14,20 @@ import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
+import { formatFileSize } from '../../../../lib/utils';
 
 const ImageLightbox = dynamic(() => import('../../../../components/post/ImageLightbox'), { ssr: false });
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
+
+const getMediaExt = (type: string) => {
+  switch (type) {
+    case 'image': return 'jpg';
+    case 'video': return 'mp4';
+    case 'document': return 'pdf';
+    default: return 'bin';
+  }
+};
 
 const fetcher = async (url: string) => {
   const res = await fetchWithAuth(url, { method: 'GET' })
@@ -43,6 +53,15 @@ interface Message {
   deleted?: boolean;
   deletedFor?: string[];
 }
+
+type MediaItem = {
+  type: 'image' | 'voice' | 'video' | 'document';
+  url: string;
+  duration?: number;
+  filename?: string;
+  mimeType?: string;
+  size?: number;
+};
 
 interface ConversationData {
   conversation: {
@@ -130,7 +149,7 @@ function ChatConversation() {
   const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string }; mediaUrl?: string; mediaType?: string } | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -139,6 +158,7 @@ function ChatConversation() {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; messageIds: string[] }>({ open: false, messageIds: [] });
   const [actionSheetMsg, setActionSheetMsg] = useState<Message | null>(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -206,6 +226,18 @@ function ChatConversation() {
     };
   }, [conversationId, accessToken, isOwnMessage, mutateMessages]);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setChatMenuOpen(false);
+      }
+    };
+    if (chatMenuOpen) {
+      document.addEventListener('mousedown', handler);
+      return () => document.removeEventListener('mousedown', handler);
+    }
+  }, [chatMenuOpen]);
+
   const handleScrollToMessage = (id: string) => {
     const el = messageRefs.current[id];
     if (el) {
@@ -227,7 +259,6 @@ function ChatConversation() {
       }
       return m;
     }));
-    setActiveMenuId(null);
     // Send to server
     if (conversationId) {
       fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages/${msgId}/react`, {
@@ -239,12 +270,66 @@ function ChatConversation() {
 
   const handleCopy = (msgText: string) => {
     navigator.clipboard.writeText(msgText);
-    setActiveMenuId(null);
   };
 
   const handleDelete = (msgId: string) => {
     setLocalMessages(prev => prev.filter(m => m._id !== msgId));
-    setActiveMenuId(null);
+  };
+
+  const handleDownloadMedia = (media: MediaItem, msgId: string) => {
+    if (!media?.url) return;
+    if (downloadProgress[msgId] !== undefined && downloadProgress[msgId] > 0 && downloadProgress[msgId] < 1) return;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', media.url, true);
+    xhr.responseType = 'blob';
+
+    xhr.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const p = e.loaded / e.total;
+        setDownloadProgress((prev) => ({ ...prev, [msgId]: Math.min(p, 0.99) }));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const blob = xhr.response;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const filename = media.filename || `media.${getMediaExt(media.type)}`;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setDownloadProgress((prev) => ({ ...prev, [msgId]: 1 }));
+        setTimeout(() => {
+          setDownloadProgress((prev) => {
+            const next = { ...prev };
+            delete next[msgId];
+            return next;
+          });
+        }, 1500);
+      } else {
+        setDownloadProgress((prev) => {
+          const next = { ...prev };
+          delete next[msgId];
+          return next;
+        });
+      }
+    };
+
+    xhr.onerror = () => {
+      setDownloadProgress((prev) => {
+        const next = { ...prev };
+        delete next[msgId];
+        return next;
+      });
+    };
+
+    setDownloadProgress((prev) => ({ ...prev, [msgId]: 0.01 }));
+    xhr.send();
   };
 
   const resetTextarea = () => {
@@ -456,11 +541,14 @@ function ChatConversation() {
     );
   }
 
+  // Always show 24hr time only — no AM/PM, no date, regardless of how old the message is
   const formatTime = (dateStr: string) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
   };
 
   const formatDateLabel = (isoDate: string) => {
@@ -489,18 +577,6 @@ function ChatConversation() {
     return acc;
   }, []);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setChatMenuOpen(false);
-      }
-    };
-    if (chatMenuOpen) {
-      document.addEventListener('mousedown', handler);
-      return () => document.removeEventListener('mousedown', handler);
-    }
-  }, [chatMenuOpen]);
-
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -510,26 +586,31 @@ function ChatConversation() {
 
   return (
     <div className="fixed z-[60] flex flex-col lg:flex-row bg-background" style={{ top: 0, bottom: 0, left: 0, right: 0 }}>
-      {/* Desktop sidebar */}
-      <div className="hidden lg:block w-[350px] h-full flex-shrink-0">
+      {/* Desktop messages sidebar */}
+      <div className="hidden lg:flex w-[320px] h-full flex-shrink-0 border-r border-border/40 flex-col bg-background">
         <ConversationsSidebar activeConversationId={otherUserId} variant="desktop" />
       </div>
 
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-background border-r border-border/60 relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-background relative">
         {/* Normal header */}
         {!selectionMode ? (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 flex-shrink-0 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 flex-shrink-0 bg-background/95 backdrop-blur-sm">
+          {/* Back arrow */}
           <button
             onClick={() => router.push('/chats')}
             className="p-1.5 -ml-1 rounded-full hover:bg-muted text-foreground transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-2.5 min-w-0 flex-1">
-            <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
+          <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="relative flex-shrink-0">
+              <UserAvatar avatar={otherUser.avatar} name={otherUser.name} size="sm" />
+              {/* Online indicator */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background hidden lg:block" />
+            </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{otherUser.name}</p>
-              <p className="text-[11px] text-muted-foreground">@{otherUser.username}</p>
+              <p className="text-sm font-semibold text-foreground truncate leading-tight">{otherUser.name}</p>
+              <p className="text-[11px] text-muted-foreground/70 truncate">@{otherUser.username}</p>
             </div>
           </Link>
           <div className="relative" ref={menuRef}>
@@ -639,7 +720,7 @@ function ChatConversation() {
                 {group.messages.map((msg) => {
                   const mine = isOwnMessage(msg.sender._id);
                   const isTemp = msg._id.startsWith('temp-');
-                  const mediaItem = Array.isArray(msg.media) ? msg.media[0] : msg.media;
+                  const mediaItem: MediaItem | undefined = Array.isArray(msg.media) ? msg.media[0] : msg.media;
 
                   return (
                     <div
@@ -721,9 +802,9 @@ function ChatConversation() {
                             : mediaItem?.type === 'document'
                             ? ''
                             : 'rounded-2xl overflow-hidden ' + (mine
-                                ? 'bg-accent/20 text-foreground lg:bg-accent/15 lg:text-foreground lg:border lg:border-accent/30 rounded-br-[4px] shadow-sm'
-                                : 'bg-muted text-foreground lg:bg-card lg:text-foreground lg:border lg:border-border/40 rounded-bl-[4px] shadow-sm')
-                        } ${isTemp ? 'opacity-70' : ''}`}
+                                ? 'bg-accent text-white rounded-br-[4px]'
+                                : 'bg-muted text-foreground rounded-bl-[4px]')
+                        } ${isTemp ? 'opacity-60' : ''}`}
                       >
                         {mediaItem?.type === 'voice' && (
                           <div className="px-3 py-2">
@@ -739,12 +820,32 @@ function ChatConversation() {
                               className="w-full max-h-[350px] object-cover cursor-pointer rounded-xl"
                               onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
                             />
-                            <div className={`absolute bottom-1.5 left-1.5 bg-black/55 px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-white text-[10px] ${msg.text || msg.replyTo ? 'opacity-90' : ''}`}>
-                              <span className="text-white/90">{isTemp ? 'Sending...' : formatTime(msg.createdAt)}</span>
+                            <div className={`absolute bottom-1.5 right-1.5 bg-black/50 px-1.5 py-0.5 rounded-md flex items-center gap-1 ${msg.text || msg.replyTo ? 'opacity-90' : ''}`}>
+                              <span className="text-white/90 text-[10px] leading-none">{isTemp ? '···' : formatTime(msg.createdAt)}</span>
                               {mine && !isTemp && (
-                                <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-400' : 'text-gray-400'}`} />
+                                <CheckCheck className={`w-2.5 h-2.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
                               )}
                             </div>
+                            {!isTemp && !mine && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDownloadMedia(mediaItem, msg._id); }}
+                                className="absolute top-1.5 right-1.5 bg-black/50 rounded-full p-1.5 hover:bg-black/70 transition-colors cursor-pointer"
+                                disabled={downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1}
+                                title="Download"
+                              >
+                                {downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1 ? (
+                                  <span className="flex items-center gap-1 text-white text-[10px]">
+                                    <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    {Math.round(downloadProgress[msg._id] * 100)}%
+                                  </span>
+                                ) : (
+                                  <Download className="w-3.5 h-3.5 text-white" />
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
 
@@ -756,6 +857,26 @@ function ChatConversation() {
                               controls
                               preload="metadata"
                             />
+                            {!isTemp && !mine && (
+                              <button
+                                onClick={() => handleDownloadMedia(mediaItem, msg._id)}
+                                className="absolute top-1.5 right-1.5 bg-black/50 rounded-full p-1.5 hover:bg-black/70 transition-colors cursor-pointer"
+                                disabled={downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1}
+                                title="Download"
+                              >
+                                {downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1 ? (
+                                  <span className="flex items-center gap-1 text-white text-[10px]">
+                                    <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    {Math.round(downloadProgress[msg._id] * 100)}%
+                                  </span>
+                                ) : (
+                                  <Download className="w-3.5 h-3.5 text-white" />
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
 
@@ -769,25 +890,50 @@ function ChatConversation() {
                               <span className="text-[10px] font-bold text-foreground/70 tracking-widest uppercase">DOCUMENT PREVIEW</span>
                             </div>
                             {/* Body */}
-                            <div className="bg-accent/20 p-3 text-foreground flex flex-col gap-2">
+                            <div className="bg-[#1C1C1E] p-3 text-white flex flex-col gap-2">
                               <div>
-                                <a href={mediaItem.url} download className="font-bold text-xs hover:underline flex items-center gap-1.5 break-all text-[#0C0C0E]">
-                                  {(mediaItem as any).filename || 'Document'}
+                                <a href={mediaItem.url} download className="font-bold text-xs hover:underline flex items-center gap-1.5 break-all text-white">
+                                  {mediaItem.filename || 'Document'}
                                 </a>
-                                <p className="text-[10px] text-[#0A0A0C]/70 mt-0.5">
-                                  {(mediaItem as any).size ? `Click to open - ${((mediaItem as any).size / 1024 / 1024).toFixed(1)} MB` : 'Click to open'}
-                                </p>
+                                <div className="flex items-center justify-between gap-2 mt-0.5">
+                                  <p className="text-[10px] text-white/70">
+                                    {mediaItem.size ? formatFileSize(mediaItem.size) : ''}
+                                  </p>
+                                  {!isTemp && !mine && (
+                                    <button
+                                      onClick={() => handleDownloadMedia(mediaItem, msg._id)}
+                                      disabled={downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1}
+                                      className="text-[10px] font-semibold bg-white/10 hover:bg-white/20 rounded-md px-2 py-1 flex items-center gap-1 text-white transition-colors cursor-pointer"
+                                      title="Download document"
+                                    >
+                                      {downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1 ? (
+                                        <>
+                                          <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                          </svg>
+                                          {Math.round(downloadProgress[msg._id] * 100)}%
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Download className="w-3 h-3" />
+                                          Download
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                               {msg.text && (
-                                <p className="text-xs leading-relaxed mt-1 text-[#0C0C0E] border-t border-[#0A0A0C]/10 pt-2 break-words">
+                                <p className="text-xs leading-relaxed mt-1 text-white border-t border-white/15 pt-2 break-words">
                                   {msg.text}
                                 </p>
                               )}
                               {/* Time inside document body */}
-                              <div className="flex items-center justify-end gap-1 self-end mt-1 text-[9px] text-[#0A0A0C]/60 font-medium">
-                                <span>{formatTime(msg.createdAt)}</span>
+                              <div className="flex items-center justify-end gap-1 self-end mt-1">
+                                <span className="text-[10px] text-white/60">{formatTime(msg.createdAt)}</span>
                                 {mine && (
-                                  <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-600' : 'text-gray-600'}`} />
+                                  <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-400' : 'text-white/40'}`} />
                                 )}
                               </div>
                             </div>
@@ -814,26 +960,25 @@ function ChatConversation() {
 
                             <div className={`relative px-3 py-1.5 ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'min-w-[70px]'}`}>
                               {msg.text && (
-                                <span className={`text-[15px] leading-snug whitespace-pre-wrap break-words inline-block ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-[#0A0A0C] lg:text-white' : 'text-white'}`}>
+                                <span className={`text-[15px] leading-snug whitespace-pre-wrap break-words inline-block ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-white' : 'text-foreground'}`}>
                                   {msg.text}
                                 </span>
                               )}
                               {(mediaItem?.type !== 'image' && mediaItem?.type !== 'video') && (
-                                <div className="absolute bottom-1.5 right-2 flex items-center gap-1">
-                                  <span className={`${mine ? 'text-[#0A0A0C]/60 lg:text-white/60' : 'text-white/60'} text-[10px] leading-none`}>
-                                    {isTemp ? 'Sending' : formatTime(msg.createdAt)}
+                                <div className="absolute bottom-1.5 right-3 flex items-center gap-1">
+                                  <span className={`text-[10px] leading-none ${mine ? 'text-white/60' : 'text-muted-foreground/70'}`}>
+                                    {isTemp ? '···' : formatTime(msg.createdAt)}
                                   </span>
-                                  {mine && !isTemp && (
-                                    <CheckCheck className={`w-3.5 h-3.5 ${msg.readAt ? 'text-blue-600 lg:text-blue-400' : 'text-[#0A0A0C]/40 lg:text-white/40'}`} />
-                                  )}
-                                </div>
+                                    {mine && !isTemp && (
+                                      <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-300' : 'text-white/40'}`} />
+                                    )}
+                                  </div>
                               )}
                             </div>
                           </div>
                         )}
 
-                        {/* Reactions display */}
-                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                         {msg.reactions && Object.keys(msg.reactions).length > 0 && (
                           <div className={`flex flex-wrap gap-0.5 ${mine ? 'justify-end' : 'justify-start'} relative ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '-mt-2 mr-2 ml-2 mb-1' : 'mr-2 ml-2 mb-0.5'}`}>
                             {Object.entries(
                               Object.entries(msg.reactions).reduce((acc, [, emoji]) => {
@@ -860,60 +1005,6 @@ function ChatConversation() {
                         )}
 
                       </div>
-
-                      {/* Hover Actions Menu Button */}
-                      {hoveredMsgId === msg._id && !isTemp && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setActiveMenuId(activeMenuId === msg._id ? null : msg._id)}
-                            className="flex-shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-accent transition-colors cursor-pointer"
-                          >
-                            <span className="font-bold pb-2 inline-block leading-none">...</span>
-                          </button>
-                          
-                          {/* Context Menu Modal for this message */}
-                          {activeMenuId === msg._id && (
-                            <div className={`absolute bottom-full ${mine ? 'right-0' : 'left-0'} mb-2 w-48 bg-card border rounded-xl shadow-lg p-2 z-50 flex flex-col`}>
-                              <div className="flex gap-2 justify-around border-b pb-2 mb-2">
-                                {['❤️', '👍', '😂', '😮', '😢', '🙏'].map((emoji) => (
-                                  <button key={emoji} onClick={() => handleReactToMessage(msg._id, emoji)} className="hover:scale-125 transition-transform text-lg">{emoji}</button>
-                                ))}
-                              </div>
-                              <button
-                                className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
-                                onClick={() => { setReplyTo({ _id: msg._id, text: msg.text || '', sender: { name: msg.sender.name }, mediaUrl: mediaItem?.url, mediaType: mediaItem?.type }); setActiveMenuId(null); }}
-                              >
-                                Reply
-                              </button>
-                              {msg.text && (
-                                <button className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors" onClick={() => handleCopy(msg.text)}>
-                                  Copy Text
-                                </button>
-                              )}
-                              <button className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors" onClick={() => { toast.info('Forwarding coming soon'); setActiveMenuId(null); }}>
-                                Forward
-                              </button>
-                              {mine && (
-                                <>
-                                  <button
-                                    className="text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
-                                    onClick={() => {
-                                      const diffMins = (Date.now() - new Date(msg.createdAt).getTime()) / 60000;
-                                      if (diffMins > 15) toast.error('You can only edit messages within 15 minutes of sending.');
-                                      else { setEditingMessage(msg); setText(msg.text || ''); setActiveMenuId(null); }
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button className="text-left px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-md transition-colors" onClick={() => handleDelete(msg._id)}>
-                                    Delete
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -969,7 +1060,7 @@ function ChatConversation() {
 
       {/* Input area — flex-shrink-0 keeps it pinned above keyboard */}
       <div
-        className="flex-shrink-0 bg-background border-t border-border/60 px-4 py-3 shadow-[0_-1px_3px_rgba(0,0,0,0.15)]"
+        className="flex-shrink-0 bg-background px-4 py-3 shadow-[0_-1px_3px_rgba(0,0,0,0.15)]"
         style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
       >
         <div className="flex items-end gap-2">
@@ -1217,7 +1308,7 @@ function ChatConversation() {
               </div>
               <div className="text-center">
                 <p className="font-semibold text-foreground text-sm">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                <p className="text-xs text-muted-foreground mt-1">{formatFileSize(selectedFile.size)}</p>
               </div>
             </div>
             <div className="flex gap-2 p-3">
@@ -1273,13 +1364,11 @@ function ChatConversation() {
       )}
 
       {/* Image Lightbox */}
-      {lightboxOpen && (
-        <ImageLightbox
-          images={[lightboxUrl]}
-          initialIndex={0}
-          onClose={() => setLightboxOpen(false)}
-        />
-      )}
+      <ImageLightbox
+        images={lightboxOpen ? [lightboxUrl] : []}
+        initialIndex={0}
+        onClose={() => setLightboxOpen(false)}
+      />
 
       {/* Single-message action sheet */}
       {actionSheetMsg && (

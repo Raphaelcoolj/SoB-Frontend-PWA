@@ -50,6 +50,8 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openMenuConvId, setOpenMenuConvId] = useState<string | null>(null);
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const [newMessageQuery, setNewMessageQuery] = useState('');
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,16 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
         c.username.toLowerCase().includes(q)
     );
   }, [connections, searchQuery]);
+
+  const newMessageFiltered = useMemo(() => {
+    const q = newMessageQuery.trim().toLowerCase();
+    if (!q) return connections;
+    return connections.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.username.toLowerCase().includes(q)
+    );
+  }, [connections, newMessageQuery]);
 
   const showSearchResults = searchQuery.trim().length > 0;
 
@@ -242,204 +254,262 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
 
   if (variant === 'desktop') {
     return (
-      <div className="flex flex-col h-full bg-background border-r border-border/60 select-none">
-        {/* Header matching Image 2 */}
-        <div className="flex items-center justify-between px-5 pt-6 pb-4">
-          <h2 className="text-xl font-bold text-foreground tracking-tight">Messages</h2>
-          <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-            <SquarePen className="w-5 h-5" />
+      <div className="flex flex-col h-full bg-background select-none overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-border/30">
+          <h2 className="text-[15px] font-bold text-foreground tracking-tight">Messages</h2>
+          <button
+            onClick={() => { setNewMessageOpen(true); setNewMessageQuery(''); }}
+            className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="New message"
+          >
+            <SquarePen className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Search matching Image 2 */}
-        <div className="px-4 mb-4">
+        {/* Search */}
+        <div className="px-3 py-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search conversations"
-              className="w-full bg-muted/80 text-foreground placeholder:text-muted-foreground/60 rounded-xl pl-9 pr-8 py-2 text-xs outline-none border border-border/50 focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all duration-200"
+              placeholder="Search"
+              className="w-full bg-muted/50 text-foreground placeholder:text-muted-foreground/50 rounded-lg pl-8 pr-7 py-1.5 text-xs outline-none border border-border/30 focus:border-accent/30 focus:bg-muted/70 transition-all duration-200"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
         </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto px-2 space-y-1">
+        <div className="flex-1 overflow-y-auto py-1">
           {isLoading ? (
-            <div className="space-y-2 p-2">
+            <div className="space-y-1 px-2 pt-1">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3 p-2.5">
-                  <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                  <div className="w-9 h-9 rounded-full bg-muted/60 animate-pulse flex-shrink-0" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-3.5 w-20 bg-muted animate-pulse rounded" />
-                    <div className="h-2.5 w-32 bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-24 bg-muted/60 animate-pulse rounded-md" />
+                    <div className="h-2.5 w-36 bg-muted/40 animate-pulse rounded-md" />
                   </div>
                 </div>
               ))}
             </div>
           ) : showSearchResults ? (
             filteredConnections.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-6">No people found</p>
+              <p className="text-xs text-muted-foreground/60 text-center py-8">No results for &quot;{searchQuery}&quot;</p>
             ) : (
-              filteredConnections.map((conn) => (
-                <button
-                  key={conn._id}
-                  onClick={() => router.push(`/chats/${conn._id}`)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/60 text-left transition-all duration-200"
-                >
-                  <UserAvatar avatar={conn.avatar} name={conn.name} size="sm" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">{conn.name}</p>
-                    <p className="text-[10px] text-muted-foreground">@{conn.username}</p>
-                  </div>
-                </button>
-              ))
+              <div className="px-2 space-y-0.5">
+                {filteredConnections.map((conn) => (
+                  <button
+                    key={conn._id}
+                    onClick={() => router.push(`/chats/${conn._id}`)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 text-left transition-all duration-150 group"
+                  >
+                    <UserAvatar avatar={conn.avatar} name={conn.name} size="sm" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-foreground truncate">{conn.name}</p>
+                      <p className="text-[10px] text-muted-foreground/60">@{conn.username}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )
           ) : conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-              <MessageSquare className="w-8 h-8 text-muted-foreground/30 mb-2" />
-              <p className="text-xs font-medium text-muted-foreground">No conversations yet</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <MessageSquare className="w-7 h-7 text-muted-foreground/20 mb-2" />
+              <p className="text-xs font-medium text-muted-foreground/50">No conversations yet</p>
+              <p className="text-[10px] text-muted-foreground/35 mt-0.5">Search above to start chatting</p>
             </div>
           ) : (
-            conversations.map((conv) => {
-              const isSelected = activeConversationId === conv.otherUser._id;
-              const isOnline = onlineIds.has(conv.otherUser._id);
-              return (
-                <div
-                  key={conv._id}
-                  className={`relative group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
-                    isSelected
-                      ? 'bg-accent/10 border border-accent/30 shadow-[0_0_12px_rgba(59,130,246,0.06)]'
-                      : 'hover:bg-muted/50 border border-transparent'
-                  }`}
-                >
-                  <Link
-                    href={`/chats/${conv.otherUser._id}`}
-                    className="flex items-center gap-3 flex-1 min-w-0"
+            <div className="px-2 space-y-0.5">
+              {conversations.map((conv) => {
+                const isSelected = activeConversationId === conv.otherUser._id;
+                const isOnline = onlineIds.has(conv.otherUser._id);
+                return (
+                  <div
+                    key={conv._id}
+                    className={`relative group flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-150 cursor-pointer ${
+                      isSelected
+                        ? 'bg-accent/10 text-foreground'
+                        : 'hover:bg-muted/40 border border-transparent'
+                    }`}
                   >
-                    <div className="relative flex-shrink-0">
-                      <UserAvatar
-                        avatar={conv.otherUser.avatar}
-                        name={conv.otherUser.name}
-                        size="md"
-                        className="ring-1 ring-border/40"
-                      />
-                      {isOnline && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background shadow-sm z-10" />
-                      )}
-                      {conv.unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-accent text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-0.5 border border-background z-10">
-                          {conv.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-xs font-bold text-foreground truncate">
-                            {conv.otherUser.name}
-                          </span>
-                        </div>
-                        {conv.lastMessage?.createdAt && (
-                          <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 ml-1.5 font-medium">
-                            {formatLastMsgTime(conv.lastMessage.createdAt)}
+                    {/* Active indicator bar */}
+                    {isSelected && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-accent rounded-r-full" />
+                    )}
+
+                    <Link
+                      href={`/chats/${conv.otherUser._id}`}
+                      className="flex items-center gap-2.5 flex-1 min-w-0"
+                    >
+                      <div className="relative flex-shrink-0">
+                        <UserAvatar
+                          avatar={conv.otherUser.avatar}
+                          name={conv.otherUser.name}
+                          size="sm"
+                        />
+                        {isOnline && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-background z-10" />
+                        )}
+                        {conv.unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-accent text-white text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5 border border-background z-10">
+                            {conv.unreadCount}
                           </span>
                         )}
                       </div>
-                      <p className={`text-[11px] truncate mt-0.5 ${conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/70'}`}>
-                        {getLastMessagePreview(conv)}
-                      </p>
-                    </div>
-                  </Link>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`text-[13px] font-semibold truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>
+                            {conv.otherUser.name}
+                          </span>
+                          {conv.lastMessage?.createdAt && (
+                            <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 font-medium">
+                              {formatLastMsgTime(conv.lastMessage.createdAt)}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-[11px] truncate mt-0.5 leading-tight ${conv.unreadCount > 0 ? 'font-semibold text-foreground/80' : 'text-muted-foreground/55'}`}>
+                          {getLastMessagePreview(conv)}
+                        </p>
+                      </div>
+                    </Link>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
-                    className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all cursor-pointer"
-                  >
-                    <MoreHorizontal className="w-3.5 h-3.5" />
-                  </button>
-
-                  {openMenuConvId === conv._id && (
-                    <div
-                      ref={menuRef}
-                      className="absolute right-3 top-12 z-50 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 animate-[fadeIn_0.12s_ease-out]"
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
+                      className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer"
                     >
-                      <button
-                        onClick={() => handleDeleteConversation(conv._id, conv.otherUser.name.split(' ')[0])}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-red-500/10 transition-colors text-red-500 text-left"
+                      <MoreHorizontal className="w-3.5 h-3.5" />
+                    </button>
+
+                    {openMenuConvId === conv._id && (
+                      <div
+                        ref={menuRef}
+                        className="absolute right-2 top-11 z-50 w-44 bg-popover border border-border/60 rounded-xl shadow-2xl p-1 animate-[fadeIn_0.1s_ease-out]"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Delete conversation
-                      </button>
-                      <button
-                        onClick={() => handleBlock(conv.otherUser._id, conv.otherUser.name)}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-muted transition-colors text-foreground text-left"
-                      >
-                        <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                        Block
-                      </button>
-                      <button
-                        onClick={() => handleReport(conv.otherUser._id)}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-muted transition-colors text-foreground text-left"
-                      >
-                        <Flag className="w-3.5 h-3.5 text-muted-foreground" />
-                        Report
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+                        <button
+                          onClick={() => handleDeleteConversation(conv._id, conv.otherUser.name.split(' ')[0])}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-red-500/10 transition-colors text-red-500 text-left"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete conversation
+                        </button>
+                        <button
+                          onClick={() => handleBlock(conv.otherUser._id, conv.otherUser.name)}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-muted transition-colors text-foreground text-left"
+                        >
+                          <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+                          Block
+                        </button>
+                        <button
+                          onClick={() => handleReport(conv.otherUser._id)}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-muted transition-colors text-foreground text-left"
+                        >
+                          <Flag className="w-3.5 h-3.5 text-muted-foreground" />
+                          Report
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {/* User profile footer bar matching Image 2 */}
         {currentUser && (
-          <div className="p-4 border-t border-border/60 bg-background flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative">
-                <UserAvatar avatar={currentUser.avatar} name={currentUser.name} size="sm" />
-                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-background" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground truncate">{currentUser.name}</p>
-                <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Active</p>
-              </div>
+          <div className="px-3 py-3 border-t border-border/30 bg-background flex items-center gap-2.5">
+            <div className="relative flex-shrink-0">
+              <UserAvatar avatar={currentUser.avatar} name={currentUser.name} size="sm" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-background" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-semibold text-foreground truncate leading-tight">{currentUser.name}</p>
+              <p className="text-[9px] text-emerald-500/80 font-semibold uppercase tracking-wider">Active</p>
             </div>
             <button
               onClick={() => router.push('/settings')}
-              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex-shrink-0"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-3.5 h-3.5" />
             </button>
+          </div>
+        )}
+
+        {/* New Message Modal */}
+        {newMessageOpen && (
+          <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setNewMessageOpen(false)}>
+            <div
+              className="bg-card border border-border/60 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-[fadeIn_0.15s_ease-out]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/40">
+                <h3 className="text-sm font-bold text-foreground">New message</h3>
+                <button
+                  onClick={() => setNewMessageOpen(false)}
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="px-4 py-3 border-b border-border/40">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                  <input
+                    type="text"
+                    value={newMessageQuery}
+                    onChange={(e) => setNewMessageQuery(e.target.value)}
+                    placeholder="Search people"
+                    autoFocus
+                    className="w-full bg-muted/50 text-foreground placeholder:text-muted-foreground/50 rounded-lg pl-8 pr-3 py-2 text-xs outline-none border border-border/40 focus:border-accent/40 transition-all duration-200"
+                  />
+                </div>
+              </div>
+              <div className="max-h-[45vh] overflow-y-auto p-2">
+                {newMessageFiltered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-6">
+                    <MessageSquare className="w-6 h-6 text-muted-foreground/25 mb-2" />
+                    <p className="text-xs font-medium text-muted-foreground/60">No people found</p>
+                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">Search by name or @username</p>
+                  </div>
+                ) : (
+                  newMessageFiltered.map((conn) => (
+                    <button
+                      key={conn._id}
+                      onClick={() => {
+                        setNewMessageOpen(false);
+                        setNewMessageQuery('');
+                        router.push(`/chats/${conn._id}`);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 text-left transition-all duration-150"
+                    >
+                      <UserAvatar avatar={conn.avatar} name={conn.name} size="sm" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">{conn.name}</p>
+                        <p className="text-[10px] text-muted-foreground/60">@{conn.username}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
     );
   }
 
-  // Mobile layout matching original chats/page.tsx
   return (
     <div className="pb-20">
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-accent/5 via-accent/10 to-transparent -mx-4 px-4 pt-6 pb-8">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl" />
-        <div className="relative">
-          <h1 className="text-2xl font-bold text-foreground">Chats</h1>
-          <p className="text-sm text-muted-foreground mt-1">Connect and message with friends</p>
-        </div>
-      </div>
-
       <div className="relative mb-5">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
@@ -636,7 +706,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                       {openMenuConvId === conv._id && (
                         <div
                           ref={menuRef}
-                          className="absolute right-4 top-14 z-50 w-52 bg-card border border-border rounded-xl shadow-xl p-1.5"
+                          className="absolute right-4 top-14 z-50 w-52 bg-popover border border-border rounded-xl shadow-xl p-1.5"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button

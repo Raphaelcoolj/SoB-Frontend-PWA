@@ -179,6 +179,14 @@ interface PostFeedProps {
 - **Read receipts**: `CheckCheck` icon shown after recipient reads (readAt populated)
 - **Online indicators**: Green dot on avatars via `user:online`/`user:offline` socket events
 
+### Chat Media & Downloads (2026-08-04)
+- **`formatFileSize()`** in `src/lib/utils.ts` — KB/MB/GB formatter used for doc previews and the selected-file card
+- **Receiver-only download buttons** on image/video/doc messages (`!isMine`): circular spinner overlay on image/video, inline "Download" pill in doc card body, with per-message progress percentage
+- **`handleDownloadMedia`** in `[conversations]/page.tsx` — XHR-based download with progress tracking; docs downloaded via `download` attribute
+- **Doc card body** now dark (`bg-[#1C1C1E]`) with white title/size/text/time so white text is readable
+- **SquarePen "New message" button** in `ConversationsSidebar.tsx` desktop header opens a modal: searchable connection list (reuses `connections` from `/api/users/connections`), navigates to `/chats/:id`
+- **ImageLightbox** now resets index on `initialIndex` change and renders nothing when empty
+
 ### Admin Pages
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile
 - Admin layout has a mobile hamburger menu and `overflow-x-hidden` on the main content area

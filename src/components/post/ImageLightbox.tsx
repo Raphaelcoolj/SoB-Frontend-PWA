@@ -14,6 +14,12 @@ interface ImageLightboxProps {
 export default function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex]);
+
+  if (!images || images.length === 0) return null;
+
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % images.length);
   }, [images.length]);
