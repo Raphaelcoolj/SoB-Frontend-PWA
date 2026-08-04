@@ -17,6 +17,7 @@ import { fetchWithAuth } from '../../lib/api';
 import { socket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
+import PollBlock from './PollBlock';
 import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
 
@@ -229,6 +230,13 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
               </Link>
             </div>
 
+            {/* Poll */}
+            {article.poll && (
+              <div className="mt-2">
+                <PollBlock poll={article.poll} postId={article._id} />
+              </div>
+            )}
+
             {/* Engagement Row - Twitter style */}
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
@@ -327,6 +335,11 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-wrap">
           {article.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
         </p>
+
+        {/* Poll */}
+        {article.poll && (
+          <PollBlock poll={article.poll} postId={article._id} />
+        )}
 
         {/* Author Footer */}
         <div className="flex items-center justify-between pt-2">

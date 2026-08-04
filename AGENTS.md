@@ -57,6 +57,7 @@ src/
 │   ├── trending/
 │   │   └── TrendingSection.tsx       # Horizontal scroll trending articles
 │   ├── user/UserAvatar.tsx           # Avatar with fallback initials (sm/md/lg sizes)
+│   ├── layout/ConversationsSidebar.tsx # Reusable chats list sidebar (desktop split-pane / mobile)
 │   ├── shared/Logo.tsx               # App logo
 ├── shared/HashtagText.tsx        # Renders #tag as clickable search links
 │   └── ui/Skeleton.tsx               # Loading skeleton component
@@ -163,6 +164,15 @@ interface PostFeedProps {
 - Root `layout.tsx` exports a `Viewport` with `userScalable: false`, `maximumScale: 1` to prevent pinch-zoom on PWA
 - Also includes a `<meta>` tag fallback with `user-scalable=no, maximum-scale=1`
 
+### Polls on Posts & Articles (2026-08-04)
+
+- **`src/components/post/PollBlock.tsx`** — interactive poll with horizontal progress bars; shows counts only after the current user votes. Single-choice polls replace/toggle the vote; multiple-choice polls toggle each option. Votes via `POST /api/posts/:id/vote`, optimistic UI + server reconciliation
+- **`src/components/post/PollComposer.tsx`** — poll builder (question, 2–5 options, multiple-votes toggle) used by create + edit pages
+- **`src/types/post.ts`** — added `Poll` / `PollOption` interfaces and `poll?: Poll | null` on `Post`
+- **`src/app/(main)/create/page.tsx`** — `BarChart3` poll icon added to the toolbar beside the image/video upload icons (posts and articles); the poll is serialized into FormData as `poll` JSON. Poll-only posts allowed
+- **`src/app/(main)/post/[id]/edit/page.tsx`** — loads existing poll into the composer, saves/clears it via `poll` FormData
+- **`src/components/post/PostCard.tsx`** + **`src/components/post/ArticleCard.tsx`** — render `PollBlock` in both flat and default variants when `post.poll` exists
+
 ### Chat Pages (2026-07-21)
 
 | Route | File | Description |
@@ -177,6 +187,24 @@ interface PostFeedProps {
 - **No lastMessage filter**: All conversations (even without messages) are visible in the list — no hidden conversations
 - **Read receipts**: `CheckCheck` icon shown after recipient reads (readAt populated)
 - **Online indicators**: Green dot on avatars via `user:online`/`user:offline` socket events
+
+### Chat Media & Downloads (2026-08-04)
+- **`formatFileSize()`** in `src/lib/utils.ts` — KB/MB/GB formatter used for doc previews and the selected-file card
+- **Receiver-only download buttons** on image/video/doc messages (`!isMine`): circular spinner overlay on image/video, inline "Download" pill in doc card body, with per-message progress percentage
+- **`handleDownloadMedia`** in `[conversations]/page.tsx` — XHR-based download with progress tracking; docs downloaded via `download` attribute
+- **Doc card body** now dark (`bg-[#1C1C1E]`) with white title/size/text/time so white text is readable
+- **SquarePen "New message" button** in `ConversationsSidebar.tsx` desktop header opens a modal: searchable connection list (reuses `connections` from `/api/users/connections`), navigates to `/chats/:id`
+- **ImageLightbox** now resets index on `initialIndex` change and renders nothing when empty
+- **PDF preview**: document cards render an inline `<iframe>` of the PDF when `isPdf()` matches (mimeType `application/pdf`, `.pdf` filename, or `.pdf` in URL); other doc types keep the icon + "DOCUMENT PREVIEW" header
+- **Real-time read receipts**: listens to `chat:read` socket event, sets `readAt` on own messages in `localMessages` and revalidates SWR messages so the sender's blue ticks update instantly
+
+### Chat Menu Styling & Responsiveness (2026-08-04)
+- **Opaque chat-settings dropdowns**: The conversation header dropdown and the sidebar conversation menus in `[conversations]/page.tsx` and `ConversationsSidebar.tsx` now carry an inline `style={{ backgroundColor: 'var(--color-popover, #18181B)' }}` fallback so the menus never render transparent on deployments that lack the `--color-popover` CSS variable (deployed `main` predates the `9733c2d` commit that added it)
+- **`/chats` MoreHorizontal button hidden below `lg`**: On the mobile-variant conversation rows in `ConversationsSidebar.tsx`, the horizontal overflow button is now `hidden lg:flex`, so tablets/phones rely on long-press to open the per-conversation menu (long-press already wired via `onContextMenu`/`onTouchStart` 500ms timer)
+- **Chat-settings dropdown z-index fix**: In `[conversations]/page.tsx` the normal and selection-mode headers now use `relative z-30`. The `backdrop-blur-sm` on the header created a stacking context that painted below the later message-list sibling, so the `z-[70]` dropdown appeared behind chat bubbles. Raising the header to `relative z-30` lifts its dropdown above the messages
+- **Seamless chat screen**: Removed the visible separators in `[conversations]/page.tsx` so header, messages, and input blend into one screen — dropped the header `border-b` (both normal and selection modes), the reply-bar `border-t border-accent/10`, and the input composer's `shadow-[0_-1px_3px_rgba(0,0,0,0.15)]`
+- **Chat input safe-area margin**: The input composer's bottom padding is now `calc(env(safe-area-inset-bottom, 12px) + 6px)` so it clears Android/iOS system nav bars on mobile
+- **Block & retention indicators**: The conversation header in `[conversations]/page.tsx` now shows chips under the username — a red "Blocked" badge when `conversation.isBlocked`, and a green "Never delete" or neutral "Auto-delete 24h" chip from `conversation.neverDeleteMessages`. The "Block user" menu item is now functional (toggles `POST /api/users/:id/block`, label flips to "Unblock user"). The chat settings page shows a status banner ("Never delete is ON" / "Auto-delete is ON (24 hours)") with explanatory text. The message textarea also carries an inline `resize: 'none'` style to guarantee no resize handle on any screen size
 
 ### Admin Pages
 - All admin pages (`admin/dashboard`, `admin/feedback`, `admin/pipeline`) use responsive padding (`p-4 sm:p-6`), responsive heading sizes (`text-2xl sm:text-3xl`), and `min-w-0` with `truncate` to prevent overflow on mobile

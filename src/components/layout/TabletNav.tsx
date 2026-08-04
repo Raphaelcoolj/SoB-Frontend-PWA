@@ -36,11 +36,13 @@ export default function TabletNav() {
 
   const isAdmin = user?.role === 'admin';
 
+  const isChatRoute = pathname.startsWith('/chats');
+
   return (
-    <aside className="hidden md:flex lg:hidden flex-col fixed top-0 left-0 bottom-0 w-20 border-r border-border bg-background text-foreground items-center py-6 z-30">
+    <aside className={`hidden md:flex ${isChatRoute ? 'lg:flex' : 'lg:hidden'} flex-col fixed top-0 left-0 bottom-0 w-20 border-r border-border bg-background text-foreground items-center py-6 z-30`}>
       {/* Brand logo (mobile/icon form) */}
       <div className="mb-8">
-        <Logo />
+        <Logo showText={false} />
       </div>
 
       {/* Side icon list */}
@@ -53,7 +55,6 @@ export default function TabletNav() {
             <Link
               key={item.label}
               href={item.path}
-              title={item.label}
               className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:bg-secondary group ${
                 isActive ? 'text-accent bg-accent/10' : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -71,11 +72,6 @@ export default function TabletNav() {
                   {unreadCount}
                 </span>
               )}
-
-              {/* Premium hover tooltip */}
-              <span className="absolute left-16 bg-popover text-popover-foreground text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border shadow-md opacity-0 scale-95 origin-left pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50">
-                {item.label}
-              </span>
             </Link>
           );
         })}
@@ -84,16 +80,11 @@ export default function TabletNav() {
         {isAdmin && (
           <Link
             href="/admin/dashboard"
-            title="Admin Panel"
             className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:bg-secondary group ${
               pathname.startsWith('/admin') ? 'text-accent bg-accent/10' : 'text-destructive hover:bg-destructive/10'
             }`}
           >
             <ShieldAlert className="w-6 h-6 stroke-[2]" />
-            
-            <span className="absolute left-16 bg-popover text-popover-foreground text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border shadow-md opacity-0 scale-95 origin-left pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50">
-              Admin Panel
-            </span>
           </Link>
         )}
       </nav>
@@ -102,14 +93,9 @@ export default function TabletNav() {
       {user && (
         <button
           onClick={logout}
-          title="Log Out"
           className="relative flex items-center justify-center w-12 h-12 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 active:scale-90 group cursor-pointer"
         >
           <LogOut className="w-6 h-6" />
-          
-          <span className="absolute left-16 bg-popover text-popover-foreground text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-border shadow-md opacity-0 scale-95 origin-left pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50">
-            Log Out
-          </span>
         </button>
       )}
     </aside>

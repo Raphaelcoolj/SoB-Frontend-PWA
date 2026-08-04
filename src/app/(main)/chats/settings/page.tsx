@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, MessageCircle, ShieldCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, ShieldCheck, Loader2, Clock } from 'lucide-react';
 import { fetchWithAuth } from '../../../../lib/api';
 import { toast } from 'sonner';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = (url: string) =>
-  fetchWithAuth(url, { method: 'GET' }).then((r) => r.json()).then((d) => d.data);
+  fetchWithAuth(url, { method: 'GET' }).then((r) => r.json()).then((d) => d.data?.settings);
 
 export default function ChatSettingsPage() {
   const { data, isLoading, mutate } = useSWR<{ neverDeleteMessages?: boolean; allowMessagesFrom?: 'everyone' | 'connections' | 'nobody' }>(
@@ -86,6 +86,21 @@ export default function ChatSettingsPage() {
         </div>
       ) : (
         <>
+          <div className={`flex items-start gap-2.5 p-3.5 rounded-xl border ${neverDelete ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-muted/40 border-border'}`}>
+            <div className={`mt-0.5 flex-shrink-0 ${neverDelete ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+              {neverDelete ? <ShieldCheck className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+            </div>
+            <div>
+              <p className={`text-sm font-semibold ${neverDelete ? 'text-emerald-500' : 'text-foreground'}`}>
+                {neverDelete ? 'Never delete is ON' : 'Auto-delete is ON (24 hours)'}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {neverDelete
+                  ? 'Your messages will be kept forever.'
+                  : 'Read messages are deleted after 24 hours; unread after 30 days.'}
+              </p>
+            </div>
+          </div>
           <section className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className="px-4 pt-4 pb-2 flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">

@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { FileText, MessageSquare, Image as ImageIcon, Video } from 'lucide-react';
+import { FileText, MessageSquare, Image as ImageIcon, Video, BarChart3 } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../store/authStore';
 import { Button } from '../../../components/ui/Button';
@@ -21,6 +21,7 @@ import VideoTrimmerModal from '../../../components/post/VideoTrimmerModal';
 import ImageCropperModal from '../../../components/post/ImageCropperModal';
 import ContentEditor from '../../../components/post/ContentEditor';
 import MentionTextarea from '../../../components/shared/MentionTextarea';
+import PollComposer, { DraftPoll } from '../../../components/post/PollComposer';
 import { toast } from 'sonner';
 import { stripHtml } from '../../../lib/utils';
 
@@ -80,6 +81,7 @@ export default function CreatePage() {
   const [croppingFile, setCroppingFile] = useState<File | null>(null);
   const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [poll, setPoll] = useState<DraftPoll | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTrimComplete = (trimmedFile: File) => {
@@ -177,10 +179,25 @@ export default function CreatePage() {
     setSubmitting(true);
 
     // NEW: Enforce that posts have either text body or attached media files
-    if (mode === 'post' && !values.body?.trim() && images.length === 0) {
-      toast.error('Post must contain either text or media (image/video)');
+    if (mode === 'post' && !values.body?.trim() && images.length === 0 && !poll) {
+      toast.error('Post must contain either text, media (image/video), or a poll');
       setSubmitting(false);
       return;
+    }
+
+    if (poll) {
+      const question = poll.question.trim();
+      const options = poll.options.map((o) => o.trim()).filter(Boolean);
+      if (!question) {
+        toast.error('Poll question is required');
+        setSubmitting(false);
+        return;
+      }
+      if (options.length < 2) {
+        toast.error('Poll must have at least 2 options');
+        setSubmitting(false);
+        return;
+      }
     }
 
     try {
@@ -192,6 +209,15 @@ export default function CreatePage() {
       if (values.field) formData.append('field', values.field);
       if (mode === 'article') {
         formData.append('title', values.title);
+      }
+
+      if (poll) {
+        const pollPayload = {
+          question: poll.question.trim(),
+          options: poll.options.map((o) => o.trim()).filter(Boolean).slice(0, 5),
+          allowMultiple: poll.allowMultiple,
+        };
+        formData.append('poll', JSON.stringify(pollPayload));
       }
       
       images.forEach(img => formData.append('media', img));
@@ -221,7 +247,7 @@ export default function CreatePage() {
         {(['post', 'article'] as ContentMode[]).map((m) => (
           <button
           key={m}
-          onClick={() => { setMode(m); reset(); setImages([]); setImagePreviews([]); setFieldSearch(''); }}
+          onClick={() => { setMode(m); reset(); setImages([]); setImagePreviews([]); setFieldSearch(''); setPoll(null); }}
           className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
             mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
           }`}
@@ -320,6 +346,14 @@ export default function CreatePage() {
           }}
         />
 
+        {poll && (
+          <PollComposer
+            value={poll}
+            onChange={setPoll}
+            onRemove={() => setPoll(null)}
+          />
+        )}
+
         <div className="flex items-center gap-2 px-1">
           <input 
             type="checkbox" 
@@ -335,6 +369,14 @@ export default function CreatePage() {
           <div className="flex gap-2 text-muted-foreground">
             <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><ImageIcon className="w-5 h-5" /></button>
             <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><Video className="w-5 h-5" /></button>
+            <button
+              type="button"
+              onClick={() => setPoll(poll ? null : { question: '', options: ['', ''], allowMultiple: false })}
+              className={`hover:text-accent ${poll ? 'text-accent' : ''}`}
+              title="Add a poll"
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
           </div>
           <div className="flex items-center gap-3">
            <div className="flex flex-col items-end">
