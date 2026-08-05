@@ -68,6 +68,33 @@ const getDocExtBadge = (ext: string): string => {
   }
 };
 
+const getPdfFirstPageUrl = (media: { url: string }): string | null => {
+  try {
+    const u = new URL(media.url);
+    if (u.hostname !== 'res.cloudinary.com') return null;
+    const m = u.pathname.match(/^\/([^/]+)\/raw\/upload\//);
+    if (!m) return null;
+    const encoded = encodeURIComponent(media.url);
+    return `https://res.cloudinary.com/${m[1]}/image/fetch/pg_1,w_300,f_jpg,q_auto/${encoded}`;
+  } catch {
+    return null;
+  }
+};
+
+function PdfPreview({ url, fallback }: { url: string; fallback: React.ReactNode }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <>{fallback}</>;
+  return (
+    <img
+      src={url}
+      alt="Document first page"
+      loading="lazy"
+      className="w-full h-40 bg-white object-contain"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 const fetcher = async (url: string) => {
   const res = await fetchWithAuth(url, { method: 'GET' })
   const json = await res.json()
@@ -971,26 +998,32 @@ function ChatConversation() {
                         {mediaItem?.type === 'document' && (
                           <div className="border border-accent/40 rounded-2xl overflow-hidden w-full max-w-[280px] flex flex-col shadow-sm">
                             {/* Preview / Header */}
-                            {isPdf(mediaItem) ? (
-                              <iframe
-                                src={mediaItem.url}
-                                title={mediaItem.filename || 'PDF preview'}
-                                className="w-full h-40 bg-white pointer-events-none"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="bg-muted px-3 py-2.5 flex items-center gap-2.5 border-b border-border/60">
-                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${getDocExtBadge(getDocExt(mediaItem))}`}>
-                                  <FileText className="w-4 h-4" />
+                            {(() => {
+                              const pdfPreviewUrl = getPdfFirstPageUrl(mediaItem);
+                              const iframeFallback = (
+                                <iframe
+                                  src={mediaItem.url}
+                                  title={mediaItem.filename || 'PDF preview'}
+                                  className="w-full h-40 bg-white pointer-events-none"
+                                  loading="lazy"
+                                />
+                              );
+                              return isPdf(mediaItem) ? (
+                                pdfPreviewUrl ? <PdfPreview url={pdfPreviewUrl} fallback={iframeFallback} /> : iframeFallback
+                              ) : (
+                                <div className="bg-muted px-3 py-2.5 flex items-center gap-2.5 border-b border-border/60">
+                                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${getDocExtBadge(getDocExt(mediaItem))}`}>
+                                    <FileText className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-foreground truncate">{getDocDisplayName(mediaItem)}</p>
+                                    <p className="text-[10px] text-muted-foreground/80 truncate">
+                                      {mediaItem.size ? formatFileSize(mediaItem.size) : 'File'}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-bold text-foreground truncate">{getDocDisplayName(mediaItem)}</p>
-                                  <p className="text-[10px] text-muted-foreground/80 truncate">
-                                    {mediaItem.size ? formatFileSize(mediaItem.size) : 'File'}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
+                              );
+                            })()}
                             {/* Body */}
                             <div className="bg-[#1C1C1E] p-3 text-white flex flex-col gap-2">
                               {msg.text && (
