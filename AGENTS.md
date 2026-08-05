@@ -40,7 +40,7 @@ After every task, an agent MUST:
 
 ### 2026-08-05 — Fix Netlify secrets-scan build failure; PDF first-page preview in doc cards
 
-- `netlify.toml` — added `[secrets_scan] omit_keys = ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]`. The Sentry SDK inlines the DSN (a public identifier, not a credential) into server/edge build output; Netlify's secrets scanner flagged the value and failed every build (exit code 2), which is why the previous doc-card fix never went live
+- `netlify.toml` — the Sentry SDK inlines the DSN (a public identifier, not a credential) into server/edge build output; Netlify's secrets scanner flags the value and fails every build (exit code 2). Netlify configures secrets scanning via **environment variables**, not a TOML table — so the fix is `[build.environment] SECRETS_SCAN_OMIT_KEYS = "SENTRY_DSN,NEXT_PUBLIC_SENTRY_DSN"` (comma-separated). (A first attempt using `[secrets_scan] omit_keys` was silently ignored by Netlify — the resolved config showed no such section.)
 - `src/app/(main)/chats/[conversations]/page.tsx` — PDF document cards now render a **first-page preview** image via a Cloudinary `image/fetch` `pg_1` transform (`getPdfFirstPageUrl` + `PdfPreview` component), falling back to the inline PDF iframe when unavailable; non-PDF docs keep the extension-badge + filename header (no generic "DOCUMENT PREVIEW" placeholder)
 
 ### 2026-08-05 — Reply previews carry media type, doc cards show ext badge, voice duration sent
