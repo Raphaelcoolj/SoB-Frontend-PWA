@@ -644,7 +644,9 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                   return (
                     <div
                       key={conv._id}
-                      className="relative flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 animate-[fadeIn_0.3s_ease-out] group select-none"
+                      className={`relative flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-muted/50 transition-all duration-200 animate-[fadeIn_0.3s_ease-out] group select-none ${
+                        openMenuConvId === conv._id ? 'z-50' : ''
+                      }`}
                       style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setOpenMenuConvId(openMenuConvId === conv._id ? null : conv._id); }}
                       onTouchStart={() => { longPressTimerRef.current = setTimeout(() => setOpenMenuConvId(conv._id), 500); }}
