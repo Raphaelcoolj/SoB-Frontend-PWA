@@ -19,6 +19,7 @@ import { fetchWithAuth } from '../../lib/api';
 import { socket } from '../../lib/socket';
 import { UserAvatar } from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
+import FeedImage from './FeedImage';
 import { formatDistanceToNow } from '../../lib/utils';
 import MentionText from '../shared/MentionText';
 import PollBlock from './PollBlock';
@@ -237,9 +238,16 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
 
             {/* Media (images or HLS video) */}
             {post.muxPlaybackId && (
-              <div className="mt-3">
-                <VideoPlayer playbackId={post.muxPlaybackId} />
-              </div>
+              <Link
+                href={`/post/${post._id}`}
+                className="mt-3 block relative overflow-hidden rounded-xl border border-border"
+              >
+                <FeedImage
+                  src={`https://image.mux.com/${post.muxPlaybackId}/thumbnail.jpg`}
+                  alt={post.title || 'Video'}
+                  className="w-full aspect-video"
+                />
+              </Link>
             )}
 
             {!post.muxPlaybackId && post.mediaUrls.length > 0 && (
@@ -254,13 +262,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
                     }}
                     className="w-full h-40 relative overflow-hidden rounded-xl border border-border cursor-pointer focus:outline-none hover:opacity-95 transition-opacity"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={`Media ${i + 1}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <FeedImage src={url} alt={`Media ${i + 1}`} className="w-full h-full" />
                   </button>
                 ))}
               </div>
@@ -424,7 +426,20 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
       {/* Media (images or HLS video) */}
       {post.muxPlaybackId && (
         <div className="px-4 pb-3">
-          <VideoPlayer playbackId={post.muxPlaybackId} />
+          {fullView ? (
+            <VideoPlayer playbackId={post.muxPlaybackId} />
+          ) : (
+            <Link
+              href={`/post/${post._id}`}
+              className="block relative overflow-hidden rounded-xl border border-border"
+            >
+              <FeedImage
+                src={`https://image.mux.com/${post.muxPlaybackId}/thumbnail.jpg`}
+                alt={post.title || 'Video'}
+                className="w-full aspect-video"
+              />
+            </Link>
+          )}
         </div>
       )}
 
@@ -441,13 +456,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               }}
               className="w-full h-48 relative overflow-hidden rounded-lg border border-border cursor-pointer focus:outline-none hover:opacity-95 transition-opacity"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`Media ${i + 1}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              <FeedImage src={url} alt={`Media ${i + 1}`} className="w-full h-full" />
             </button>
           ))}
         </div>

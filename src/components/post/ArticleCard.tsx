@@ -16,7 +16,7 @@ import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { socket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
-import VideoPlayer from './VideoPlayer';
+import FeedImage from './FeedImage';
 import PollBlock from './PollBlock';
 import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -209,11 +209,10 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                 {/* Cover image if available */}
                 {article.mediaUrls.length > 0 && (
                   <div className="relative w-full h-40 overflow-hidden border-b border-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <FeedImage
                       src={article.mediaUrls[0]}
                       alt={article.title || 'Article cover'}
-                    className="w-full h-full object-cover transition-opacity duration-300"
+                      className="w-full h-full"
                     />
                   </div>
                 )}
@@ -299,11 +298,10 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
           }}
           className="relative w-full h-48 sm:h-64 overflow-hidden block focus:outline-none cursor-pointer text-left"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <FeedImage
             src={article.mediaUrls[0]}
             alt={article.title || 'Article cover'}
-            className="w-full h-full object-cover"
+            className="w-full h-full"
           />
           <div className="absolute top-4 right-4">
           </div>
@@ -312,7 +310,13 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
       {article.muxPlaybackId && (
         <div className="px-4 pt-4">
-          <VideoPlayer playbackId={article.muxPlaybackId} />
+          <Link href={`/post/${article._id}`} className="block relative overflow-hidden rounded-xl border border-border">
+            <FeedImage
+              src={`https://image.mux.com/${article.muxPlaybackId}/thumbnail.jpg`}
+              alt={article.title || 'Video'}
+              className="w-full aspect-video"
+            />
+          </Link>
         </div>
       )}
 

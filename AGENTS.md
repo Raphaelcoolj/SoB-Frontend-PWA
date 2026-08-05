@@ -20,6 +20,13 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Feed Media Performance (2026-08-05)
+
+- **`src/components/post/FeedImage.tsx`** (new) — feed thumbnail image component. Rewrites Cloudinary URLs with a `w_400,c_fill,f_auto,q_auto` transform (keeps full-res URL untouched for lightbox/detail) and shows a shimmer skeleton via `<style jsx>` while loading (removed on `onLoad`/`onError`). Non-Cloudinary URLs pass through unchanged
+- **Mux thumbnails in feed** — `PostCard.tsx` (flat + default variants) and `ArticleCard.tsx` now render a static `https://image.mux.com/<playbackId>/thumbnail.jpg` linked to the post instead of initializing the full HLS `<VideoPlayer>` on scroll. `PostCard` keeps `<VideoPlayer>` only when `fullView` (post detail)
+- **`useDiscoverFeed.ts`** — added `dedupingInterval: 10000` to the SWR config to dedupe rapid refetches
+- `TrendingSection.tsx` cover images now render through `FeedImage` (Cloudinary transform + shimmer)
+
 ## Stack
 - **Framework**: Next.js (App Router, canary)
 - **Language**: TypeScript
