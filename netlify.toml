@@ -2,6 +2,12 @@
   command = "npm run build"
   publish = ".next"
 
+# The Sentry DSN is a public client identifier (not a credential). The Sentry SDK
+# inlines its value into server/edge build output, which trips Netlify's secrets
+# scanner and fails every deploy. Exempt the DSN keys from scanning.
+[secrets_scan]
+  omit_keys = ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
