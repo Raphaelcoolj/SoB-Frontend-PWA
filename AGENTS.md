@@ -20,6 +20,13 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Chat fixes: pinned input, doc cards, voice reply indicator (2026-08-05)
+
+- `src/app/(main)/chats/[conversations]/page.tsx`:
+  - **Pinned input bar** — the fixed chat overlay + inner flex column now carry `overflow-hidden overscroll-none`, and the message list is `min-h-0 overscroll-contain`. Previously a touch-drag starting on the input bar could scroll the page/body and push the pinned input out of view (the bar was already a `flex-shrink-0` sibling of the `flex-1 overflow-y-auto` list; the missing piece was scroll containment so gestures on the input couldn't scroll an ancestor)
+  - **Doc cards** — the header row (colored ext badge + filename + size via `getDocDisplayName`/`formatFileSize`) now renders for EVERY document, and the Cloudinary PDF first-page preview renders ABOVE it when available. Before, `isPdf` replaced the header with the preview (so PDFs showed no title/size) and fell back to a blank `<iframe>`; the iframe fallback was removed and the preview degrades to just the header on error
+  - **Voice-note reply line** — the in-bubble reply indicator now only renders for real replies: `isRealReply = !!(msg.replyTo?._id && msg.replyTo?.sender?.name)` guarded with `msg.replyTo`. The backend serializes `replyTo: { text: '', sender: { name: '' } }` on every non-reply message (Mongoose subdocument default), which the old `msg.replyTo &&` check treated as a reply → every voice note showed a stray `border-l-2` line + "Message" label
+
 ## Feed Media Performance (2026-08-05)
 
 - **`src/components/post/FeedImage.tsx`** (new) — feed thumbnail image component. Rewrites Cloudinary URLs with a `w_400,c_fill,f_auto,q_auto` transform (keeps full-res URL untouched for lightbox/detail) and shows a shimmer skeleton via `<style jsx>` while loading (removed on `onLoad`/`onError`). Non-Cloudinary URLs pass through unchanged
