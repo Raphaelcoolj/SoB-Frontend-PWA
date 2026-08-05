@@ -47,6 +47,27 @@ const getDocDisplayName = (media: { filename?: string; url: string }) => {
   }
 };
 
+const getDocExt = (media: { mimeType?: string; filename?: string; url: string }): string => {
+  const fn = media.filename || media.url || '';
+  const mime = media.mimeType || '';
+  if (mime.includes('pdf') || /\.pdf$/i.test(fn)) return 'PDF';
+  if (mime.includes('word') || /\.(doc|docx)$/i.test(fn)) return 'DOC';
+  if (mime.includes('sheet') || mime.includes('excel') || /\.(xls|xlsx|csv)$/i.test(fn)) return 'XLS';
+  if (mime.includes('presentation') || /\.(ppt|pptx)$/i.test(fn)) return 'PPT';
+  const m = fn.match(/\.([a-z0-9]+)$/i);
+  return m ? m[1].toUpperCase() : 'FILE';
+};
+
+const getDocExtBadge = (ext: string): string => {
+  switch (ext) {
+    case 'PDF': return 'bg-red-500/10 text-red-500';
+    case 'DOC': return 'bg-blue-500/10 text-blue-400';
+    case 'XLS': return 'bg-green-500/10 text-green-400';
+    case 'PPT': return 'bg-orange-500/10 text-orange-400';
+    default: return 'bg-foreground/5 text-foreground/60';
+  }
+};
+
 const fetcher = async (url: string) => {
   const res = await fetchWithAuth(url, { method: 'GET' })
   const json = await res.json()
@@ -65,7 +86,7 @@ interface Message {
   media?:
     | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }
     | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }[];
-  replyTo?: { _id: string; text: string; sender: { name: string } };
+  replyTo?: { _id: string; text: string; sender: { name: string }; mediaUrl?: string; mediaType?: string };
   reactions?: Record<string, string>;
   isEdited?: boolean;
   deleted?: boolean;
@@ -388,7 +409,7 @@ function ChatConversation() {
       sender: { _id: currentUser._id, name: currentUser.name, username: currentUser.username, avatar: currentUser.avatar },
       text: sendText,
       createdAt: new Date().toISOString(),
-      replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender } : undefined,
+      replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType } : undefined,
     };
     setLocalMessages((prev) => [...prev, optimistic]);
 
@@ -397,7 +418,7 @@ function ChatConversation() {
         method: 'POST',
         body: JSON.stringify({
           text: sendText,
-          replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender } : undefined,
+          replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType } : undefined,
         }),
       });
       if (res.ok) {
@@ -522,7 +543,7 @@ function ChatConversation() {
       const formData = new FormData();
       formData.append('media', selectedFile);
       if (sendText) formData.append('text', sendText);
-      if (replyTo) formData.append('replyTo', JSON.stringify(replyTo));
+      if (replyTo) formData.append('replyTo', JSON.stringify({ _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType }));
       const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, {
         method: 'POST', body: formData, headers: {},
       });
@@ -958,59 +979,55 @@ function ChatConversation() {
                                 loading="lazy"
                               />
                             ) : (
-                              <div className="bg-muted flex flex-col items-center justify-center py-4 gap-1.5 border-b border-border/60">
-                                <div className="w-9 h-9 rounded-full bg-foreground/5 flex items-center justify-center border border-foreground/10">
-                                  <FileText className="w-4 h-4 text-foreground/80" />
+                              <div className="bg-muted px-3 py-2.5 flex items-center gap-2.5 border-b border-border/60">
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${getDocExtBadge(getDocExt(mediaItem))}`}>
+                                  <FileText className="w-4 h-4" />
                                 </div>
-                                <span className="text-[10px] font-bold text-foreground/70 tracking-widest uppercase">DOCUMENT PREVIEW</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-bold text-foreground truncate">{getDocDisplayName(mediaItem)}</p>
+                                  <p className="text-[10px] text-muted-foreground/80 truncate">
+                                    {mediaItem.size ? formatFileSize(mediaItem.size) : 'File'}
+                                  </p>
+                                </div>
                               </div>
                             )}
                             {/* Body */}
                             <div className="bg-[#1C1C1E] p-3 text-white flex flex-col gap-2">
-                              <div>
-                                <a href={mediaItem.url} download className="font-bold text-xs hover:underline flex items-center gap-1.5 break-all text-white">
-                                  {getDocDisplayName(mediaItem)}
-                                </a>
-                                <div className="flex items-center justify-between gap-2 mt-0.5">
-                                  <p className="text-[10px] text-white/70">
-                                    {mediaItem.size ? formatFileSize(mediaItem.size) : ''}
-                                  </p>
-                                  {!isTemp && !mine && (
-                                    <button
-                                      onClick={() => handleDownloadMedia(mediaItem, msg._id)}
-                                      disabled={downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1}
-                                      className="text-[10px] font-semibold bg-white/10 hover:bg-white/20 rounded-md px-2 py-1 flex items-center gap-1 text-white transition-colors cursor-pointer"
-                                      title="Download document"
-                                    >
-                                      {downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1 ? (
-                                        <>
-                                          <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                          </svg>
-                                          {Math.round(downloadProgress[msg._id] * 100)}%
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Download className="w-3 h-3" />
-                                          Download
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
                               {msg.text && (
-                                <p className="text-xs leading-relaxed mt-1 text-white border-t border-white/15 pt-2 [overflow-wrap:anywhere]">
+                                <p className="text-xs leading-relaxed [overflow-wrap:anywhere]">
                                   {msg.text}
                                 </p>
                               )}
-                              {/* Time inside document body */}
-                              <div className="flex items-center justify-end gap-1 self-end mt-1">
-                                <span className="text-[10px] text-white/60">{formatTime(msg.createdAt)}</span>
-                                {mine && (
-                                  <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-400' : 'text-white/40'}`} />
+                              <div className="flex items-center justify-between gap-2">
+                                {!isTemp && !mine && (
+                                  <button
+                                    onClick={() => handleDownloadMedia(mediaItem, msg._id)}
+                                    disabled={downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1}
+                                    className="text-[10px] font-semibold bg-white/10 hover:bg-white/20 rounded-md px-2 py-1 flex items-center gap-1 text-white transition-colors cursor-pointer"
+                                    title="Download document"
+                                  >
+                                    {downloadProgress[msg._id] > 0 && downloadProgress[msg._id] < 1 ? (
+                                      <>
+                                        <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        {Math.round(downloadProgress[msg._id] * 100)}%
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Download className="w-3 h-3" />
+                                        Download
+                                      </>
+                                    )}
+                                  </button>
                                 )}
+                                <div className="flex items-center justify-end gap-1 ml-auto">
+                                  <span className="text-[10px] text-white/60">{formatTime(msg.createdAt)}</span>
+                                  {mine && (
+                                    <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-400' : 'text-white/40'}`} />
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1027,9 +1044,27 @@ function ChatConversation() {
                                   <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
                                     {msg.replyTo.sender.name}
                                   </p>
-                                  <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
-                                    {msg.replyTo.text}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {(msg.replyTo.mediaType === 'image' || msg.replyTo.mediaType === 'video') && msg.replyTo.mediaUrl && (
+                                      <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0 bg-black/20 relative">
+                                        <img src={msg.replyTo.mediaUrl} alt="" className="w-full h-full object-cover" />
+                                        {msg.replyTo.mediaType === 'video' && (
+                                          <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                            <Play className="w-2.5 h-2.5 text-white" />
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {msg.replyTo.mediaType === 'voice' && (
+                                      <Mic className={`w-3 h-3 flex-shrink-0 ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`} />
+                                    )}
+                                    {msg.replyTo.mediaType === 'document' && (
+                                      <FileText className={`w-3 h-3 flex-shrink-0 ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`} />
+                                    )}
+                                    <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
+                                      {msg.replyTo.text || (msg.replyTo.mediaType === 'image' ? 'Photo' : msg.replyTo.mediaType === 'video' ? 'Video' : msg.replyTo.mediaType === 'voice' ? 'Voice note' : msg.replyTo.mediaType === 'document' ? 'Document' : 'Message')}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -1226,6 +1261,7 @@ function ChatConversation() {
                     const formData = new FormData();
                     formData.append('media', blob, 'voice.mp3');
                     formData.append('text', '');
+                    if (recordingDuration > 0) formData.append('duration', String(recordingDuration * 1000));
                     setSending(true);
                     setRecordedAudioUrl(null);
                     setRecordingDuration(0);

@@ -38,6 +38,15 @@ After every task, an agent MUST:
 - **Auth**: JWT tokens stored in Zustand + localStorage
 - **Error monitoring**: Sentry (`@sentry/nextjs`) — client init in `src/instrumentation-client.ts`, server/edge init in `src/sentry.server.config.ts` / `src/sentry.edge.config.ts`, `src/instrumentation.ts` (`register` + `onRequestError`), `src/app/global-error.tsx` for React render errors, `withSentryConfig` in `next.config.ts`
 
+### 2026-08-05 — Reply previews carry media type, doc cards show ext badge, voice duration sent
+
+- `src/app/(main)/chats/[conversations]/page.tsx`:
+  - `replyTo` payload now includes `mediaType` + `mediaUrl` on every send path (text JSON body, media FormData, optimistic message) so received messages render the real reply preview
+  - **In-bubble reply indicator**: shows a small 20×20 thumbnail for image/video replies (video gets a play overlay), a mic/doc icon for voice/docs, and falls back to "Photo"/"Video"/"Voice note"/"Document" labels when the replied message had no text (was blank before)
+  - **Voice notes**: the audio send now appends `duration` (ms) to the upload FormData so durations display instead of `0s`
+  - **Doc cards**: non-PDF preview header upgraded from a generic icon + "DOCUMENT PREVIEW" to a colored extension badge (PDF/DOC/XLS/PPT via `getDocExt` + `getDocExtBadge`) with filename + size; body slimmed to caption + download + time/ticks row
+- Helpers added: `getDocExt`, `getDocExtBadge`; `Message.replyTo` type extended with `mediaUrl?`/`mediaType?`
+
 ### 2026-08-05 — Chat row long-press menu stacking fix
 
 - `ConversationsSidebar.tsx` (mobile variant, `/chats`): conversation rows keep `animate-[fadeIn_0.3s_ease-out]` with `animationFillMode: 'both'`, which permanently applies `transform: translateY(0)` — a non-`none` transform that creates a stacking context. The `absolute z-50` menu was trapped inside its row and later sibling rows painted over it (menu looked transparent/behind). Fixed by adding `z-50` to the row whose menu is open so it lifts above siblings.
