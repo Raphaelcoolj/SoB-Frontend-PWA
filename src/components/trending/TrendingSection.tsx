@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { Flame, Clock } from 'lucide-react';
 import { fetchWithAuth } from '../../lib/api';
 import UserAvatar from '../user/UserAvatar';
+import FeedImage from '../post/FeedImage';
 import { formatDistanceToNow } from '../../lib/utils';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -72,10 +73,10 @@ export default function TrendingSection() {
           >
             {article.mediaUrls.length > 0 && (
               <div className="h-28 overflow-hidden">
-                <img
+                <FeedImage
                   src={article.mediaUrls[0]}
                   alt={article.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
             )}

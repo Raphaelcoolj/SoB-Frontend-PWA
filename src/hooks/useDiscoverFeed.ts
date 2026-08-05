@@ -47,6 +47,7 @@ export const useDiscoverFeed = (fieldId: string | null) => {
     {
       revalidateFirstPage: false,
       revalidateOnFocus: false,
+      dedupingInterval: 10000,
     }
   );
 

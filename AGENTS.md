@@ -20,6 +20,13 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Feed Media Performance (2026-08-05)
+
+- **`src/components/post/FeedImage.tsx`** (new) — feed thumbnail image component. Rewrites Cloudinary URLs with a `w_400,c_fill,f_auto,q_auto` transform (keeps full-res URL untouched for lightbox/detail) and shows a shimmer skeleton via `<style jsx>` while loading (removed on `onLoad`/`onError`). Non-Cloudinary URLs pass through unchanged
+- **Mux thumbnails in feed** — `PostCard.tsx` (flat + default variants) and `ArticleCard.tsx` now render a static `https://image.mux.com/<playbackId>/thumbnail.jpg` linked to the post instead of initializing the full HLS `<VideoPlayer>` on scroll. `PostCard` keeps `<VideoPlayer>` only when `fullView` (post detail)
+- **`useDiscoverFeed.ts`** — added `dedupingInterval: 10000` to the SWR config to dedupe rapid refetches
+- `TrendingSection.tsx` cover images now render through `FeedImage` (Cloudinary transform + shimmer)
+
 ## Stack
 - **Framework**: Next.js (App Router, canary)
 - **Language**: TypeScript
@@ -29,6 +36,28 @@ After every task, an agent MUST:
 - **Real-time**: Socket.IO client (`src/lib/socket.ts`)
 - **Icons**: Lucide React
 - **Auth**: JWT tokens stored in Zustand + localStorage
+- **Error monitoring**: Sentry (`@sentry/nextjs`) — client init in `src/instrumentation-client.ts`, server/edge init in `src/sentry.server.config.ts` / `src/sentry.edge.config.ts`, `src/instrumentation.ts` (`register` + `onRequestError`), `src/app/global-error.tsx` for React render errors, `withSentryConfig` in `next.config.ts`
+
+### 2026-08-05 — Chat row long-press menu stacking fix
+
+- `ConversationsSidebar.tsx` (mobile variant, `/chats`): conversation rows keep `animate-[fadeIn_0.3s_ease-out]` with `animationFillMode: 'both'`, which permanently applies `transform: translateY(0)` — a non-`none` transform that creates a stacking context. The `absolute z-50` menu was trapped inside its row and later sibling rows painted over it (menu looked transparent/behind). Fixed by adding `z-50` to the row whose menu is open so it lifts above siblings.
+
+### 2026-08-05 — PWA service worker no-cache fix (stale installed PWA)
+
+- Root cause: the deployed `/serwist/sw.js` (the SW the PWA actually registers) was served with `Cache-Control: s-maxage=31536000` because Next.js statically caches force-static route handlers and `netlify.toml` only set `must-revalidate` on `/sw.js` (the orphaned legacy push SW). Result: an installed PWA never re-fetched the SW, so it ran a stale bundle indefinitely (e.g. old chat layout / input not pinned).
+- `src/app/serwist/[path]/route.ts` — wrapped `createSerwistRoute`'s `GET` to force `Cache-Control: public, max-age=0, must-revalidate` + `Service-Worker-Allowed: /` on the SW response (verified in `.next/server/app/serwist/sw.js.meta`).
+- `netlify.toml` — added a `[[headers]]` rule for `/serwist/sw.js` mirroring the SW cache headers at the CDN edge.
+- Deploy note: after redeploying, the installed PWA must be closed and reopened (SW has `skipWaiting` + `clientsClaim`, so it self-updates on the next launch; worst case uninstall/reinstall the PWA).
+
+## Sentry (2026-08-05)
+
+- Client SDK auto-discovered via `src/instrumentation-client.ts` (Turbopack requirement — `sentry.client.config.ts` is deprecated and does NOT work with Turbopack)
+- `src/instrumentation.ts` imports server/edge configs in `register()` and exports `onRequestError = Sentry.captureRequestError`
+- `src/app/global-error.tsx` captures React render errors (must define its own `<html>`/`<body>`)
+- `next.config.ts`: `withSentryConfig(withSerwist(nextConfig), { org, project, silent })` — org/project via `SENTRY_ORG`/`SENTRY_PROJECT` env vars
+- Requires `NEXT_PUBLIC_SENTRY_DSN` (client) / `SENTRY_DSN` (server/edge) — empty in `.env.local`/`.env.production` until set; SDK is a no-op without a DSN
+- Session Replay enabled on client: `replaysSessionSampleRate: 0.1`, `replaysOnErrorSampleRate: 1.0`
+- Traces: 100% in dev, 10% in production
 
 ## Project Structure (Key Files)
 
