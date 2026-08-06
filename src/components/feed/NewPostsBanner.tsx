@@ -66,6 +66,7 @@ export default function NewPostsBanner({ newestCreatedAt, onRefresh }: NewPostsB
 
   const handleTap = useCallback(() => {
     onRefresh();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setVisible(false);
   }, [onRefresh]);
 
