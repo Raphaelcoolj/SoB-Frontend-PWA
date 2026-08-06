@@ -8,7 +8,7 @@
 
 import React from 'react';
 import useSWR from 'swr';
-import { 
+import {
   Users, 
   FileText, 
   TrendingUp, 
@@ -17,7 +17,10 @@ import {
   Activity,
   Heart,
   MessageCircle,
-  Share2
+  Share2,
+  Flame,
+  UserX,
+  Target
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -167,6 +170,145 @@ export default function AdminDashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Retention Analytics */}
+      <RetentionSection token={accessToken} />
+    </div>
+  );
+}
+
+// ---- Retention analytics (cohort retention, funnel, sessions, churn) ----
+type RetentionRow = { weekStart: string; signups: number; retention: number[] };
+type Funnel = { rates: Record<string, number>; totalUsers: number };
+type Churn = { dormant: any[]; coldStart: any[]; currentlyActiveCount: number };
+
+function RetentionSection({ token }: { token: string | null }) {
+  const base = process.env.NEXT_PUBLIC_API_URL;
+  const auth = (url: string) =>
+    fetcher(`${base}${url}`, token ?? '');
+
+  const { data: retention } = useSWR<RetentionRow[]>(token ? `${base}/api/admin/analytics/retention` : null, auth);
+  const { data: funnel } = useSWR<Funnel>(token ? `${base}/api/admin/analytics/funnel` : null, auth);
+  const { data: churn } = useSWR<Churn>(token ? `${base}/api/admin/analytics/churn` : null, auth);
+  const { data: sessions } = useSWR<any>(token ? `${base}/api/admin/analytics/sessions` : null, auth);
+
+  if (!retention && !funnel && !churn) {
+    return <Skeleton className="h-64 w-full rounded-2xl" />;
+  }
+
+  const rows = retention ?? [];
+  const latest = rows.filter((r) => r.signups > 0);
+  const maxRetention = Math.max(1, ...latest.flatMap((r) => r.retention));
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div>
+        <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+          <Target className="w-5 h-5 text-accent" />
+          Retention
+        </h2>
+        <p className="text-muted-foreground text-sm mt-1">Weekly cohort retention + re-engagement health (success metric: D7 trending up).</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* Cohort retention */}
+        <Card className="p-4 sm:p-6 border-border/60">
+          <h3 className="font-medium text-sm mb-4">Weekly Cohort Retention</h3>
+          {latest.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Not enough cohorts yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {latest.map((r) => (
+                <div key={String(r.weekStart)} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{new Date(r.weekStart).toISOString().slice(0, 10)}</span>
+                    <span>{r.signups} signups</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {r.retention.map((val, i) => {
+                      const pct = Math.round((val / maxRetention) * 100);
+                      return (
+                        <div key={i} className="flex-1">
+                          <div className="h-16 bg-muted rounded-lg overflow-hidden relative">
+                            <div className="absolute bottom-0 left-0 right-0 bg-accent" style={{ height: `${pct}%` }} />
+                          </div>
+                          <p className="text-center text-[9px] text-muted-foreground mt-1">W{i + 1}</p>
+                          <p className="text-center text-[10px] font-semibold text-foreground">{Math.round(val * 100)}%</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Onboarding funnel + sessions */}
+        <Card className="p-4 sm:p-6 border-border/60">
+          <h3 className="font-medium text-sm mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-accent" /> Onboarding Funnel</h3>
+          {funnel && (
+            <div className="space-y-2">
+              {[
+                ['Signup → Onboarded', funnel.rates.signupToOnboarded],
+                ['Signup → First Session', funnel.rates.signupToSession],
+                ['Signup → First Post', funnel.rates.signupToPost],
+                ['Signup → First Engagement', funnel.rates.signupToEngaged],
+              ].map(([label, val]) => (
+                <div key={label as string} className="flex items-center gap-3">
+                  <span className="text-[10px] text-muted-foreground w-40 truncate">{label}</span>
+                  <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (val as number) * 3)}%` }} />
+                  </div>
+                  <span className="text-[10px] font-semibold w-8 text-right">{val}%</span>
+                </div>
+              ))}
+              {sessions && (
+                <div className="pt-3 mt-3 border-t border-border/40 grid grid-cols-2 gap-2">
+                  <div><p className="text-base font-semibold text-foreground">{sessions.avgSessionSeconds}s</p><p className="text-[10px] text-muted-foreground">Avg session</p></div>
+                  <div><p className="text-base font-semibold text-foreground">{sessions.avgSessionsPerUser}</p><p className="text-[10px] text-muted-foreground">Sessions / user</p></div>
+                </div>
+              )}
+            </div>
+          )}
+          {!funnel && <p className="text-sm text-muted-foreground">No data yet.</p>}
+        </Card>
+      </div>
+
+      {/* Churn */}
+      {churn && (
+        <Card className="p-4 sm:p-6 border-border/60">
+          <h3 className="font-medium text-sm mb-4 flex items-center gap-2"><UserX className="w-4 h-4 text-red-500" /> Churn / At-Risk ({churn.coldStart.length} cold-start · {churn.dormant.length} dormant)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Cold start (signed up, never returned)</p>
+              {churn.coldStart.length === 0 ? <p className="text-sm text-muted-foreground">Great — everyone who signed up has come back.</p> : (
+                <div className="space-y-1">
+                  {churn.coldStart.slice(0, 8).map((u: any) => (
+                    <div key={u._id} className="flex items-center gap-2 text-xs">
+                      <UserAvatar avatar={u.avatar} name={u.username} size="sm" />
+                      <span className="truncate text-muted-foreground">@{u.username}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Dormant (active before, silent 14d+)</p>
+              {churn.dormant.length === 0 ? <p className="text-sm text-muted-foreground">No dormant users right now.</p> : (
+                <div className="space-y-1">
+                  {churn.dormant.slice(0, 8).map((u: any) => (
+                    <div key={u._id} className="flex items-center gap-2 text-xs">
+                      <UserAvatar avatar={u.avatar} name={u.username} size="sm" />
+                      <span className="truncate text-muted-foreground">@{u.username}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
