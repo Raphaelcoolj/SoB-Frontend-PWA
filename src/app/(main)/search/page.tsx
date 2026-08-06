@@ -12,6 +12,7 @@ import { useSearch } from '../../../hooks/useSearch';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import SearchResults from '../../../components/search/SearchResults';
 import DiscoverFields from '../../../components/search/DiscoverFields';
+import UserSuggestions from '../../../components/user/UserSuggestions';
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -78,6 +79,7 @@ export default function SearchPage() {
               selectedField={selectedField}
               setSelectedField={setSelectedField}
             />
+            <UserSuggestions />
           </div>
         )}
       </div>
