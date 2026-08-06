@@ -92,7 +92,7 @@ function ReplyPreviewInner({
                 </span>
               </div>
             )}
-            {!showThumb && !showPdfThumb && (
+            {!showThumb && !showPdfThumb && type !== 'text' && (
               <Icon className={`w-3 h-3 flex-shrink-0 ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`} />
             )}
             <p className={`text-[11px] truncate ${unavailable ? (mine ? 'text-white/40' : 'text-muted-foreground/50') : secondaryColor}`}>
@@ -124,7 +124,7 @@ function ReplyPreviewInner({
             <FileText className="w-3.5 h-3.5 text-white/90" />
           </span>
         </div>
-      ) : (
+      ) : type === 'text' ? null : (
         <div
           className={`w-9 h-9 rounded flex items-center justify-center flex-shrink-0 ${
             type === 'document' ? 'bg-purple-500/10' : 'bg-accent/10'

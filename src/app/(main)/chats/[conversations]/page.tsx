@@ -14,6 +14,7 @@ import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
 import ReplyPreview from '../../../../components/chat/ReplyPreview';
 import LinkPreviewCard from '../../../../components/shared/LinkPreviewCard';
+import MentionText from '../../../../components/shared/MentionText';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { formatFileSize } from '../../../../lib/utils';
@@ -1045,9 +1046,13 @@ function ChatConversation() {
                             {/* Body */}
                             <div className="bg-[#1C1C1E] p-3 text-white flex flex-col gap-2">
                               {msg.text && (
-                                <p className="text-xs leading-relaxed [overflow-wrap:anywhere]">
-                                  {msg.text}
-                                </p>
+                                <MentionText
+                                  as="p"
+                                  text={msg.text}
+                                  linksOnly
+                                  linkClassName="text-white underline underline-offset-2 hover:opacity-90 font-medium break-all"
+                                  className="text-xs leading-relaxed [overflow-wrap:anywhere]"
+                                />
                               )}
                               <div className="flex items-center justify-between gap-2">
                                 {!isTemp && !mine && (
@@ -1098,9 +1103,13 @@ function ChatConversation() {
 
                             <div className={`relative px-3 py-1.5 ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'min-w-[70px]'}`}>
                               {msg.text && (
-                                <span className={`text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] block w-full ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-white' : 'text-foreground'}`}>
-                                  {msg.text}
-                                </span>
+                                <MentionText
+                                  as="span"
+                                  text={msg.text}
+                                  linksOnly
+                                  linkClassName={`underline underline-offset-2 hover:opacity-90 font-medium break-all ${mine ? 'text-white' : 'text-accent'}`}
+                                  className={`text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] block w-full ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-white' : 'text-foreground'}`}
+                                />
                               )}
                               {(mediaItem?.type !== 'image' && mediaItem?.type !== 'video') && (
                                 <div className="absolute bottom-1.5 right-3 flex items-center gap-1">
