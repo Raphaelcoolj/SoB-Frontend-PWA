@@ -13,7 +13,6 @@ import { useFollowingFeed } from '../../../hooks/useFollowingFeed';
 import PostFeed from '../../../components/post/PostFeed';
 import TrendingSection from '../../../components/trending/TrendingSection';
 import UserAvatar from '../../../components/user/UserAvatar';
-import UserSuggestions from '../../../components/user/UserSuggestions';
 import NewPostsBanner from '../../../components/feed/NewPostsBanner';
 import Link from 'next/link';
 import { MoreVertical, Plus } from 'lucide-react';
@@ -25,7 +24,6 @@ function ForYouTab() {
   return (
     <>
       <NewPostsBanner newestCreatedAt={feed.posts?.[0]?.createdAt} onRefresh={feed.refresh} />
-      <UserSuggestions />
       <PostFeed
         posts={feed.posts}
         isLoadingInitial={feed.isLoadingInitial}
