@@ -13,6 +13,8 @@ interface MentionTextProps {
   text: string;
   className?: string;
   as?: 'p' | 'span';
+  linksOnly?: boolean;
+  linkClassName?: string;
 }
 
 const cleanUrl = (rawUrl: string): { href: string; display: string } => {
@@ -22,7 +24,13 @@ const cleanUrl = (rawUrl: string): { href: string; display: string } => {
   return { href, display: raw };
 };
 
-const MentionText: React.FC<MentionTextProps> = ({ text, className = '', as: Tag = 'p' }) => {
+const MentionText: React.FC<MentionTextProps> = ({
+  text,
+  className = '',
+  as: Tag = 'p',
+  linksOnly = false,
+  linkClassName,
+}) => {
   if (!text) return null;
 
   const parts: React.ReactNode[] = [];
@@ -37,29 +45,37 @@ const MentionText: React.FC<MentionTextProps> = ({ text, className = '', as: Tag
     }
 
     if (match[1]) {
-      const username = match[1];
-      parts.push(
-        <Link
-          key={match.index}
-          href={`/profile/${username}`}
-          className="text-accent hover:underline font-medium"
-          onClick={(e) => e.stopPropagation()}
-        >
-          @{username}
-        </Link>
-      );
+      if (linksOnly) {
+        parts.push(text.slice(match.index, match.index + match[0].length));
+      } else {
+        const username = match[1];
+        parts.push(
+          <Link
+            key={match.index}
+            href={`/profile/${username}`}
+            className="text-accent hover:underline font-medium"
+            onClick={(e) => e.stopPropagation()}
+          >
+            @{username}
+          </Link>
+        );
+      }
     } else if (match[2]) {
-      const tag = match[2];
-      parts.push(
-        <Link
-          key={match.index}
-          href={`/search?tag=${encodeURIComponent(tag)}`}
-          className="text-accent hover:underline font-medium"
-          onClick={(e) => e.stopPropagation()}
-        >
-          #{tag}
-        </Link>
-      );
+      if (linksOnly) {
+        parts.push(text.slice(match.index, match.index + match[0].length));
+      } else {
+        const tag = match[2];
+        parts.push(
+          <Link
+            key={match.index}
+            href={`/search?tag=${encodeURIComponent(tag)}`}
+            className="text-accent hover:underline font-medium"
+            onClick={(e) => e.stopPropagation()}
+          >
+            #{tag}
+          </Link>
+        );
+      }
     } else if (match[3]) {
       const { href, display } = cleanUrl(match[3]);
       parts.push(
@@ -69,7 +85,10 @@ const MentionText: React.FC<MentionTextProps> = ({ text, className = '', as: Tag
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-accent underline underline-offset-2 hover:opacity-90 font-medium break-all"
+          className={
+            linkClassName ??
+            'text-accent underline underline-offset-2 hover:opacity-90 font-medium break-all'
+          }
         >
           {display}
         </a>

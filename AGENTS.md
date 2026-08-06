@@ -20,6 +20,14 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Clickable links in chat text + text-reply previews without icon (2026-08-06)
+
+- `src/components/shared/MentionText.tsx` — added `linksOnly` (render only URLs as links; `@`/`#` stay plain text) and `linkClassName` (override the URL anchor class, default `text-accent underline underline-offset-2 …`) props
+- `src/app/(main)/chats/[conversations]/page.tsx` — chat message text and document captions now render URLs as underlined clickable links via `MentionText` (`as="span"`/`as="p"`): white underline on own bubbles, accent on others. `@`/`#` are NOT linkified in chat (plain text)
+- `src/components/chat/ReplyPreview.tsx` — text replies render with NO icon (sender + text only) in both the inline in-bubble indicator and the compose reply bar; media/doc/voice keep their thumbnails/icons
+- Enter-to-newline confirmed already correct in the chat composer (plain multiline `<textarea>`; sending is via the send button only)
+- New tests: `src/components/shared/MentionText.test.tsx` (5: default URL/mention/hashtag links, linksOnly plain-text mode, linkClassName, `as="span"`). Full suite: **62 tests**
+
 ## Link Previews: chat bubbles, posts, articles + lightbox Save (2026-08-06)
 
 - `src/lib/linkPreview.ts` (new) — `extractUrl` pulls the first URL from free text: protocol links, `www.`, and bare domains (`example.com/blog`), while ignoring version-like decimals (`3.5`) and abbreviations (`e.g`) via a ≥2-letter TLD requirement. `getLinkPreview` calls `GET /api/link-preview?url=` with an in-memory cache + in-flight dedupe so a unique link only triggers one request per session
