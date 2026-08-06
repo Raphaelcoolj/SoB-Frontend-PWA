@@ -12,74 +12,24 @@ import UserAvatar from '../../../../components/user/UserAvatar';
 import ConversationsSidebar from '../../../../components/layout/ConversationsSidebar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
+import ReplyPreview from '../../../../components/chat/ReplyPreview';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { formatFileSize } from '../../../../lib/utils';
+import {
+  getMediaExt,
+  isPdf,
+  getDocDisplayName,
+  getDocExt,
+  getDocExtBadge,
+  getPdfFirstPageUrl,
+  ChatMediaType,
+  ReplyToData,
+} from '../../../../lib/chatMedia';
 
 const ImageLightbox = dynamic(() => import('../../../../components/post/ImageLightbox'), { ssr: false });
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
-
-const getMediaExt = (type: string) => {
-  switch (type) {
-    case 'image': return 'jpg';
-    case 'video': return 'mp4';
-    case 'document': return 'pdf';
-    default: return 'bin';
-  }
-};
-
-const isPdf = (media: { filename?: string; mimeType?: string; url: string }) => {
-  const name = (media.filename || '').toLowerCase();
-  const mime = (media.mimeType || '').toLowerCase();
-  return mime === 'application/pdf' || name.endsWith('.pdf') || media.url.toLowerCase().includes('.pdf');
-};
-
-const getDocDisplayName = (media: { filename?: string; url: string }) => {
-  if (media.filename && !media.filename.startsWith('http')) return media.filename;
-  try {
-    const url = new URL(media.url);
-    const path = decodeURIComponent(url.pathname);
-    const name = path.split('/').pop()?.split('?')[0] || '';
-    return name ? name : 'Document';
-  } catch {
-    return media.filename || 'Document';
-  }
-};
-
-const getDocExt = (media: { mimeType?: string; filename?: string; url: string }): string => {
-  const fn = media.filename || media.url || '';
-  const mime = media.mimeType || '';
-  if (mime.includes('pdf') || /\.pdf$/i.test(fn)) return 'PDF';
-  if (mime.includes('word') || /\.(doc|docx)$/i.test(fn)) return 'DOC';
-  if (mime.includes('sheet') || mime.includes('excel') || /\.(xls|xlsx|csv)$/i.test(fn)) return 'XLS';
-  if (mime.includes('presentation') || /\.(ppt|pptx)$/i.test(fn)) return 'PPT';
-  const m = fn.match(/\.([a-z0-9]+)$/i);
-  return m ? m[1].toUpperCase() : 'FILE';
-};
-
-const getDocExtBadge = (ext: string): string => {
-  switch (ext) {
-    case 'PDF': return 'bg-red-500/10 text-red-500';
-    case 'DOC': return 'bg-blue-500/10 text-blue-400';
-    case 'XLS': return 'bg-green-500/10 text-green-400';
-    case 'PPT': return 'bg-orange-500/10 text-orange-400';
-    default: return 'bg-foreground/5 text-foreground/60';
-  }
-};
-
-const getPdfFirstPageUrl = (media: { url: string }): string | null => {
-  try {
-    const u = new URL(media.url);
-    if (u.hostname !== 'res.cloudinary.com') return null;
-    const m = u.pathname.match(/^\/([^/]+)\/raw\/upload\//);
-    if (!m) return null;
-    const encoded = encodeURIComponent(media.url);
-    return `https://res.cloudinary.com/${m[1]}/image/fetch/pg_1,w_300,f_jpg,q_auto/${encoded}`;
-  } catch {
-    return null;
-  }
-};
 
 function PdfPreview({ url, fallback }: { url: string; fallback: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
@@ -110,10 +60,8 @@ interface Message {
   text: string;
   createdAt: string;
   readAt?: string;
-  media?:
-    | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }
-    | { type: 'image' | 'voice' | 'video' | 'document'; url: string; duration?: number; filename?: string; mimeType?: string; size?: number }[];
-  replyTo?: { _id: string; text: string; sender: { name: string }; mediaUrl?: string; mediaType?: string };
+  media?: MediaItem | MediaItem[];
+  replyTo?: ReplyToData;
   reactions?: Record<string, string>;
   isEdited?: boolean;
   deleted?: boolean;
@@ -121,7 +69,7 @@ interface Message {
 }
 
 type MediaItem = {
-  type: 'image' | 'voice' | 'video' | 'document';
+  type: ChatMediaType;
   url: string;
   duration?: number;
   filename?: string;
@@ -145,21 +93,27 @@ function VoiceBubble({ url, duration, isMine }: { url: string; duration?: number
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const ensureAudio = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(url);
+      const a = audioRef.current;
+      a.onended = () => { setPlaying(false); if (intervalRef.current) clearInterval(intervalRef.current); };
+    }
+    return audioRef.current;
+  };
+
   useEffect(() => {
-    audioRef.current = new Audio(url);
-    const a = audioRef.current;
-    a.onended = () => { setPlaying(false); if (intervalRef.current) clearInterval(intervalRef.current); };
-    return () => { a.pause(); a.src = ''; };
-  }, [url]);
+    return () => { audioRef.current?.pause(); if (audioRef.current) audioRef.current.src = ''; };
+  }, []);
 
   const toggle = () => {
-    if (!audioRef.current) return;
+    const audio = ensureAudio();
     if (playing) {
-      audioRef.current.pause();
+      audio.pause();
       setPlaying(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
     } else {
-      audioRef.current.play();
+      audio.play();
       setPlaying(true);
       intervalRef.current = setInterval(() => setTick(t => t + 1), 150);
     }
@@ -214,7 +168,7 @@ function ChatConversation() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTick, setRecordingTick] = useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
-  const [replyTo, setReplyTo] = useState<{ _id: string; text: string; sender: { name: string }; mediaUrl?: string; mediaType?: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<ReplyToData | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
 
@@ -244,7 +198,7 @@ function ChatConversation() {
 
   const msgKey = conversationId ? `${BASE}/api/chats/${conversationId}/messages` : null;
   const { data: msgData, isLoading: msgLoading, mutate: mutateMessages, error: msgError } = useSWR<{ messages: Message[] }>(
-    msgKey, fetcher, { refreshInterval: 3000 }
+    msgKey, fetcher, { dedupingInterval: 5000 }
   );
 
   const messages = msgData?.messages || [];
@@ -281,11 +235,33 @@ function ChatConversation() {
     fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
 
     const onMessage = (data: { conversationId: string; message: Message }) => {
-      if (data.conversationId === conversationId && !isOwnMessage(data.message.sender._id)) {
-        setLocalMessages((prev) => { if (prev.some(m => m._id === data.message._id)) return prev; return [...prev, data.message]; });
-        fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
+      if (data.conversationId !== conversationId) return;
+      if (data.message.deleted) {
+        setLocalMessages((prev) => prev.filter((m) => m._id !== data.message._id));
         mutateMessages();
+        return;
       }
+      const senderId = data.message.sender?._id;
+      if (!senderId) return;
+      if (!isOwnMessage(senderId)) {
+        setLocalMessages((prev) => {
+          const exists = prev.some((m) => m._id === data.message._id);
+          if (!exists) return [...prev, data.message];
+          // Merge socket-updated messages (reactions, edits) instead of dropping them
+          return prev.map((m) => (m._id === data.message._id ? { ...m, ...data.message } : m));
+        });
+        fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
+      }
+      mutateMessages();
+    };
+    const onMessageDeleted = (data: { conversationId: string; messageId: string }) => {
+      if (data.conversationId !== conversationId) return;
+      setLocalMessages((prev) => prev.filter((m) => m._id !== data.messageId));
+      mutateMessages();
+    };
+    const onConversationDeleted = (data: { conversationId: string }) => {
+      if (data.conversationId !== conversationId) return;
+      router.replace('/chats');
     };
     const onRead = (data: { conversationId: string; readAt: string; readerId: string }) => {
       if (data.conversationId !== conversationId) return;
@@ -294,13 +270,17 @@ function ChatConversation() {
       mutateMessages();
     };
     socket.on('chat:message', onMessage);
+    socket.on('chat:message-deleted', onMessageDeleted);
+    socket.on('chat:conversation-deleted', onConversationDeleted);
     socket.on('chat:read', onRead);
     return () => {
       socket.emit('chat:leave', conversationId);
       socket.off('chat:message', onMessage);
+      socket.off('chat:message-deleted', onMessageDeleted);
+      socket.off('chat:conversation-deleted', onConversationDeleted);
       socket.off('chat:read', onRead);
     };
-  }, [conversationId, accessToken, isOwnMessage, mutateMessages, currentUser?._id]);
+  }, [conversationId, accessToken, isOwnMessage, mutateMessages, currentUser?._id, router]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -419,9 +399,30 @@ function ChatConversation() {
     if (!sendText && !previewImage && !selectedFile && !recordedAudioUrl) return;
 
     if (editingMessage) {
-      setLocalMessages(prev => prev.map(m => m._id === editingMessage._id ? { ...m, text: sendText, isEdited: true } : m));
+      const prevText = editingMessage.text;
+      const optimistic = { ...editingMessage, text: sendText, isEdited: true };
+      setLocalMessages(prev => prev.map(m => m._id === editingMessage._id ? optimistic : m));
       setText('');
       setEditingMessage(null);
+      if (!conversationId) return;
+      try {
+        const res = await fetchWithAuth(
+          `${BASE}/api/chats/${conversationId}/messages/${editingMessage._id}`,
+          { method: 'PUT', body: JSON.stringify({ text: sendText }) }
+        );
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data?.message) {
+            setLocalMessages(prev => prev.map(m => m._id === editingMessage._id ? json.data.message : m));
+          }
+        } else {
+          setLocalMessages(prev => prev.map(m => m._id === editingMessage._id ? { ...m, text: prevText, isEdited: m.isEdited } : m));
+          toast.error('Failed to edit message');
+        }
+      } catch {
+        setLocalMessages(prev => prev.map(m => m._id === editingMessage._id ? { ...m, text: prevText, isEdited: m.isEdited } : m));
+        toast.error('Failed to edit message');
+      }
       return;
     }
 
@@ -584,8 +585,30 @@ function ChatConversation() {
 
   if (convLoading) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="fixed z-[60] flex flex-col lg:flex-row bg-background overflow-hidden overscroll-none" style={{ top: 0, bottom: 0, left: 0, right: 0 }}>
+        <div className="hidden lg:flex w-[320px] h-full flex-shrink-0 border-r border-border/40 flex-col bg-background">
+          <ConversationsSidebar activeConversationId={otherUserId} variant="desktop" />
+        </div>
+        <div className="flex-1 flex flex-col h-full min-w-0 min-h-0 bg-background">
+          <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 w-32 bg-muted animate-pulse rounded-md" />
+              <div className="h-2.5 w-20 bg-muted/60 animate-pulse rounded-md" />
+            </div>
+          </div>
+          <div className="flex-1 space-y-4 pt-4 px-4">
+            {[70, 50, 80, 40, 65].map((w, i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                {i % 2 !== 0 && <div className="w-6 h-6 rounded-full bg-muted animate-pulse flex-shrink-0" />}
+                <div
+                  className="h-9 rounded-2xl bg-muted animate-pulse"
+                  style={{ width: `${w}%`, maxWidth: '68%' }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -660,15 +683,18 @@ function ChatConversation() {
 
   const handleToggleBlock = async () => {
     if (!otherUser) return;
-    const nextBlocked = !convData?.conversation?.isBlocked;
     try {
       const res = await fetchWithAuth(`${BASE}/api/users/${otherUser._id}/block`, {
         method: 'POST',
         body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error('Failed');
+      const json = await res.json();
+      const nowBlocked = json?.data?.isBlocked;
       mutateConv();
-      toast.success(nextBlocked ? `Blocked ${otherUser.name}` : `Unblocked ${otherUser.name}`);
+      if (nowBlocked !== undefined) {
+        toast.success(nowBlocked ? `Blocked ${otherUser.name}` : `Unblocked ${otherUser.name}`);
+      }
     } catch {
       toast.error('Failed to update block status');
     }
@@ -1060,37 +1086,13 @@ function ChatConversation() {
                         {(msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && mediaItem?.type !== 'document' && (
                           <div>
                             {isRealReply && msg.replyTo && (
-                              <div
-                                className="px-2.5 pt-2 pb-0.5 cursor-pointer"
-                                onClick={() => handleScrollToMessage(msg.replyTo!._id)}
-                              >
-                                <div className={`pl-2 border-l-2 ${mine ? 'border-white/40' : 'border-accent/60'}`}>
-                                  <p className={`text-[11px] font-semibold truncate ${mine ? 'text-white/80' : 'text-accent'}`}>
-                                    {msg.replyTo.sender.name}
-                                  </p>
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {(msg.replyTo.mediaType === 'image' || msg.replyTo.mediaType === 'video') && msg.replyTo.mediaUrl && (
-                                      <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0 bg-black/20 relative">
-                                        <img src={msg.replyTo.mediaUrl} alt="" className="w-full h-full object-cover" />
-                                        {msg.replyTo.mediaType === 'video' && (
-                                          <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                            <Play className="w-2.5 h-2.5 text-white" />
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    {msg.replyTo.mediaType === 'voice' && (
-                                      <Mic className={`w-3 h-3 flex-shrink-0 ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`} />
-                                    )}
-                                    {msg.replyTo.mediaType === 'document' && (
-                                      <FileText className={`w-3 h-3 flex-shrink-0 ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`} />
-                                    )}
-                                    <p className={`text-[11px] truncate ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`}>
-                                      {msg.replyTo.text || (msg.replyTo.mediaType === 'image' ? 'Photo' : msg.replyTo.mediaType === 'video' ? 'Video' : msg.replyTo.mediaType === 'voice' ? 'Voice note' : msg.replyTo.mediaType === 'document' ? 'Document' : 'Message')}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
+                              <ReplyPreview
+                                variant="inline"
+                                replyTo={msg.replyTo}
+                                messages={displayedMessages}
+                                mine={mine}
+                                onOpenOriginal={() => msg.replyTo?._id && handleScrollToMessage(msg.replyTo._id)}
+                              />
                             )}
 
                             <div className={`relative px-3 py-1.5 ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'min-w-[70px]'}`}>
@@ -1154,39 +1156,7 @@ function ChatConversation() {
       {replyTo && (
         <div className="flex items-center gap-3 px-4 py-2.5 bg-accent/5 flex-shrink-0">
           <div className="w-0.5 h-9 rounded-full bg-accent flex-shrink-0" />
-          
-          {/* Render media thumbnail if present */}
-          {(replyTo.mediaType === 'image' || replyTo.mediaType === 'video') ? (
-            <div className="w-9 h-9 rounded overflow-hidden flex-shrink-0 bg-black/5">
-              {replyTo.mediaType === 'image' ? (
-                <img src={replyTo.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-black flex items-center justify-center">
-                  <Play className="w-4 h-4 text-white" />
-                </div>
-              )}
-            </div>
-          ) : replyTo.mediaType === 'voice' ? (
-            <div className="w-9 h-9 rounded bg-accent/10 flex items-center justify-center flex-shrink-0">
-              <Mic className="w-4 h-4 text-accent" />
-            </div>
-          ) : replyTo.mediaType === 'document' ? (
-            <div className="w-9 h-9 rounded bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-              <FileText className="w-4 h-4 text-purple-500" />
-            </div>
-          ) : null}
-
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-accent truncate">{replyTo.sender.name}</p>
-            <p className="text-[11px] text-muted-foreground/80 truncate">
-              {replyTo.text || (
-                replyTo.mediaType === 'image' ? 'Photo' :
-                replyTo.mediaType === 'video' ? 'Video' :
-                replyTo.mediaType === 'voice' ? 'Voice note' :
-                replyTo.mediaType === 'document' ? 'Document' : ''
-              )}
-            </p>
-          </div>
+          <ReplyPreview variant="compose" replyTo={replyTo} messages={displayedMessages} />
           <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex-shrink-0">
             <X className="w-4 h-4" />
           </button>

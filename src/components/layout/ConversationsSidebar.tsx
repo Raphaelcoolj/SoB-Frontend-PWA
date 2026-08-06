@@ -28,6 +28,7 @@ interface Conversation {
   lastMessage: { text: string; sender: string; createdAt: string; media?: { type: string }[] } | null;
   unreadCount: number;
   updatedAt: string;
+  isBlocked?: boolean;
 }
 
 interface Connection {
@@ -59,7 +60,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
   const { data, isLoading, mutate: mutateConversations } = useSWR<{ conversations: Conversation[] }>(
     `${BASE}/api/chats`,
     fetcher,
-    { refreshInterval: 5000 }
+    { refreshInterval: 5000, dedupingInterval: 5000 }
   );
 
   const { data: connectionsData } = useSWR<{ users: Connection[] }>(
@@ -154,9 +155,12 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
           toast.success(`Unblocked ${userName}`);
         }
         mutateConversations();
+      } else {
+        const json = await res.json().catch(() => null);
+        toast.error(json?.message || 'Failed to update block status');
       }
     } catch {
-      toast.error('Failed to block user');
+      toast.error('Failed to update block status');
     }
   };
 
@@ -197,9 +201,14 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
 
   const handleDeleteConversation = async (convId: string, userName: string) => {
     setOpenMenuConvId(null);
+    const wantDelete = window.confirm(`Delete conversation with ${userName}?`);
+    if (!wantDelete) return;
+    const forBoth = window.confirm('Delete this conversation for both of you? (OK = both, Cancel = just me)');
+    const deleteFor = forBoth ? 'both' : 'me';
     try {
       const res = await fetchWithAuth(`${BASE}/api/chats/${convId}`, {
         method: 'DELETE',
+        body: JSON.stringify({ deleteFor }),
       });
       if (res.ok) {
         toast.success(`Deleted conversation with ${userName}`);
@@ -409,7 +418,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                           className="w-full flex items-center gap-2 px-2.5 py-2 text-xs rounded-lg hover:bg-muted transition-colors text-foreground text-left"
                         >
                           <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                          Block
+                          {conv.isBlocked ? 'Unblock' : 'Block'}
                         </button>
                         <button
                           onClick={() => handleReport(conv.otherUser._id)}
@@ -726,7 +735,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors text-foreground text-left"
                           >
                             <Shield className="w-4 h-4 text-muted-foreground" />
-                            Block {conv.otherUser.name.split(' ')[0]}
+                            {conv.isBlocked ? 'Unblock' : 'Block'} {conv.otherUser.name.split(' ')[0]}
                           </button>
                           <button
                             onClick={() => handleReport(conv.otherUser._id)}

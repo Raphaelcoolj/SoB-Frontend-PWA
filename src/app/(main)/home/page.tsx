@@ -17,10 +17,24 @@ import Link from 'next/link';
 import { MoreVertical, Plus } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 
-function FeedTab({ type }: { type: 'forYou' | 'following' }) {
-  const fyf = useFeed('all');
-  const following = useFollowingFeed();
-  const feed = type === 'forYou' ? fyf : following;
+function ForYouTab() {
+  const feed = useFeed('all');
+
+  return (
+    <PostFeed
+      posts={feed.posts}
+      isLoadingInitial={feed.isLoadingInitial}
+      isLoadingMore={feed.isLoadingMore}
+      hasMore={feed.hasMore}
+      isEmpty={feed.isEmpty}
+      loadMore={feed.loadMore}
+      variant="flat"
+    />
+  );
+}
+
+function FollowingTab() {
+  const feed = useFollowingFeed();
 
   return (
     <PostFeed
@@ -87,7 +101,7 @@ export default function HomePage() {
 
       {activeTab === 'forYou' && <TrendingSection />}
 
-      <FeedTab key={activeTab} type={activeTab} />
+      {activeTab === 'forYou' ? <ForYouTab /> : <FollowingTab />}
 
       {/* Floating Action Button (FAB) on mobile */}
       {currentUser && (

@@ -211,11 +211,13 @@ export default function OnboardingPage() {
       if (avatar) {
         const formDataAvatar = new FormData();
         formDataAvatar.append('avatar', avatar);
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me/avatar`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
+        const avatarRes = await fetchWithAuth('/api/users/me', {
+          method: 'PUT',
           body: formDataAvatar,
         });
+        if (!avatarRes.ok) {
+          toast.error('Onboarding completed, but failed to upload avatar.');
+        }
       }
 
       // 3. Final fetch to refresh user data

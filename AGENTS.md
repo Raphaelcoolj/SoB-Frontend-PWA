@@ -20,6 +20,16 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Weekly Digest Notifications (2026-08-06)
+
+- `src/types/notification.ts` — `NotificationType` union now includes `mention`, `weekly_digest`, `poll_vote`; added `WeeklyDigestData` interface + optional `data` field on `Notification`
+- `src/components/notifications/NotificationItem.tsx` — prop retyped from `any` to `Notification`; weekly-digest notifications render a digest block from `n.data` (top post title/views/likes, followers gained, field rankings) and display "SoB" as the sender (self-sender on the backend) instead of the user's own name/avatar
+
+## Reply Previews: doc/video/photo thumbnails + labels (2026-08-06)
+
+- `src/components/chat/ReplyPreview.tsx` — reply previews now show a small preview thumbnail for the replied message's media: photos render the image, videos render the thumbnail with a play overlay, and Cloudinary PDF documents render a first-page preview (`getPdfFirstPageUrl`, `image/fetch/pg_1`). Non-Cloudinary documents and voice notes keep their icon tile. All cases keep the label text (filename, caption, or "Photo"/"Video"/"Voice note"/"Document") alongside the preview. Both `inline` (in-bubble) and `compose` (reply bar) variants support this
+- `src/components/chat/ReplyPreview.test.tsx` — now 8 tests, including PDF first-page preview for Cloudinary docs and icon-tile fallback for non-Cloudinary docs
+
 ## Chat fixes: pinned input, doc cards, voice reply indicator (2026-08-05)
 
 - `src/app/(main)/chats/[conversations]/page.tsx`:
