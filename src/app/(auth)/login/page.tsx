@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,6 +20,17 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 import { toast } from 'sonner';
+
+function GoogleOAuthErrorBanner() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+  if (!error) return null;
+  return (
+    <p className="text-xs text-destructive text-center mt-3">
+      Google sign-in failed. Please try again.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,6 +70,10 @@ export default function LoginPage() {
     <div className="px-6 sm:px-0 py-6">
       <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-center text-foreground">Welcome Back</h1>
       <p className="text-sm text-muted-foreground text-center mt-1 mb-8">Log in to access your SoB account</p>
+
+      <Suspense fallback={null}>
+        <GoogleOAuthErrorBanner />
+      </Suspense>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-1">
