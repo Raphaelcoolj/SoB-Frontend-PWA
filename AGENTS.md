@@ -20,6 +20,11 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Weekly Digest Notifications (2026-08-06)
+
+- `src/types/notification.ts` — `NotificationType` union now includes `mention`, `weekly_digest`, `poll_vote`; added `WeeklyDigestData` interface + optional `data` field on `Notification`
+- `src/components/notifications/NotificationItem.tsx` — prop retyped from `any` to `Notification`; weekly-digest notifications render a digest block from `n.data` (top post title/views/likes, followers gained, field rankings) and display "SoB" as the sender (self-sender on the backend) instead of the user's own name/avatar
+
 ## Chat fixes: pinned input, doc cards, voice reply indicator (2026-08-05)
 
 - `src/app/(main)/chats/[conversations]/page.tsx`:

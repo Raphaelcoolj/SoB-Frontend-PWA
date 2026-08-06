@@ -11,9 +11,10 @@ import Link from 'next/link';
 import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2 } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
+import { Notification } from '../../types/notification';
 
 interface NotificationItemProps {
-  notification: any;
+  notification: Notification;
   onMarkAsRead?: (id: string) => void;
 }
 
@@ -39,8 +40,10 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
     return '/';
   };
 
-  const senderName = notification.sender?.name || 'SoB';
-  const senderAvatar = notification.sender?.avatar || null;
+  const senderName = notification.type === 'weekly_digest' ? 'SoB' : notification.sender?.name || 'SoB';
+  const senderAvatar = notification.type === 'weekly_digest' ? undefined : notification.sender?.avatar;
+
+  const digest = notification.type === 'weekly_digest' ? notification.data : null;
 
   return (
     <Link 
@@ -68,7 +71,27 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
           </span>
         </div>
         
-        {notification.post && (
+        {notification.type === 'weekly_digest' && digest && (
+          <div className="bg-muted/40 p-2 rounded-lg border border-border/50 space-y-1">
+            {digest.topPost && (
+              <p className="text-[11px] text-foreground line-clamp-1">
+                <span className="font-medium">Top post:</span> {digest.topPost.title} — {digest.topPost.views} views · {digest.topPost.likes} likes
+              </p>
+            )}
+            {digest.followersGained > 0 && (
+              <p className="text-[11px] text-foreground">
+                <span className="font-medium">{digest.followersGained}</span> new follower{digest.followersGained === 1 ? '' : 's'} gained
+              </p>
+            )}
+            {digest.fieldRankings.length > 0 && (
+              <p className="text-[11px] text-foreground line-clamp-1">
+                <span className="font-medium">Ranked</span> in {digest.fieldRankings.map((r) => `${r.field.name} #${r.rank}`).join(', ')}
+              </p>
+            )}
+          </div>
+        )}
+
+        {notification.post && notification.type !== 'weekly_digest' && (
           <div className="bg-muted/40 p-2 rounded-lg border border-border/50">
             <p className="text-[10px] text-muted-foreground line-clamp-1 italic">
               {notification.post.title || notification.post.body || 'View post'}
