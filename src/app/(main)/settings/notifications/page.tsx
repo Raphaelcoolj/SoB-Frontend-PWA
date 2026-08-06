@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, X, RotateCcw } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Field } from '../../../../types/user';
@@ -27,6 +27,8 @@ export default function NotificationSettingsPage() {
   const [isPushLoading, setIsPushLoading] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [isReEngageOptOut, setIsReEngageOptOut] = useState(false);
+  const [reattempting, setReattempting] = useState(false);
 
   // Form state
   const [isEmailEnabled, setIsEmailEnabled] = useState(false);
@@ -43,6 +45,7 @@ export default function NotificationSettingsPage() {
       const userEmailFields = (user.emailNotifications || []).map(f => typeof f === 'string' ? f : f._id);
       setSelectedFields(userEmailFields);
       setIsPushEnabled((user as any)?.pushEnabled ?? !!user.pushSubscription?.endpoint);
+      setIsReEngageOptOut(!!(user as any)?.settings?.reEngagementOptOut);
     }
   }, [user]);
 
@@ -155,6 +158,24 @@ export default function NotificationSettingsPage() {
     );
   };
 
+  const toggleReEngagement = async (optedOut: boolean) => {
+    setReattempting(true);
+    try {
+      const res = await fetchWithAuth('/api/users/me/re-engagement', {
+        method: 'PUT',
+        body: JSON.stringify({ optedOut }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update re-engagement preference');
+      setIsReEngageOptOut(optedOut);
+      toast.success(optedOut ? 'Re-engagement nudges turned off' : 'Re-engagement nudges turned on');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save');
+    } finally {
+      setReattempting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!accessToken) return;
     setSaving(true);
@@ -236,6 +257,30 @@ export default function NotificationSettingsPage() {
             <p>iOS requires the app to be added to your Home Screen first. Tap Share <span className="text-xs">⎙</span> then &ldquo;Add to Home Screen&rdquo; before enabling push notifications.</p>
           </div>
         )}
+
+        {/* Re-engagement nudges */}
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+              <RotateCcw className="w-5 h-5 text-orange-500" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Re-engagement nudges</p>
+              <p className="text-xs text-muted-foreground">Friendly push reminders when you&apos;ve been away.</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={!isReEngageOptOut}
+              disabled={reattempting}
+              onChange={(e) => toggleReEngagement(!e.target.checked)}
+            />
+            <div className={`w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500 ${reattempting ? 'opacity-50' : ''}`}></div>
+            {reattempting && <Loader2 className="w-4 h-4 animate-spin ml-2 text-orange-500" />}
+          </label>
+        </div>
 
         {/* Master email toggle */}
         <div className="flex items-center justify-between pt-4 border-t border-border">

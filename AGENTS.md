@@ -20,6 +20,20 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Retention Roadmap — tracking-first (2026-08-06)
+
+- `src/app/(admin)/admin/dashboard/page.tsx` — new **Retention** section under the core stats: weekly cohort retention bars (`GET /api/admin/analytics/retention`, W1..W3 %), onboarding funnel rates + avg session/sessions-per-user (`/funnel`, `/sessions`), and a churn card listing cold-start + dormant users (`/churn`). Success-metric framing on the header ("D7 trending up")
+- `src/components/user/UserSuggestions.tsx` (new) + test (3) — "Suggested for you" horizontal rail on the For You tab (`GET /api/users/suggestions?limit=8`, 60s dedupe); avatar/name/`@username` + `FollowButton`; renders nothing when logged out or the API returns no users. Home tab wires it via `<UserSuggestions />` in `ForYouTab`
+- `src/app/(main)/profile/[username]/page.tsx` — **streak chip** in the stats row: orange `Flame` pill `N-day streak` (tooltip shows longest streak) when `profile.currentStreak > 0` (backend now returns streak fields)
+- `src/app/(main)/settings/notifications/page.tsx` — **Re-engagement nudges** toggle (orange `RotateCcw`), wired to `PUT /api/users/me/re-engagement` `{ optedOut }`; state from `user.settings.reEngagementOptOut`; saved immediately (not via the "Save Preferences" button)
+- Full suite: **69 tests** (7 files)
+
+## Realtime "New posts" banner on the For You feed (2026-08-06)
+
+- `src/components/feed/NewPostsBanner.tsx` (new, client) — mobile-first centered pill near the top of the screen. Copy is exactly **"New posts"**, background is the **active accent** (`bg-accent text-white` — no `--accent-foreground` var is defined). Shown when the backend broadcasts the `feed:new_posts` socket event (emitted on createPost, scheduled/pipeline publishes, and admin manual publish), with a `swr` poll fallback to `GET /api/feed/fyf/meta?since=<newestServedCreatedAt>` every 60s. Tap calls `feed.refresh()` and hides. Only mounted on the For You tab.
+- `src/app/(main)/home/page.tsx` — `ForYouTab` now renders `<NewPostsBanner newestCreatedAt={feed.posts?.[0]?.createdAt} onRefresh={feed.refresh} />` above `<PostFeed>`.
+- New tests: `src/components/feed/NewPostsBanner.test.tsx` (4: hidden by default, appears on socket event, hides+refreshes on tap, registers listener). Full suite: **66 tests**
+
 ## Google OAuth failure banner on login (2026-08-06)
 
 - `src/app/(auth)/login/page.tsx` — added `GoogleOAuthErrorBanner` (Suspense-wrapped, reads `useSearchParams`): when the URL carries `?error=` (e.g. backend's `oauth_failed` redirect for a replayed/expired Google auth code), the page shows "Google sign-in failed. Please try again." under the heading instead of silently dropping the user on `/login?error=oauth_failed`
