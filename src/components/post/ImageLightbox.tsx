@@ -2,7 +2,7 @@
 
 // NEW: Full-screen image viewer with swipe/arrow navigation
 import { useState, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Check, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface ImageLightboxProps {
@@ -13,6 +13,8 @@ interface ImageLightboxProps {
 
 export default function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -70,6 +72,42 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     setTouchStartX(null);
   };
 
+  const handleSave = useCallback(() => {
+    const url = images[currentIndex];
+    if (!url || saving) return;
+    setSaving(true);
+
+    const fallback = () => {
+      setSaving(false);
+      // If blob download is blocked (CORS), open the image so users can
+      // long-press to save on mobile.
+      window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+    xhr.onload = () => {
+      setSaving(false);
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response) {
+        const blobUrl = URL.createObjectURL(xhr.response);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `sob-image-${currentIndex + 1}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } else {
+        fallback();
+      }
+    };
+    xhr.onerror = fallback;
+    xhr.send();
+  }, [images, currentIndex, saving]);
+
   return (
     <div
       className="fixed inset-0 bg-black z-[100] flex items-center justify-center select-none"
@@ -84,6 +122,25 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         aria-label="Close"
       >
         <X className="w-6 h-6" />
+      </button>
+
+      {/* Save button — label on large screens, icon-only on small screens */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSave();
+        }}
+        className="absolute top-4 right-16 z-10 px-2.5 py-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer flex items-center gap-1.5"
+        aria-label="Save image"
+      >
+        {saving ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : saved ? (
+          <Check className="w-5 h-5" />
+        ) : (
+          <Download className="w-5 h-5" />
+        )}
+        <span className="hidden lg:inline text-sm">{saved ? 'Saved' : 'Save'}</span>
       </button>
 
       {/* Image counter */}

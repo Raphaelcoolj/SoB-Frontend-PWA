@@ -1,13 +1,26 @@
 import React from 'react';
 import Link from 'next/link';
 
-const COMBINED_REGEX = /(?<!\w)(?:@(\w{3,30})(?!\w)|#(\w{1,50}))/g;
+const URL_PATTERN =
+  /(?:https?:\/\/|www\.)[^\s<>"']+|(?:[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z]{2,})(?::\d+)?(?:[^\s<>"']*)?/;
+
+const COMBINED_REGEX = new RegExp(
+  `(?<!\\w)(?:@(\\w{3,30})(?!\\w)|#(\\w{1,50})|(${URL_PATTERN.source}))`,
+  'g'
+);
 
 interface MentionTextProps {
   text: string;
   className?: string;
   as?: 'p' | 'span';
 }
+
+const cleanUrl = (rawUrl: string): { href: string; display: string } => {
+  let raw = rawUrl.trim();
+  raw = raw.replace(/[)\]}>"']+$/, '').replace(/[.,;:!]+$/, '').replace(/&+$/, '');
+  const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return { href, display: raw };
+};
 
 const MentionText: React.FC<MentionTextProps> = ({ text, className = '', as: Tag = 'p' }) => {
   if (!text) return null;
@@ -46,6 +59,20 @@ const MentionText: React.FC<MentionTextProps> = ({ text, className = '', as: Tag
         >
           #{tag}
         </Link>
+      );
+    } else if (match[3]) {
+      const { href, display } = cleanUrl(match[3]);
+      parts.push(
+        <a
+          key={match.index}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-accent underline underline-offset-2 hover:opacity-90 font-medium break-all"
+        >
+          {display}
+        </a>
       );
     }
 

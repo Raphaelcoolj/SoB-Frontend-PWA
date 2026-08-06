@@ -13,6 +13,7 @@ import ConversationsSidebar from '../../../../components/layout/ConversationsSid
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
 import ReplyPreview from '../../../../components/chat/ReplyPreview';
+import LinkPreviewCard from '../../../../components/shared/LinkPreviewCard';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { formatFileSize } from '../../../../lib/utils';
@@ -1112,6 +1113,12 @@ function ChatConversation() {
                                   </div>
                               )}
                             </div>
+                          </div>
+                        )}
+
+                        {msg.text && (
+                          <div className="px-2.5 pb-2 -mt-0.5">
+                            <LinkPreviewCard text={msg.text} mine={mine} />
                           </div>
                         )}
 
