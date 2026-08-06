@@ -7,6 +7,7 @@
 
 import useSWRInfinite from 'swr/infinite';
 import { useAuthStore } from '../store/authStore';
+import { useState, useCallback } from 'react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -36,6 +37,10 @@ const createFetcher = (token: string) => async (url: string): Promise<FeedPage> 
 
 export const useFeed = (feedType: FeedType = 'all') => {
   const { accessToken } = useAuthStore();
+  // Bumping this nonce changes every page key, so a refresh bypasses SWR's
+  // in-memory cache/dedup window and re-fetches page 0 from the network
+  // (the backend already invalidates its fyf:* page cache on publish).
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   const getKey = (pageIndex: number, previousPageData: FeedPage | null) => {
     // Stop fetching if there's no more data
@@ -52,6 +57,9 @@ export const useFeed = (feedType: FeedType = 'all') => {
       params.set('type', feedType === 'articles' ? 'article' : 'post');
     }
 
+    // Cache-busting nonce: forces a genuinely fresh fetch on manual refresh
+    if (refreshNonce > 0) params.set('bust', String(refreshNonce));
+
     return `${BASE_URL}/api/feed/fyf?${params.toString()}`;
   };
 
@@ -61,7 +69,7 @@ export const useFeed = (feedType: FeedType = 'all') => {
     {
       revalidateFirstPage: false,
       revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 10000,
     }
   );
 
@@ -73,6 +81,11 @@ export const useFeed = (feedType: FeedType = 'all') => {
   const isEmpty = data?.[0]?.posts.length === 0;
   const hasMore = !!data?.[data.length - 1]?.nextCursor;
 
+  const refresh = useCallback(() => {
+    setRefreshNonce((n) => n + 1);
+    setSize(1);
+  }, [setSize]);
+
   return {
     posts,
     isLoadingInitial,
@@ -81,6 +94,6 @@ export const useFeed = (feedType: FeedType = 'all') => {
     hasMore,
     error,
     loadMore: () => setSize((s) => s + 1),
-    refresh: () => mutate(),
+    refresh,
   };
 };

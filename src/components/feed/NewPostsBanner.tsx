@@ -57,7 +57,7 @@ export default function NewPostsBanner({ newestCreatedAt, onRefresh }: NewPostsB
       if (!res.ok) throw new Error(json.message || 'Failed to check for new posts');
       return json.data as { count: number };
     },
-    { refreshInterval: 60000, dedupingInterval: 30000, revalidateOnFocus: false }
+    { refreshInterval: 300000, dedupingInterval: 60000, revalidateOnFocus: false }
   );
 
   useEffect(() => {

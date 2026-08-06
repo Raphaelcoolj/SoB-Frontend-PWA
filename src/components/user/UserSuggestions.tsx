@@ -9,6 +9,7 @@
 
 import React from 'react';
 import useSWR from 'swr';
+import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import UserAvatar from './UserAvatar';
@@ -60,19 +61,21 @@ export default function UserSuggestions({ limit = 8 }: { limit?: number }) {
         <UserPlus className="w-4 h-4 text-accent" />
         <h2 className="text-sm font-semibold text-foreground">Suggested for you</h2>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {users.map((u) => (
           <div
             key={u._id}
             className="flex-shrink-0 w-32 bg-card border border-border rounded-xl p-3 space-y-2"
           >
-            <div className="flex justify-center">
-              <UserAvatar avatar={u.avatar} name={u.name} size="md" />
-            </div>
-            <div className="text-center min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">{u.name}</p>
-              <p className="text-[10px] text-muted-foreground truncate">@{u.username}</p>
-            </div>
+            <Link href={`/profile/${u.username}`} className="block space-y-2">
+              <div className="flex justify-center">
+                <UserAvatar avatar={u.avatar} name={u.name} size="md" />
+              </div>
+              <div className="text-center min-w-0">
+                <p className="text-xs font-semibold text-foreground truncate">{u.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">@{u.username}</p>
+              </div>
+            </Link>
             <FollowButton
               targetUserId={u._id}
               initialIsFollowing={false}
