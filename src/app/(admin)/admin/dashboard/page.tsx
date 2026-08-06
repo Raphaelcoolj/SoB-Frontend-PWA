@@ -193,13 +193,14 @@ function RetentionSection({ token }: { token: string | null }) {
   const { data: sessions, error: sessionsError } = useSWR<any>(token ? `${base}/api/admin/analytics/sessions` : null, auth);
 
   const anyError = retentionError || funnelError || churnError || sessionsError;
-  const stillLoading = !retention && !funnel && !churn && !anyError;
+  const hasAny = Boolean(retention || funnel || churn || sessions);
+  const stillLoading = !hasAny && !anyError;
 
   if (stillLoading) {
     return <Skeleton className="h-64 w-full rounded-2xl" />;
   }
 
-  if (anyError || (!retention && !funnel && !churn)) {
+  if (!hasAny) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground flex items-center gap-2">
