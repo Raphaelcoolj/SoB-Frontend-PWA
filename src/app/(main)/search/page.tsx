@@ -40,7 +40,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen pb-20">
       {/* Search bar - sticky at top */}
-      <div className="sticky top-0 bg-background/80 backdrop-blur-md z-10 p-4 border-b border-border/60">
+      <div className="sticky top-0 bg-background z-10 p-4 border-b border-border/60">
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none group-focus-within:text-accent transition-colors" />
           <input
@@ -75,11 +75,11 @@ export default function SearchPage() {
           </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-top-2 duration-400">
+            <UserSuggestions />
             <DiscoverFields 
               selectedField={selectedField}
               setSelectedField={setSelectedField}
             />
-            <UserSuggestions />
           </div>
         )}
       </div>

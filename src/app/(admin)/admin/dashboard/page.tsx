@@ -187,13 +187,32 @@ function RetentionSection({ token }: { token: string | null }) {
   const auth = (url: string) =>
     fetcher(`${base}${url}`, token ?? '');
 
-  const { data: retention } = useSWR<RetentionRow[]>(token ? `${base}/api/admin/analytics/retention` : null, auth);
-  const { data: funnel } = useSWR<Funnel>(token ? `${base}/api/admin/analytics/funnel` : null, auth);
-  const { data: churn } = useSWR<Churn>(token ? `${base}/api/admin/analytics/churn` : null, auth);
-  const { data: sessions } = useSWR<any>(token ? `${base}/api/admin/analytics/sessions` : null, auth);
+  const { data: retention, error: retentionError } = useSWR<RetentionRow[]>(token ? `${base}/api/admin/analytics/retention` : null, auth);
+  const { data: funnel, error: funnelError } = useSWR<Funnel>(token ? `${base}/api/admin/analytics/funnel` : null, auth);
+  const { data: churn, error: churnError } = useSWR<Churn>(token ? `${base}/api/admin/analytics/churn` : null, auth);
+  const { data: sessions, error: sessionsError } = useSWR<any>(token ? `${base}/api/admin/analytics/sessions` : null, auth);
 
-  if (!retention && !funnel && !churn) {
+  const anyError = retentionError || funnelError || churnError || sessionsError;
+  const stillLoading = !retention && !funnel && !churn && !anyError;
+
+  if (stillLoading) {
     return <Skeleton className="h-64 w-full rounded-2xl" />;
+  }
+
+  if (anyError || (!retention && !funnel && !churn)) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 space-y-2">
+        <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+          <Target className="w-5 h-5 text-accent" />
+          Retention
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {anyError
+            ? 'Retention analytics could not be loaded. Make sure you are signed in as an admin and try again.'
+            : 'No retention data yet.'}
+        </p>
+      </div>
+    );
   }
 
   const rows = retention ?? [];
