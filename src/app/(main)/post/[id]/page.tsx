@@ -11,7 +11,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   try {
     if (!postId) throw new Error('No post ID found in params');
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${postId}/preview`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${postId}/preview`, {
+      signal: AbortSignal.timeout(3000),
+      next: { revalidate: 60 },
+    });
 
     const data = await res.json();
     const post = data?.data?.post;

@@ -12,7 +12,7 @@ export function useChatUnread() {
   const { data } = useSWR<{ unreadCount: number }>(
     `${BASE}/api/chats/unread`,
     fetcher,
-    { refreshInterval: 10000 }
+    { refreshInterval: 10000, dedupingInterval: 10000 }
   );
 
   return data?.unreadCount || 0;

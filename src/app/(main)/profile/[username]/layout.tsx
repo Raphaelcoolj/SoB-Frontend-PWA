@@ -5,7 +5,10 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const res = await fetch(`${apiUrl}/api/users/${username}`);
+    const res = await fetch(`${apiUrl}/api/users/${username}`, {
+      signal: AbortSignal.timeout(3000),
+      next: { revalidate: 60 },
+    });
     const data = await res.json();
     const profile = data?.data?.user;
 
