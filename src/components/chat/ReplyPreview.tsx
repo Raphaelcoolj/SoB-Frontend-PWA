@@ -19,6 +19,7 @@ import {
   resolveReply,
   REPLY_LABELS,
   UNAVAILABLE_LABEL,
+  getPdfFirstPageUrl,
 } from '../../lib/chatMedia';
 
 interface ReplyPreviewProps {
@@ -55,7 +56,9 @@ function ReplyPreviewInner({
 
   const { type, senderName, text, mediaUrl, filename } = resolved;
   const Icon = TYPE_ICON[type] || HelpCircle;
+  const pdfPreviewUrl = type === 'document' && mediaUrl ? getPdfFirstPageUrl({ url: mediaUrl }) : null;
   const showThumb = mediaUrl && (type === 'image' || type === 'video');
+  const showPdfThumb = !!pdfPreviewUrl;
   const unavailable = type === 'unsupported';
   const primaryColor = mine ? 'text-white/80' : 'text-accent';
   const secondaryColor = mine ? 'text-white/50' : 'text-muted-foreground/70';
@@ -81,7 +84,15 @@ function ReplyPreviewInner({
                 )}
               </div>
             )}
-            {!showThumb && (
+            {showPdfThumb && (
+              <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0 bg-black/20 relative">
+                <img src={pdfPreviewUrl} alt="" className="w-full h-full object-cover" />
+                <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <FileText className="w-2.5 h-2.5 text-white/90" />
+                </span>
+              </div>
+            )}
+            {!showThumb && !showPdfThumb && (
               <Icon className={`w-3 h-3 flex-shrink-0 ${mine ? 'text-white/50' : 'text-muted-foreground/70'}`} />
             )}
             <p className={`text-[11px] truncate ${unavailable ? (mine ? 'text-white/40' : 'text-muted-foreground/50') : secondaryColor}`}>
@@ -105,6 +116,13 @@ function ReplyPreviewInner({
               <Play className="w-4 h-4 text-white" />
             </div>
           )}
+        </div>
+      ) : showPdfThumb ? (
+        <div className="w-9 h-9 rounded overflow-hidden flex-shrink-0 bg-black/10 relative">
+          <img src={pdfPreviewUrl} alt="Preview" className="w-full h-full object-cover" />
+          <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <FileText className="w-3.5 h-3.5 text-white/90" />
+          </span>
         </div>
       ) : (
         <div
