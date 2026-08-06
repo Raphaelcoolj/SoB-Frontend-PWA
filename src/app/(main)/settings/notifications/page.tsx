@@ -64,6 +64,9 @@ export default function NotificationSettingsPage() {
       if (!('serviceWorker' in navigator)) {
         throw new Error('Browser does not support service workers');
       }
+      if (!window.isSecureContext && !/^http:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(window.location.href)) {
+        throw new Error('Service workers require a secure (https) connection');
+      }
 
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') throw new Error('Permission denied');

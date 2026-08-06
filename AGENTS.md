@@ -20,6 +20,12 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Service worker registration guard for non-secure contexts (2026-08-06)
+
+- `src/components/shared/PwaProvider.tsx` (new, client) — wraps `@serwist/turbopack/react` `SerwistProvider` and only mounts it when service workers can actually register: `'serviceWorker' in navigator` AND the page is a secure context (`window.isSecureContext` — `https:` or `http://localhost|127.0.0.1`). In non-secure contexts (custom `app://` schemes from in-app browsers/WebView wrappers, `file://`, sandboxed frames, LAN `http://`) Serwist re-throws the `navigator.serviceWorker.register()` rejection with no catch, producing an unhandled `Error: Rejected` (surfaced in Sentry). The wrapper skips registration there instead; the app still works, it just isn't installable/offline-capable. Both branches render identical DOM (context provider only) so there is no hydration mismatch
+- `src/app/layout.tsx` — `SerwistProvider` replaced by `PwaProvider` (SW still registered normally on the production `https://` site)
+- `src/app/(main)/settings/notifications/page.tsx` — `enablePushNotifications` now rejects with "Service workers require a secure (https) connection" when the context is unsupported, instead of attempting registration
+
 ## Clickable links in chat text + text-reply previews without icon (2026-08-06)
 
 - `src/components/shared/MentionText.tsx` — added `linksOnly` (render only URLs as links; `@`/`#` stay plain text) and `linkClassName` (override the URL anchor class, default `text-accent underline underline-offset-2 …`) props
