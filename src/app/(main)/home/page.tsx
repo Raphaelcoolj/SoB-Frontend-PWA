@@ -13,6 +13,7 @@ import { useFollowingFeed } from '../../../hooks/useFollowingFeed';
 import PostFeed from '../../../components/post/PostFeed';
 import TrendingSection from '../../../components/trending/TrendingSection';
 import UserAvatar from '../../../components/user/UserAvatar';
+import NewPostsBanner from '../../../components/feed/NewPostsBanner';
 import Link from 'next/link';
 import { MoreVertical, Plus } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
@@ -21,15 +22,18 @@ function ForYouTab() {
   const feed = useFeed('all');
 
   return (
-    <PostFeed
-      posts={feed.posts}
-      isLoadingInitial={feed.isLoadingInitial}
-      isLoadingMore={feed.isLoadingMore}
-      hasMore={feed.hasMore}
-      isEmpty={feed.isEmpty}
-      loadMore={feed.loadMore}
-      variant="flat"
-    />
+    <>
+      <NewPostsBanner newestCreatedAt={feed.posts?.[0]?.createdAt} onRefresh={feed.refresh} />
+      <PostFeed
+        posts={feed.posts}
+        isLoadingInitial={feed.isLoadingInitial}
+        isLoadingMore={feed.isLoadingMore}
+        hasMore={feed.hasMore}
+        isEmpty={feed.isEmpty}
+        loadMore={feed.loadMore}
+        variant="flat"
+      />
+    </>
   );
 }
 
