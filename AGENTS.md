@@ -20,6 +20,16 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Link Previews: chat bubbles, posts, articles + lightbox Save (2026-08-06)
+
+- `src/lib/linkPreview.ts` (new) — `extractUrl` pulls the first URL from free text: protocol links, `www.`, and bare domains (`example.com/blog`), while ignoring version-like decimals (`3.5`) and abbreviations (`e.g`) via a ≥2-letter TLD requirement. `getLinkPreview` calls `GET /api/link-preview?url=` with an in-memory cache + in-flight dedupe so a unique link only triggers one request per session
+- `src/components/shared/LinkPreviewCard.tsx` (new, memoized, props `{ text, mine?, className? }`) — loading spinner → rich card (thumb `w-16 sm:w-20`, title line-clamp-2, description line-clamp-2, siteName/domain + ExternalLink) → fallback domain chip when metadata is null; opens via `window.open(url, '_blank', 'noopener,noreferrer')`. `mine` variant = translucent white for own chat bubbles
+- `src/components/shared/MentionText.tsx` — rewritten to also render links inline as `text-accent underline` anchors (group 3 of the combined regex, `cleanUrl` strips trailing punctuation + prepends https). Hashtags/@mentions unchanged
+- `src/app/(main)/chats/[conversations]/page.tsx` — `LinkPreviewCard` rendered under text-message bubbles (`px-2.5 pb-2 -mt-0.5`)
+- `src/components/post/PostCard.tsx` + `src/components/post/ArticleCard.tsx` — preview card gated on **no attached media**: `hasMedia = !!post.muxPlaybackId || (post.mediaUrls?.length ?? 0) > 0`; full/body preview sites only render the card when `bodyPreview && !hasMedia` so the OG preview never fights uploaded images/videos (bodies still render links inline)
+- `src/components/post/ImageLightbox.tsx` — **Save button** top-right (next to Close): downloads the current image via XHR→blob→`<a download>`, shows spinner then a 2s "Saved" check; falls back to `window.open` on CORS failure. Label "Save"/"Saved" only on large screens (`hidden lg:inline`), icon-only on small screens
+- Tests: `src/lib/linkPreview.test.ts` (9: protocol/www/bare-domain extraction, punctuation stripping, `3.5`/`e.g`→null, fetch/cache/dedupe) + `src/components/shared/LinkPreviewCard.test.tsx` (5: null render, loading, rich card, fallback chip, open-on-click). Full suite: **57 tests**
+
 ## Weekly Digest Notifications (2026-08-06)
 
 - `src/types/notification.ts` — `NotificationType` union now includes `mention`, `weekly_digest`, `poll_vote`; added `WeeklyDigestData` interface + optional `data` field on `Notification`

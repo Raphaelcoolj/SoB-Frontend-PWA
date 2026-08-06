@@ -17,6 +17,7 @@ import { fetchWithAuth } from '../../lib/api';
 import { socket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
 import FeedImage from './FeedImage';
+import LinkPreviewCard from '../shared/LinkPreviewCard';
 import PollBlock from './PollBlock';
 import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -36,6 +37,8 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
   const userId = user?._id || '';
   const isAuthor = article.author._id === userId;
+  const bodyPreview = article.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ') ?? '';
+  const hasMedia = !!article.muxPlaybackId || (article.mediaUrls?.length ?? 0) > 0;
   const [likeCount, setLikeCount] = useState(article.likes.length);
   const [isLiked, setIsLiked] = useState(article.likes.includes(userId));
   const [isBookmarked, setIsBookmarked] = useState(article.bookmarks.includes(userId));
@@ -223,10 +226,11 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                     {article.title || 'Untitled Article'}
                   </h2>
                   <p className="text-xs text-muted-foreground leading-normal line-clamp-2">
-                    {article.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                    {bodyPreview}
                   </p>
                 </div>
               </Link>
+              {bodyPreview && !hasMedia && <LinkPreviewCard text={bodyPreview} className="mt-2" />}
             </div>
 
             {/* Poll */}
@@ -337,8 +341,10 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
         {/* Content Preview */}
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-wrap">
-          {article.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+          {bodyPreview}
         </p>
+
+        {bodyPreview && !hasMedia && <LinkPreviewCard text={bodyPreview} className="mt-2" />}
 
         {/* Poll */}
         {article.poll && (

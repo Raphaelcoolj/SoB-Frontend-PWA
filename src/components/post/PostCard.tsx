@@ -22,6 +22,7 @@ import VideoPlayer from './VideoPlayer';
 import FeedImage from './FeedImage';
 import { formatDistanceToNow } from '../../lib/utils';
 import MentionText from '../shared/MentionText';
+import LinkPreviewCard from '../shared/LinkPreviewCard';
 import PollBlock from './PollBlock';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
@@ -41,6 +42,8 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
 
   const userId = user?._id || '';
   const isAuthor = post.author._id === userId;
+  const bodyPreview = post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ') ?? '';
+  const hasMedia = !!post.muxPlaybackId || (post.mediaUrls?.length ?? 0) > 0;
   const [likeCount, setLikeCount] = useState((post.likes || []).length);
   const [isLiked, setIsLiked] = useState((post.likes || []).includes(userId));
   const [isBookmarked, setIsBookmarked] = useState((post.bookmarks || []).includes(userId));
@@ -230,11 +233,13 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
                 </h2>
               )}
               <MentionText
-                text={post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                text={bodyPreview}
                 className="text-sm text-foreground/95 leading-normal whitespace-pre-wrap line-clamp-4"
                 as="span"
               />
             </Link>
+
+            {bodyPreview && !hasMedia && <LinkPreviewCard text={bodyPreview} className="mt-2" />}
 
             {/* Media (images or HLS video) */}
             {post.muxPlaybackId && (
@@ -408,19 +413,23 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words"
             />
           )}
+          {bodyPreview && !hasMedia && <LinkPreviewCard text={bodyPreview} className="mt-2" />}
         </div>
       ) : (
-        <Link href={`/post/${post._id}`} className="block px-4 pb-3">
+        <>
+          <Link href={`/post/${post._id}`} className="block px-4 pb-3">
           {isArticle && post.title && (
             <h2 className="font-semibold text-foreground mb-1.5 leading-snug hover:text-accent transition-colors text-base">
               {post.title}
             </h2>
           )}
           <MentionText
-            text={post.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+            text={bodyPreview}
             className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-4 break-words"
           />
         </Link>
+        {bodyPreview && !hasMedia && <LinkPreviewCard text={bodyPreview} className="mt-2" />}
+        </>
       )}
 
       {/* Media (images or HLS video) */}
