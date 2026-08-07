@@ -20,6 +20,17 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Pending-signup auth flow: no User row until onboarding completes (2026-08-07)
+
+- Hard rule (backend-enforced): `register`/Google no longer create a `User`; they stage a `PendingSignup` (TTL 24h) and return a `typ:'pending'` JWT. Only `POST /api/auth/complete-onboarding` creates a `User`.
+- `src/store/authStore.ts` — new `pendingToken` + `pendingProfile` state and `setPending(token, profile)`/`clearPending()`; `clearAuth()`/`logout` also clear pending state. `User` stays null the whole pending phase.
+- `src/app/(auth)/register/page.tsx` — on success calls `setPending(pendingToken, pendingProfile)` (NO tokens, NO user) then routes `/verify-email`.
+- `src/app/(auth)/verify-email/page.tsx` — when `pendingToken` is set, `verify`/`resend` hit the RAW `${API_URL}/api/auth/...` endpoints with `Authorization: Bearer <pendingToken>` (no `fetchWithAuth`, since the store holds no real token); legacy branch unchanged. Added a "Didn't get a code? Resend" button.
+- `src/app/oauth-callback/page.tsx` — branches on `?pending=1&pendingToken=...`: calls `setPending` with name/email/avatar from the URL and routes `/onboarding` (skips `/api/users/me`). Legacy Google (existing users) path unchanged.
+- `src/app/(auth)/onboarding/page.tsx` — name/avatar fall back to `pendingProfile` when `user` is null. `handleSubmit`: pending path POSTs `complete-onboarding` with `Bearer <pendingToken>` and, on success, calls `setAuth(user, accessToken, refreshToken)` (persists refresh token) before the avatar upload + `/api/users/me` refresh; legacy path keeps `setUser`.
+- Backend contract (see `C:\SoB\sob-backend`): `complete-onboarding` returns `{ user, accessToken, refreshToken }` for pending signups, `{ user }` for legacy in-flight users. Errors: `PENDING_EXPIRED`, `EMAIL_NOT_VERIFIED`, `USERNAME_TAKEN`/`EMAIL_TAKEN` (E11000).
+- ESLint clean on all touched files; full suite still **73 tests**; `npm run build` passes.
+
 ## Fix: retention analytics not loading — double API base URL (2026-08-07)
 
 - `src/app/(admin)/admin/dashboard/page.tsx` — `RetentionSection`'s SWR fetcher was prepending `process.env.NEXT_PUBLIC_API_URL` to keys that were ALREADY absolute URLs (`${base}/api/admin/analytics/...`), producing a malformed URL like `https://hosthttps://host/api/...` that `fetch` rejects → the section always errored. Fixed by passing the key through unchanged (`auth = (url) => fetcher(url, token)`) — only the keys build absolute URLs. Also removed the unused `Flame` import and replaced the file's pre-existing `any` types with real ones (`TopUser`, `ChurnUser`, `SessionMetrics`, `ActivityItemProps`) so ESLint is clean. Full suite still **73 tests**; `npm run build` passes.

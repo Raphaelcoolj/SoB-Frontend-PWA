@@ -9,18 +9,34 @@ import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchWithAuth } from '../../lib/api';
+import { useAuthStore } from '../../store/authStore';
 
 function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuth();
+  const setPending = useAuthStore((s) => s.setPending);
 
   useEffect(() => {
     const token = searchParams.get('token');
     const refreshToken = searchParams.get('refreshToken');
     const isOnboarded = searchParams.get('isOnboarded');
+    const pending = searchParams.get('pending');
+    const pendingToken = searchParams.get('pendingToken');
 
     const handleAuth = async () => {
+      // Brand-new Google signup: no User row exists yet. Stage the pending token
+      // and send the user to onboarding, where the account is actually created.
+      if (pending === '1' && pendingToken) {
+        setPending(pendingToken, {
+          name: searchParams.get('name') ?? undefined,
+          email: searchParams.get('email') ?? undefined,
+          avatar: searchParams.get('avatar') ?? undefined,
+        });
+        router.push('/onboarding');
+        return;
+      }
+
       if (token && refreshToken) {
         // Store the refresh token securely in localStorage for refreshing sessions
         localStorage.setItem('sob-refresh-token', refreshToken);
@@ -60,7 +76,7 @@ function OAuthCallbackContent() {
     };
 
     handleAuth();
-  }, [searchParams, router, setAuth]);
+  }, [searchParams, router, setAuth, setPending]);
 
   return <div className="flex justify-center items-center h-screen">Authenticating...</div>;
 }

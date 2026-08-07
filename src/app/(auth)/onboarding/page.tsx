@@ -8,7 +8,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { Camera, Star, Pencil, ChevronDown, Calendar, ArrowLeft } from 'lucide-react';
+import { Camera, Pencil, ChevronDown, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -54,7 +54,7 @@ const MONTHS = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, accessToken, setUser } = useAuthStore();
+  const { user, accessToken, pendingToken, pendingProfile, setUser, setAuth } = useAuthStore();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ 
     username: user?.username || '', 
@@ -193,19 +193,43 @@ export default function OnboardingPage() {
 
     setLoading(true);
     try {
-      if (!accessToken) return;
+      if (!accessToken && !pendingToken) return;
 
-      // 1. Update basic info (username/bio/dob)
-      await fetchWithAuth('/api/auth/complete-onboarding', {
-        method: 'POST',
-        body: JSON.stringify({
-          username: formData.username,
-          bio: formData.bio,
-          dob: dob ? dob.toISOString() : undefined,
-          priorityFields: selectedFields,
-          agreedToTerms: !user?.agreedToTerms ? agreeToTerms : undefined
-        })
+      const payload = JSON.stringify({
+        username: formData.username,
+        bio: formData.bio,
+        dob: dob ? dob.toISOString() : undefined,
+        priorityFields: selectedFields,
+        agreedToTerms: !user?.agreedToTerms ? agreeToTerms : undefined
       });
+
+      // Pending signups carry a `typ: pending` token; legacy users use their real token.
+      const res = pendingToken
+        ? await fetch(`${API_URL}/api/auth/complete-onboarding`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pendingToken}` },
+            body: payload,
+          })
+        : await fetchWithAuth('/api/auth/complete-onboarding', {
+            method: 'POST',
+            body: payload,
+          });
+      const data = await res.json();
+
+      if (res.ok) {
+        // Pending path returns real auth tokens (account created now); legacy path
+        // returns just the updated user.
+        const { user: completedUser, accessToken: at, refreshToken: rt } = data.data;
+        if (at && rt) {
+          setAuth(completedUser, at, rt);
+          if (rt) localStorage.setItem('sob-refresh-token', rt);
+        } else {
+          setUser(completedUser);
+        }
+      } else {
+        toast.error(data.message || 'Onboarding failed. Please try again.');
+        return;
+      }
 
       // 2. Upload avatar if selected
       if (avatar) {
@@ -221,16 +245,16 @@ export default function OnboardingPage() {
       }
 
       // 3. Final fetch to refresh user data
-      const res = await fetchWithAuth('/api/users/me', { method: 'GET' });
-      const data = await res.json();
-      if (res.ok) {
-        setUser(data.data.user);
+      const refreshRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
+      const refreshData = await refreshRes.json();
+      if (refreshRes.ok) {
+        setUser(refreshData.data.user);
         router.push('/home');
       } else {
         toast.error('Onboarding completed, but failed to refresh user data.');
         router.push('/home');
       }
-    } catch (err) {
+    } catch {
       toast.error('An error occurred');
     } finally {
       setLoading(false);
@@ -282,8 +306,8 @@ export default function OnboardingPage() {
               {/* Main Avatar container */}
               <div className="relative rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center transition-transform duration-300 active:scale-95">
                 <UserAvatar 
-                  avatar={avatarPreview || user?.avatar} 
-                  name={user?.name || 'User'} 
+                  avatar={avatarPreview || user?.avatar || pendingProfile?.avatar} 
+                  name={user?.name || pendingProfile?.name || 'User'} 
                   size="lg" 
                   className="w-24 h-24 sm:w-28 sm:h-28" 
                 />
@@ -485,7 +509,7 @@ export default function OnboardingPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1 py-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-              {fields.map((f: any) => {
+              {fields.map((f: { _id: string; name: string }) => {
                 const isSelected = selectedFields.includes(f._id);
                 return (
                   <button

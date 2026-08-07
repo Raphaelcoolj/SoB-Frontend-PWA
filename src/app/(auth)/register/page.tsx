@@ -12,7 +12,6 @@ import { useAuthStore } from '../../../store/authStore';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
-import { Label } from '../../../components/ui/Label';
 import { fetchWithAuth } from '../../../lib/api';
 import { toast } from 'sonner';
 
@@ -24,7 +23,7 @@ const STEPS = ['Account', 'Username', 'Password'];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setAuth } = useAuthStore();
+  const { setPending } = useAuthStore();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -112,16 +111,18 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        const { user: userData, accessToken: token, refreshToken: rt } = data.data;
-        setAuth(userData, token, rt);
-        if (rt) localStorage.setItem('sob-refresh-token', rt);
+        // Account is NOT created in the DB yet — a pending signup exists until
+        // onboarding is completed. Hold the pending token for the verify-email
+        // and onboarding screens.
+        const { pendingToken, pendingProfile } = data.data;
+        setPending(pendingToken, pendingProfile);
         toast.success('Registration successful! Please check your email (and spam folder) for the verification code.');
         router.push('/verify-email');
       } else {
         toast.error(data.message || 'Registration failed');
       }
-    } catch (err) {
-      toast.error('An error occurred during registration');
+    } catch {
+      toast.error('An error occurred');
     } finally {
       setLoading(false);
     }
