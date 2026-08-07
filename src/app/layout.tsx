@@ -22,14 +22,17 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://spherebrilliq.online'),
   title: {
-    default: 'SoB — Connect, Discover & Share',
+    default: 'SoB — Connect, Discover & Share | SphereBrilliq',
     template: '%s | SoB',
   },
   description:
-    'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
+    'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
   manifest: '/manifest.json',
   keywords: [
+    'sob',
     'SoB',
+    'SOB',
+    'SphereBrilliq',
     'spherebrilliq.online',
     'social platform',
     'knowledge sharing',
@@ -40,8 +43,13 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any', type: 'image/x-icon' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-48x48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/favicon.png', sizes: '48x48', type: 'image/png' },
+      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: '/apple-touch-icon.png',
     shortcut: '/favicon.ico',
@@ -60,15 +68,15 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://spherebrilliq.online',
     siteName: 'SoB',
-    title: 'SoB — Connect, Discover & Share',
+    title: 'SoB — Connect, Discover & Share | SphereBrilliq',
     description:
-      'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
+      'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SoB — Connect, Discover & Share',
+    title: 'SoB — Connect, Discover & Share | SphereBrilliq',
     description:
-      'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
+      'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
   },
 
    robots: {
