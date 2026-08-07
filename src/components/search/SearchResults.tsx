@@ -71,7 +71,9 @@ export default function SearchResults({ query, users, posts, isLoading }: Search
           </div>
           <div className="grid gap-3">
             {users.map((u) => (
-              <UserCard key={u._id} user={u} />
+              <div key={u._id} className="min-w-0">
+                <UserCard user={u} />
+              </div>
             ))}
           </div>
         </section>

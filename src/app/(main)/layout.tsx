@@ -77,8 +77,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <Sidebar />
 
       {/* Main content area */}
-      <main className="pb-20 lg:pb-0 lg:pl-64 min-h-screen">
-        <div className="max-w-2xl mx-auto px-4 pt-4 lg:pt-6">
+      <main className="pb-20 lg:pb-0 lg:pl-64 min-h-screen min-w-0 overflow-x-hidden">
+        <div className="max-w-2xl mx-auto px-4 pt-4 lg:pt-6 w-full min-w-0">
           {children}
         </div>
       </main>

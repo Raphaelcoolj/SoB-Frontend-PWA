@@ -38,7 +38,7 @@ export default function SearchPage() {
   }, [isSearching, selectedField]);
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 overflow-x-hidden">
       {/* Search bar - sticky at top */}
       <div className="sticky top-0 bg-background z-10 p-4 border-b border-border/60">
         <div className="relative group">
