@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { Compass, MessageSquare, PenLine, Users } from 'lucide-react';
 import { Logo } from '../components/shared/Logo';
 
 export const metadata: Metadata = {
   title: { absolute: 'SoB — Connect, Discover & Share' },
   description: 'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
-  keywords: ['SoB', 'SphereBrilliq', 'spherebrilliq.online', 'social platform'],
+  keywords: ['SoB', 'spherebrilliq.online', 'social platform'],
   openGraph: {
     type: 'website',
     url: 'https://spherebrilliq.online',
@@ -30,7 +31,7 @@ const jsonLd = [
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': 'https://spherebrilliq.online/#organization',
-    name: 'SphereBrilliq',
+    name: 'SoB',
     alternateName: 'SoB',
     url: 'https://spherebrilliq.online',
     logo: 'https://spherebrilliq.online/android-chrome-512x512.png',
@@ -41,11 +42,42 @@ const jsonLd = [
     '@type': 'WebSite',
     '@id': 'https://spherebrilliq.online/#website',
     name: 'SoB',
-    alternateName: 'SphereBrilliq',
+    alternateName: 'SoB',
     url: 'https://spherebrilliq.online',
     publisher: { '@id': 'https://spherebrilliq.online/#organization' },
     inLanguage: 'en',
   },
+];
+
+const features = [
+  {
+    icon: PenLine,
+    title: 'Publish',
+    description: 'Share your ideas through posts, stories and long-form articles.',
+  },
+  {
+    icon: Compass,
+    title: 'Discover',
+    description: 'Explore conversations across a wide range of fields.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Discuss',
+    description: 'Join meaningful discussions under every post.',
+  },
+  {
+    icon: Users,
+    title: 'Connect',
+    description: "Follow people and topics you're interested in.",
+  },
+];
+
+const footerLinks = [
+  { label: 'Privacy Policy', href: '/privacy-policy' },
+  { label: 'Terms of Use', href: '/terms-of-service' },
+  { label: 'Community Guidelines', href: '/community-guidelines' },
+  { label: 'Child Safety', href: '/child-safety' },
+  { label: 'Contact', href: '/contact' },
 ];
 
 export default async function RootPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
@@ -61,73 +93,143 @@ export default async function RootPage(props: { searchParams: Promise<{ [key: st
   const jsonLdString = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="relative isolate flex min-h-dvh flex-col overflow-x-hidden bg-background text-foreground">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString }} />
-      <header className="w-full max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
-        <Logo />
-        <nav className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground px-4 py-2 rounded-full transition-colors"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/register"
-            className="text-sm font-medium bg-accent text-white px-5 py-2.5 rounded-full hover:opacity-90 transition-opacity"
-          >
-            Get started
-          </Link>
-        </nav>
+
+      {/* Ambient background — subtle grid + soft blue glows */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(70% 45% at 50% 0%, rgba(59,130,246,0.12), transparent 60%)',
+          }}
+        />
+        <div
+          className="absolute -top-40 -right-28 h-80 w-80 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.20), transparent 70%)' }}
+        />
+        <div
+          className="absolute -left-40 bottom-0 h-96 w-96 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.14), transparent 70%)' }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+            maskImage: 'radial-gradient(90% 70% at 50% 0%, #000, transparent 75%)',
+            WebkitMaskImage: 'radial-gradient(90% 70% at 50% 0%, #000, transparent 75%)',
+          }}
+        />
+      </div>
+
+      {/* Sticky header */}
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-md will-change-transform">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
+          <Logo />
+          <nav className="flex items-center gap-2 sm:gap-3" aria-label="Account">
+            <Link
+              href="/login"
+              className="inline-flex min-h-[44px] items-center px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus:rounded-xl"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex min-h-[44px] items-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent/90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-5"
+            >
+              Get started
+            </Link>
+          </nav>
+        </div>
       </header>
 
-      <main className="w-full max-w-5xl mx-auto px-6 flex-1 flex flex-col items-center justify-center text-center gap-8 py-16">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-          Welcome to <span className="italic">SoB</span>
-        </h1>
-        <p className="max-w-2xl text-base md:text-lg text-muted-foreground leading-relaxed">
-          <strong className="text-foreground">SoB</strong> is the name of the platform, operated at{' '}
-          <strong className="text-foreground">spherebrilliq.online</strong>. Create an account, publish long-form
-          articles, stories and short-form posts across a wide range of fields — education, science, technology,
-          philosophy, sports, music, movies, literature and more — and join the debate under every post.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 rounded-full bg-accent text-white px-7 py-3 font-medium hover:opacity-90 transition-opacity"
-          >
-            Join SphereBrilliq
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-full border border-border px-7 py-3 font-medium text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 transition-colors"
-          >
-            Sign in
-          </Link>
-        </div>
-        <nav className="pt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <Link className="hover:text-foreground transition-colors" href="/privacy-policy">
-            Privacy Policy
-          </Link>
-          <Link className="hover:text-foreground transition-colors" href="/terms-of-service">
-            Terms of Use
-          </Link>
-          <Link className="hover:text-foreground transition-colors" href="/community-guidelines">
-            Community Guidelines
-          </Link>
-          <Link className="hover:text-foreground transition-colors" href="/child-safety">
-            Child Safety
-          </Link>
-          <Link className="hover:text-foreground transition-colors" href="/contact">
-            Contact
-          </Link>
-        </nav>
+      <main className="flex flex-1 flex-col items-center">
+        {/* Hero + CTA */}
+        <section className="w-full max-w-5xl px-4 pt-10 text-center sm:px-6 sm:pt-16">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+            The platform for ideas
+          </span>
+
+          <h1 className="mt-5 text-[clamp(2.5rem,9vw,4.75rem)] font-bold leading-[1.05] tracking-tight">
+            Welcome to <span className="italic">SoB</span>
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">
+            Create, discover, and discuss ideas across education, science, technology, philosophy, sports, music,
+            literature and more.
+          </p>
+
+          <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
+            <Link
+              href="/register"
+              className="inline-flex h-12 items-center justify-center rounded-xl bg-accent px-8 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(59,130,246,0.55)] transition-all duration-200 hover:bg-accent/90 hover:shadow-[0_8px_28px_-6px_rgba(59,130,246,0.6)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Join SoB
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-border bg-background px-8 text-base font-medium text-foreground transition-colors duration-200 hover:border-accent/40 hover:bg-accent/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Sign in
+            </Link>
+          </div>
+
+          <p className="mt-6 text-xs text-muted-foreground/80 sm:text-sm">
+            SoB is the name of the platform, operated at spherebrilliq.online.
+          </p>
+        </section>
+
+        {/* Feature highlights */}
+        <section className="w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16" aria-label="What you can do on SoB">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="rounded-2xl border border-border bg-card/50 p-5 text-left transition-colors duration-200 hover:border-accent/30 hover:bg-card/80"
+                >
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent/12 text-accent">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </div>
+                  <h2 className="text-base font-semibold tracking-tight">{feature.title}</h2>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </main>
 
-      <footer className="w-full border-t border-border/40 py-6 text-center text-sm text-muted-foreground">
-        <p>
-          &copy; {new Date().getFullYear()} SphereBrilliq · spherebrilliq.online · SoB
-        </p>
+      {/* Footer */}
+      <footer className="border-t border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+          <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <Logo />
+              <p className="text-sm text-muted-foreground">
+                SoB — a social platform at spherebrilliq.online.
+              </p>
+            </div>
+            <nav className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm" aria-label="Legal">
+              {footerLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <div className="mt-8 pt-4 text-center text-xs text-muted-foreground border-t border-border/70 sm:text-left">
+            &copy; {new Date().getFullYear()} SoB · spherebrilliq.online
+          </div>
+        </div>
       </footer>
     </div>
   );

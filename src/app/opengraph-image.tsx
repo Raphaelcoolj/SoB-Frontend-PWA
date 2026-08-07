@@ -40,7 +40,7 @@ export default function OpengraphImage() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '28px', color: '#9ca3af', lineHeight: 1.35 }}>
           <span>A social platform for discovering ideas, sharing knowledge,</span>
-          <span>&amp; connecting with people — SphereBrilliq · spherebrilliq.online</span>
+          <span>&amp; connecting with people — SoB · spherebrilliq.online</span>
         </div>
       </div>
     ),

@@ -30,7 +30,6 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   keywords: [
     'SoB',
-    'SphereBrilliq',
     'spherebrilliq.online',
     'social platform',
     'knowledge sharing',

@@ -13,6 +13,12 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Branding: "SoB" everywhere (2026-08-08)
+
+- Per user instruction, the brand word is **SoB** in ALL user-facing copy and metadata — the old brand word **SphereBrilliq** has been removed from `src/` entirely (0 matches). The **domain `spherebrilliq.online` (lowercase)** remains untouched wherever referenced.
+- Touched files: `src/app/page.tsx` (keywords deduped to `['SoB', 'spherebrilliq.online', 'social platform']`; Organization/WebSite JSON-LD `name` + `alternateName` both `'SoB'`; footer line "SoB — a social platform at spherebrilliq.online."; copyright `© {year} SoB · spherebrilliq.online`), `src/app/layout.tsx` (keywords), `src/app/privacy-policy/page.tsx` (description ×3), `src/app/opengraph-image.tsx` + `src/app/twitter-image.tsx` (OG/Twitter tagline "— SoB · spherebrilliq.online").
+- Verified: `npm run build` passes.
+
 ## Agent Workflow Instructions
 After every task, an agent MUST:
 1. Update this AGENTS.md file if any new components, pages, hooks, or features were added
