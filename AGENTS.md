@@ -13,6 +13,21 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Production SEO + favicon audit (2026-08-08)
+
+- **Favicon fixed**: production `/favicon.ico` and `/favicon.png` were 404 while `<head>` referenced them — the direct cause of the missing Google Search logo. Added to `public/`:
+  - `favicon.ico` (PNG-embedded multi-size 16/32/48, generated from the official `android-chrome-512x512.png` SoB logo — same brand mark, nothing redesigned)
+  - `favicon.png` + `favicon-48x48.png` (48×48, from the same 512px source)
+  - Existing square PNGs kept: `favicon-16x16`, `favicon-32x32`, `apple-touch-icon.png` (180×180), `android-chrome-192x192`, `android-chrome-512x512`
+- `src/app/layout.tsx` — homepage title `SoB — Connect, Discover & Share | SphereBrilliq`, title template `%s | SoB`; canonical description "SoB (SphereBrilliq) is a social platform for publishing ideas, sharing knowledge, and joining meaningful discussions."; keywords ordered with `sob`, `SoB`, `SOB` first; `icons` array now lists favicon.ico + 16/32/48 + 192/512 PNGs (no conflicts — single `icons` declaration).
+- `src/app/page.tsx` — homepage metadata title/OG/Twitter updated to `SoB — Connect, Discover & Share | SphereBrilliq`; JSON-LD `Organization` + `WebSite` now `name: 'SoB'`, `alternateName: 'SphereBrilliq'` (was 'SoB' for both); hero copy now states "SoB, operated at spherebrilliq.online, is a social platform for publishing ideas, writing long-form articles, discovering topics, and joining meaningful discussions."
+- `src/app\(main)\home\layout.tsx` — `/home` (authenticated feed) set to `robots: { index: false, follow: false }`; removed from sitemap and disallowed in robots.
+- `src/app\robots.ts` — added `/home` to disallow; added explicit `allow` for `/explore`, `/topics`, `/articles`, `/posts`, `/about`.
+- `src/app\sitemap.ts` — removed `/home`; sitemap now `/`, legal pages, `/contact` only.
+- `src/app\privacy-policy\policy_content.html` — replaced legacy public link `https://spherebrilliq.netlify.app` → `https://spherebrilliq.online`.
+- `opengraph-image.alt.txt` / `twitter-image.alt.txt` — updated alt copy to "SoB (SphereBrilliq) — Publishing ideas, sharing knowledge, joining discussions."
+- Verified: `npm run build` passes; production probes show `/robots.txt`, `/sitemap.xml`, `/opengraph-image`, `/apple-touch-icon.png`, `/android-chrome-512x512.png` all HTTP 200; `/favicon.ico` + `/favicon.png` now exist in `public/` (404 → 200 after deploy).
+
 ## Branding: "SoB" everywhere (2026-08-08)
 
 - Per user instruction, the brand word is **SoB** in ALL user-facing copy and metadata — the old brand word **SphereBrilliq** has been removed from `src/` entirely (0 matches). The **domain `spherebrilliq.online` (lowercase)** remains untouched wherever referenced.
