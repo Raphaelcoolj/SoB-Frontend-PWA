@@ -20,6 +20,11 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## "New posts" banner gating: >=10 priority-field posts / 4h + 5-min cooldown (2026-08-07)
+
+- `src/components/feed/NewPostsBanner.tsx` — visibility is now **server-gated and derived**: shown only when `GET /api/feed/fyf/meta?since=` reports `count >= 10` (the backend only counts published, visible posts in the user's priority fields within the last 4h). The socket `feed:new_posts` event no longer shows the banner directly — it just calls SWR `mutate()` to re-check the count, so a single stray post never triggers it. Tapping refreshes the feed, scrolls to top, and suppresses the banner for `COOLDOWN_MS` (5 min) via a `dismissed` state + timeout; the pill reappears on the next revalidation after the cooldown if fresh posts remain.
+- `src/components/feed/NewPostsBanner.test.tsx` — now 8 tests (mutable SWR mock driving the count + fake timers for the cooldown). Full suite: **73 tests**.
+
 ## Retention Roadmap — tracking-first (2026-08-06)
 
 - `src/app/(admin)/admin/dashboard/page.tsx` — new **Retention** section under the core stats: weekly cohort retention bars (`GET /api/admin/analytics/retention`, W1..W3 %), onboarding funnel rates + avg session/sessions-per-user (`/funnel`, `/sessions`), and a churn card listing cold-start + dormant users (`/churn`). Success-metric framing on the header ("D7 trending up")
