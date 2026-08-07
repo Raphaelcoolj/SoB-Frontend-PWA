@@ -1,17 +1,29 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Home',
+  title: { absolute: 'SoB — Connect, Discover & Share' },
+  description:
+    'The SoB home feed — the latest articles, stories, posts, and debates from the topics you care about.',
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
-    title: 'SoB — Home',
-    description: 'Discover trending content and posts from your feed on SoB.',
-    images: [{ url: '/android-chrome-512x512.png', width: 512, height: 512 }],
+    type: 'website',
+    url: 'https://spherebrilliq.online/home',
+    siteName: 'SoB',
+    title: 'SoB — Connect, Discover & Share',
+    description:
+      'The SoB home feed — the latest articles, stories, posts, and debates from the topics you care about.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SoB — Home',
-    description: 'Discover trending content and posts from your feed on SoB.',
-    images: ['/android-chrome-512x512.png'],
+    title: 'SoB — Connect, Discover & Share',
+    description:
+      'The SoB home feed — the latest articles, stories, posts, and debates from the topics you care about.',
+  },
+  alternates: {
+    canonical: 'https://spherebrilliq.online/home',
   },
 };
 

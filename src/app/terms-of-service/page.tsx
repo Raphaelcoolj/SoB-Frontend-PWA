@@ -5,8 +5,29 @@
 
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
+
+export const metadata: Metadata = {
+  title: 'Terms of Use',
+  description: 'The Terms of Use for SoB — the legal terms that govern your access to and use of the social platform at spherebrilliq.online.',
+  openGraph: {
+    type: 'website',
+    url: 'https://spherebrilliq.online/terms-of-service',
+    siteName: 'SoB',
+    title: 'SoB — Terms of Use',
+    description: 'The Terms of Use for SoB — the legal terms that govern your access to and use of the social platform at spherebrilliq.online.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SoB — Terms of Use',
+    description: 'The Terms of Use for SoB — the legal terms that govern your access to and use of the social platform at spherebrilliq.online.',
+  },
+  alternates: {
+    canonical: 'https://spherebrilliq.online/terms-of-service',
+  },
+};
 
 export default function TermsOfServicePage() {
   return (

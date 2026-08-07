@@ -1,7 +1,29 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
+
+export const metadata: Metadata = {
+  title: 'Community Guidelines',
+  description:
+    'The Community Guidelines for SoB — the standards that keep the community safe and respectful on the platform.',
+  openGraph: {
+    type: 'website',
+    url: 'https://spherebrilliq.online/community-guidelines',
+    siteName: 'SoB',
+    title: 'SoB — Community Guidelines',
+    description: 'The Community Guidelines for SoB — the standards that keep the community safe and respectful on the platform.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SoB — Community Guidelines',
+    description: 'The Community Guidelines for SoB — the standards that keep the community safe and respectful on the platform.',
+  },
+  alternates: {
+    canonical: 'https://spherebrilliq.online/community-guidelines',
+  },
+};
 
 export default function CommunityGuidelinesPage() {
   return (
