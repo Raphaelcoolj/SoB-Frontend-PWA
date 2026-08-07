@@ -20,6 +20,10 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## Fix: retention analytics not loading — double API base URL (2026-08-07)
+
+- `src/app/(admin)/admin/dashboard/page.tsx` — `RetentionSection`'s SWR fetcher was prepending `process.env.NEXT_PUBLIC_API_URL` to keys that were ALREADY absolute URLs (`${base}/api/admin/analytics/...`), producing a malformed URL like `https://hosthttps://host/api/...` that `fetch` rejects → the section always errored. Fixed by passing the key through unchanged (`auth = (url) => fetcher(url, token)`) — only the keys build absolute URLs. Also removed the unused `Flame` import and replaced the file's pre-existing `any` types with real ones (`TopUser`, `ChurnUser`, `SessionMetrics`, `ActivityItemProps`) so ESLint is clean. Full suite still **73 tests**; `npm run build` passes.
+
 ## "New posts" banner gating: >=10 priority-field posts / 4h + 5-min cooldown (2026-08-07)
 
 - `src/components/feed/NewPostsBanner.tsx` — visibility is now **server-gated and derived**: shown only when `GET /api/feed/fyf/meta?since=` reports `count >= 10` (the backend only counts published, visible posts in the user's priority fields within the last 4h). The socket `feed:new_posts` event no longer shows the banner directly — it just calls SWR `mutate()` to re-check the count, so a single stray post never triggers it. Tapping refreshes the feed, scrolls to top, and suppresses the banner for `COOLDOWN_MS` (5 min) via a `dismissed` state + timeout; the pill reappears on the next revalidation after the cooldown if fresh posts remain.
