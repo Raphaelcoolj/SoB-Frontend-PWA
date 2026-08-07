@@ -1,7 +1,31 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ArrowLeft, Shield, AlertTriangle, Mail } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
+
+export const metadata: Metadata = {
+  title: 'Child Safety',
+  description:
+    'SoB child safety policy and reporting — how the platform protects minors at spherebrilliq.online/child-safety.',
+  openGraph: {
+    type: 'website',
+    url: 'https://spherebrilliq.online/child-safety',
+    siteName: 'SoB',
+    title: 'SoB — Child Safety',
+    description:
+      'SoB child safety policy and reporting — how the platform protects minors at spherebrilliq.online/child-safety.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SoB — Child Safety',
+    description:
+      'SoB child safety policy and reporting — how the platform protects minors at spherebrilliq.online/child-safety.',
+  },
+  alternates: {
+    canonical: 'https://spherebrilliq.online/child-safety',
+  },
+};
 
 export default function ChildSafetyPage() {
   return (

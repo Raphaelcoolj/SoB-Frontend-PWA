@@ -20,6 +20,22 @@ After every task, an agent MUST:
 3. Commit all changes with a structured commit message
 4. Never leave uncommitted work behind
 
+## SEO metadata, robots & sitemap overhaul with consistent branding (2026-08-07)
+
+- Canonical brand strings used across all metadata/copy: **SoB** (platform name), **SphereBrilliq** (brand), **spherebrilliq.online** (domain). No `SOB`, `Sphere Brilliq`, `SphereBriliq`, `SphereBrilliq Social`, or legacy `.com/.net/...` domain variants anywhere in `src/`.
+- **`src/app/layout.tsx`** — root metadata cleaned: removed the giant keyword-spam list and the icon-as-OG-image; `description` = the canonical user line ("SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you."); `metadataBase`, `applicationName: 'SoB'`, `alternates.canonical`, and `robots index/follow` retained. All root `openGraph`/`twitter` use the canonical description.
+- **`src/app/page.tsx`** — root `/` no longer always `redirect('/home')`: it keeps the `?token&refreshToken` OAuth redirect, then renders an SEO landing page. H1 states "SoB is the name of the platform, operated at spherebrilliq.online" for Google; homepage metadata uses the canonical description; full **`Organization` + `WebSite` JSON-LD** (schema.org) rendered in `<script type="application/ld+json">` with `@id` anchors under `#organization`/`#website`.
+- **`src/app/robots.ts`** — generated `/robots.txt`: allow `/`, disallow private/app routes (`/admin`, `/settings`, `/chats`, `/search`, `/notifications`, `/bookmarks`, `/create`, `/post`, `/profile`, auth pages, `/oauth-callback`, `/delete-account`, `/offline`, `/serwist/`), plus `Sitemap:` pointer.
+- **`src/app/sitemap.ts`** — generated `/sitemap.xml` listing only public indexable pages: `/` (1.0), `/home` (0.9), `/terms-of-service`, `/privacy-policy` (0.4), `/community-guidelines`, `/child-safety` (0.3), `/contact` (0.5).
+- **`src/app/opengraph-image.tsx` / `src/app/twitter-image.tsx`** (+ `.alt.txt`) — generated 1200×630 OG/Twitter images (ImageResponse, brand logo embedded as data URI, "Sphere" + brand + domain copy). Replaces the 512×512 icon as the site-share image; page-level custom OG (e.g. profile avatars) still override via the more-specific segment.
+- **Per-page metadata** — each public page has its **own** title/description/canonical/OG/Twitter:
+  - `/home` (`(main)/home/layout.tsx`): feed description; canonical `/home`.
+  - `/terms-of-service`, `/privacy-policy`, `/community-guidelines`, `/child-safety`: distinct legal descriptions.
+  - `/contact` — new server `layout.tsx` (page is `'use client'`) with Contact description.
+  - `/delete-account` — new server `layout.tsx`, description + `robots noindex`.
+  - `(auth)` layout: `robots noindex` on login/register/verify/onboarding/forgot/reset.
+- Verified: `npm run build` passes; `/robots.txt`, `/sitemap.xml`, `/opengraph-image`, `/twitter-image` all present in the route table.
+
 ## Pending-signup auth flow: no User row until onboarding completes (2026-08-07)
 
 - Hard rule (backend-enforced): `register`/Google no longer create a `User`; they stage a `PendingSignup` (TTL 24h) and return a `typ:'pending'` JWT. Only `POST /api/auth/complete-onboarding` creates a `User`.

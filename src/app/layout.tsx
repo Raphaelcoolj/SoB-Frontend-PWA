@@ -20,13 +20,25 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://spherebrilliq.netlify.app'),
+  metadataBase: new URL('https://spherebrilliq.online'),
   title: {
-    default: 'SoB — A Social Platform',
+    default: 'SoB — Connect, Discover & Share',
     template: '%s | SoB',
   },
-  description: 'SoB — An educational and social content platform.',
+  description:
+    'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
   manifest: '/manifest.json',
+  keywords: [
+    'SoB',
+    'SphereBrilliq',
+    'spherebrilliq.online',
+    'social platform',
+    'knowledge sharing',
+    'community',
+    'learning',
+  ],
+  applicationName: 'SoB',
+
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -43,22 +55,33 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://spherebrilliq.netlify.app',
+    url: 'https://spherebrilliq.online',
     siteName: 'SoB',
-    title: 'SoB',
-    description: 'Educational and social content platform for sharing and discovering knowledge.',
-    images: [{ url: '/android-chrome-512x512.png', width: 512, height: 512 }],
+    title: 'SoB — Connect, Discover & Share',
+    description:
+      'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SoB',
-    description: 'Educational and social content platform for sharing and discovering knowledge.',
-    images: ['/android-chrome-512x512.png'],
+    title: 'SoB — Connect, Discover & Share',
+    description:
+      'SoB is a social platform for discovering ideas, sharing knowledge, connecting with people, and exploring topics that interest you.',
+  },
+
+   robots: {
+    index: true,
+    follow: true,
+  },
+
+  alternates: {
+    canonical: 'https://spherebrilliq.online',
   },
 };
+
 
 /**
  * Viewport config — must be exported separately in Next.js 13.2+.
