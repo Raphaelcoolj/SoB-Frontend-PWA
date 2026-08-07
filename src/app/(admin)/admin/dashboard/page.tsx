@@ -18,7 +18,6 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Flame,
   UserX,
   Target
 } from 'lucide-react';
@@ -127,7 +126,7 @@ export default function AdminDashboardPage() {
             Most Active Users (Weekly)
           </h3>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-            {summary.topUsers.map((item: any, i: number) => (
+            {summary.topUsers.map((item: TopUser, i: number) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 group hover:border-accent/40 transition-all">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-semibold text-muted-foreground w-4">{i + 1}</span>
@@ -180,17 +179,28 @@ export default function AdminDashboardPage() {
 // ---- Retention analytics (cohort retention, funnel, sessions, churn) ----
 type RetentionRow = { weekStart: string; signups: number; retention: number[] };
 type Funnel = { rates: Record<string, number>; totalUsers: number };
-type Churn = { dormant: any[]; coldStart: any[]; currentlyActiveCount: number };
+type TopUser = { username: string; avatar?: string; actionCount: number };
+type ChurnUser = { _id: string; username: string; avatar?: string };
+type Churn = { dormant: ChurnUser[]; coldStart: ChurnUser[]; currentlyActiveCount: number };
+type SessionMetrics = { avgSessionSeconds: number; avgSessionsPerUser: number };
+type ActivityItemProps = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  max: number;
+  color: string;
+};
 
 function RetentionSection({ token }: { token: string | null }) {
   const base = process.env.NEXT_PUBLIC_API_URL;
-  const auth = (url: string) =>
-    fetcher(`${base}${url}`, token ?? '');
+  // SWR keys below are absolute URLs (base + path); the fetcher must NOT re-prepend
+  // the base or the request URL becomes malformed and never loads.
+  const auth = (url: string) => fetcher(url, token ?? '');
 
   const { data: retention, error: retentionError } = useSWR<RetentionRow[]>(token ? `${base}/api/admin/analytics/retention` : null, auth);
   const { data: funnel, error: funnelError } = useSWR<Funnel>(token ? `${base}/api/admin/analytics/funnel` : null, auth);
   const { data: churn, error: churnError } = useSWR<Churn>(token ? `${base}/api/admin/analytics/churn` : null, auth);
-  const { data: sessions, error: sessionsError } = useSWR<any>(token ? `${base}/api/admin/analytics/sessions` : null, auth);
+  const { data: sessions, error: sessionsError } = useSWR<SessionMetrics>(token ? `${base}/api/admin/analytics/sessions` : null, auth);
 
   const anyError = retentionError || funnelError || churnError || sessionsError;
   const hasAny = Boolean(retention || funnel || churn || sessions);
@@ -304,7 +314,7 @@ function RetentionSection({ token }: { token: string | null }) {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Cold start (signed up, never returned)</p>
               {churn.coldStart.length === 0 ? <p className="text-sm text-muted-foreground">Great — everyone who signed up has come back.</p> : (
                 <div className="space-y-1">
-                  {churn.coldStart.slice(0, 8).map((u: any) => (
+                  {churn.coldStart.slice(0, 8).map((u: ChurnUser) => (
                     <div key={u._id} className="flex items-center gap-2 text-xs">
                       <UserAvatar avatar={u.avatar} name={u.username} size="sm" />
                       <span className="truncate text-muted-foreground">@{u.username}</span>
@@ -317,7 +327,7 @@ function RetentionSection({ token }: { token: string | null }) {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Dormant (active before, silent 14d+)</p>
               {churn.dormant.length === 0 ? <p className="text-sm text-muted-foreground">No dormant users right now.</p> : (
                 <div className="space-y-1">
-                  {churn.dormant.slice(0, 8).map((u: any) => (
+                  {churn.dormant.slice(0, 8).map((u: ChurnUser) => (
                     <div key={u._id} className="flex items-center gap-2 text-xs">
                       <UserAvatar avatar={u.avatar} name={u.username} size="sm" />
                       <span className="truncate text-muted-foreground">@{u.username}</span>
@@ -333,7 +343,7 @@ function RetentionSection({ token }: { token: string | null }) {
   );
 }
 
-function ActivityItem({ icon: Icon, label, value, max, color }: any) {
+function ActivityItem({ icon: Icon, label, value, max, color }: ActivityItemProps) {
   const percentage = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="space-y-1.5">
