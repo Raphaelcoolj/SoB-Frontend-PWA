@@ -10,13 +10,22 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { fetchWithAuth } from '../../../lib/api';
+import { useAuthStore } from '../../../store/authStore';
 import { toast } from 'sonner';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function VerifyEmailPage() {
   const router = useRouter();
+  const { pendingToken } = useAuthStore();
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  const authHeaders = pendingToken
+    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${pendingToken}` }
+    : undefined;
 
   const handleDigitChange = (value: string, index: number) => {
     if (value && !/^\d$/.test(value)) return;
@@ -36,10 +45,13 @@ export default function VerifyEmailPage() {
 
     setLoading(true);
     try {
-      const res = await fetchWithAuth('/api/auth/verify-email', { 
-        method: 'POST', 
-        body: JSON.stringify({ code }) 
-      });
+      const res = pendingToken
+        ? await fetch(`${API_URL}/api/auth/verify-email`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ code }),
+          })
+        : await fetchWithAuth('/api/auth/verify-email', { method: 'POST', body: JSON.stringify({ code }) });
       const data = await res.json();
       if (res.ok) {
         toast.success('Email verified successfully!');
@@ -47,10 +59,32 @@ export default function VerifyEmailPage() {
       } else {
         toast.error(data.message || 'Invalid verification code');
       }
-    } catch (err) {
+    } catch {
       toast.error('An error occurred during verification');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const res = pendingToken
+        ? await fetch(`${API_URL}/api/auth/resend-verification`, {
+            method: 'POST',
+            headers: authHeaders,
+          })
+        : await fetchWithAuth('/api/auth/resend-verification', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('A new verification code has been sent to your email.');
+      } else {
+        toast.error(data.message || 'Failed to resend code');
+      }
+    } catch {
+      toast.error('An error occurred while resending the code');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -73,6 +107,14 @@ export default function VerifyEmailPage() {
       </div>
       
       <Button type="submit" className="w-full" loading={loading}>Verify</Button>
+      <button
+        type="button"
+        onClick={handleResend}
+        disabled={resending}
+        className="w-full text-xs text-muted-foreground hover:text-accent transition-colors disabled:opacity-50"
+      >
+        {resending ? 'Sending...' : "Didn't get a code? Resend"}
+      </button>
     </form>
   );
 }
