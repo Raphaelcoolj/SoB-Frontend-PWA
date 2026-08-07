@@ -13,18 +13,18 @@ import { Logo } from '../../components/shared/Logo';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'The Privacy Policy for SoB — how SphereBrilliq collects, uses, and protects your information at spherebrilliq.online.',
+  description: 'The Privacy Policy for SoB — how SphereBrilliq collects, uses, and protects your information at spherebrilliq.online/privacy-policy.',
   openGraph: {
     type: 'website',
     url: 'https://spherebrilliq.online/privacy-policy',
     siteName: 'SoB',
     title: 'SoB — Privacy Policy',
-    description: 'The Privacy Policy for SoB — how SphereBrilliq collects, uses, and protects your information at spherebrilliq.online.',
+    description: 'The Privacy Policy for SoB — how SphereBrilliq collects, uses, and protects your information at spherebrilliq.online/privacy-policy.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'SoB — Privacy Policy',
-    description: 'The Privacy Policy for SoB — how SphereBrilliq collects, uses, and protects your information at spherebrilliq.online.',
+    description: 'The Privacy Policy for SoB — how SphereBrilliq collects, uses, and protects your information at spherebrilliq.online/privacy-policy.',
   },
   alternates: {
     canonical: 'https://spherebrilliq.online/privacy-policy',

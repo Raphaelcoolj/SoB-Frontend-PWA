@@ -11,18 +11,18 @@ import { Logo } from '../../components/shared/Logo';
 
 export const metadata: Metadata = {
   title: 'Terms of Use',
-  description: 'The Terms of Use for SoB — the legal terms that govern your access to and use of the social platform at spherebrilliq.online.',
+  description: 'The Terms of Use for SoB — the rules that govern your access to and use of the social platform at spherebrilliq.online/terms-of-service.',
   openGraph: {
     type: 'website',
     url: 'https://spherebrilliq.online/terms-of-service',
     siteName: 'SoB',
     title: 'SoB — Terms of Use',
-    description: 'The Terms of Use for SoB — the legal terms that govern your access to and use of the social platform at spherebrilliq.online.',
+    description: 'The Terms of Use for SoB — the rules that govern your access to and use of the social platform at spherebrilliq.online/terms-of-service.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'SoB — Terms of Use',
-    description: 'The Terms of Use for SoB — the legal terms that govern your access to and use of the social platform at spherebrilliq.online.',
+    description: 'The Terms of Use for SoB — the rules that govern your access to and use of the social platform at spherebrilliq.online/terms-of-service.',
   },
   alternates: {
     canonical: 'https://spherebrilliq.online/terms-of-service',

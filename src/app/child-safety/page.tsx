@@ -7,20 +7,20 @@ import { Logo } from '../../components/shared/Logo';
 export const metadata: Metadata = {
   title: 'Child Safety',
   description:
-    'SoB child safety policy — how the platform protects minors and how to report child safety concerns.',
+    'SoB child safety policy and reporting — how the platform protects minors at spherebrilliq.online/child-safety.',
   openGraph: {
     type: 'website',
     url: 'https://spherebrilliq.online/child-safety',
     siteName: 'SoB',
     title: 'SoB — Child Safety',
     description:
-      'SoB child safety policy — how the platform protects minors and how to report child safety concerns.',
+      'SoB child safety policy and reporting — how the platform protects minors at spherebrilliq.online/child-safety.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'SoB — Child Safety',
     description:
-      'SoB child safety policy — how the platform protects minors and how to report child safety concerns.',
+      'SoB child safety policy and reporting — how the platform protects minors at spherebrilliq.online/child-safety.',
   },
   alternates: {
     canonical: 'https://spherebrilliq.online/child-safety',

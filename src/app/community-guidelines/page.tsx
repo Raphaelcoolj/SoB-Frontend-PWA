@@ -7,18 +7,18 @@ import { Logo } from '../../components/shared/Logo';
 export const metadata: Metadata = {
   title: 'Community Guidelines',
   description:
-    'The Community Guidelines for SoB — the standards that keep the community safe and respectful on the platform.',
+    'The Community Guidelines for SoB — the standards that keep the community safe and respectful at spherebrilliq.online/community-guidelines.',
   openGraph: {
     type: 'website',
     url: 'https://spherebrilliq.online/community-guidelines',
     siteName: 'SoB',
     title: 'SoB — Community Guidelines',
-    description: 'The Community Guidelines for SoB — the standards that keep the community safe and respectful on the platform.',
+    description: 'The Community Guidelines for SoB — the standards that keep the community safe and respectful at spherebrilliq.online/community-guidelines.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'SoB — Community Guidelines',
-    description: 'The Community Guidelines for SoB — the standards that keep the community safe and respectful on the platform.',
+    description: 'The Community Guidelines for SoB — the standards that keep the community safe and respectful at spherebrilliq.online/community-guidelines.',
   },
   alternates: {
     canonical: 'https://spherebrilliq.online/community-guidelines',
