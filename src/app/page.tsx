@@ -2,6 +2,33 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Compass, MessageSquare, PenLine, Users } from 'lucide-react';
 import { Logo } from '../components/shared/Logo';
+import HomepageShowcase from '../components/home/HomepageShowcase';
+import type { HomepageData } from '../types/homepage';
+
+// ISR: re-render the landing page (and re-fetch the live homepage aggregate)
+// every 60s so real SoB content ships in the initial HTML for SEO. The fetch
+// below carries the same revalidate so a failure is caught and the page still
+// renders with graceful unavailable states instead of failing the build.
+export const revalidate = 60;
+
+const EMPTY_HOMEPAGE: HomepageData = { posts: [], topics: [], discussions: [], users: [] };
+
+async function fetchHomepageServer(): Promise<{ data: HomepageData; serverFailed: boolean }> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) return { data: EMPTY_HOMEPAGE, serverFailed: true };
+  try {
+    const res = await fetch(`${apiUrl}/api/homepage`, {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 60 },
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) return { data: EMPTY_HOMEPAGE, serverFailed: true };
+    const data = (json?.data as HomepageData) ?? EMPTY_HOMEPAGE;
+    return { data, serverFailed: false };
+  } catch {
+    return { data: EMPTY_HOMEPAGE, serverFailed: true };
+  }
+}
 
 export const metadata: Metadata = {
   title: { absolute: 'SoB — Connect, Discover & Share | SphereBrilliq' },
@@ -81,6 +108,7 @@ const footerLinks = [
 
 export default async function RootPage() {
   const jsonLdString = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+  const { data: initialHomepage, serverFailed } = await fetchHomepageServer();
 
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-x-hidden bg-background text-foreground">
@@ -171,6 +199,9 @@ export default async function RootPage() {
             SoB is the name of the platform, operated at spherebrilliq.online.
           </p>
         </section>
+
+        {/* Live product showcase — real SoB content */}
+        <HomepageShowcase initialData={initialHomepage} serverFailed={serverFailed} />
 
         {/* Feature highlights */}
         <section className="w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16" aria-label="What you can do on SoB">
