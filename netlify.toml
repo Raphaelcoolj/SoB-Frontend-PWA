@@ -12,6 +12,123 @@
   package = "@netlify/plugin-nextjs"
 
 [[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://image.mux.com platform-data:; font-src 'self' data:; connect-src 'self' blob: https://api.spherebrilliq.online wss://api.spherebrilliq.online https://sob-backend-api.onrender.com wss://sob-backend-api.onrender.com https://res.cloudinary.com https://stream.mux.com; media-src 'self' blob: https://stream.mux.com https://res.cloudinary.com platform-data:; worker-src 'self'; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/home"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/explore"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/topics"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/leaderboard"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/preferences"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/notifications"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/bookmarks"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/create"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/search"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/chats/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/settings/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/profile/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/post/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/login"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/register"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/forgot-password"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/reset-password"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/verify-email"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/onboarding"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/oauth-callback"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
+  for = "/delete-account"
+  [headers.values]
+    Cache-Control = "private, no-store"
+
+[[headers]]
   for = "/serwist/sw.js"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"

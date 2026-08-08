@@ -13,6 +13,17 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Security headers: CSP + clickjacking + private caching (2026-08-08)
+
+- **`next.config.ts`** — `poweredByHeader: false` (drops `X-Powered-By: Next.js`); new `async headers()`: global `Content-Security-Policy` + `X-Frame-Options: DENY` + `X-Content-Type-Options: nosniff` for `/(.*)`, plus `Cache-Control: private, no-store` per private route.
+- **`netlify.toml`** — merged (not replaced) with the existing SW/manifest rules: global `[[headers]] for = "/*"` security headers at the CDN edge (so cached/prerendered HTML carries them), plus per-path `Cache-Control: private, no-store` rules for the same private routes.
+- **Private routes (both files)** — `/home /explore /topics /leaderboard /preferences /notifications /bookmarks /create /search /chats/* /settings/* /profile/* /post/* /admin/* /login /register /forgot-password /reset-password /verify-email /onboarding /oauth-callback /delete-account`. Public pages (`/`, legal, `/contact`) and `/_next/static` stay cacheable; the `/serwist/sw.js` + `/sw.js` SW revalidation headers are untouched.
+- **CSP rationale** — `script-src 'self' 'unsafe-inline'` and `style-src 'self' 'unsafe-inline'` are REQUIRED because Next.js App Router injects inline scripts (flight data `self.__next_f.push`, next-themes theme script) and inline styles (styled-jsx, React `style` attrs). Nonce-based CSP would force dynamic rendering of every page, which would break Netlify CDN caching + the PWA precache — so the docs' "Without Nonces" approach is used. No `'unsafe-eval'` in production.
+- **Allowed external origins (CSP)** — connect-src: `https://api.spherebrilliq.online` + `wss://…` (Socket.IO websocket), `https://sob-backend-api.onrender.com` + `wss://…` (alternate API host, CNAME'd to the same backend), `https://res.cloudinary.com` (media XHR/download + audio fetch), `https://stream.mux.com` (HLS segments); img-src: Cloudinary + `image.mux.com` thumbnails + `data:`/`blob:` (FileReader / object-URL previews) + `platform-data:` (in-app WebView cache scheme); media-src: Mux stream + Cloudinary + `blob:` (hls.js MSE). `frame-ancestors 'none'` + `frame-src 'none'` (no iframes anywhere). `worker-src`/`manifest-src 'self'` for the PWA.
+- **Sentry** — DSN is empty in `.env.local`/`.env.production`, so no `https://*.ingest.sentry.io` was added to connect-src; add it if a DSN is ever set.
+- **Dev note** — the dev CSP additionally allows `http://localhost:5000 ws://localhost:5000` in connect-src and `'unsafe-eval'` in script-src so `npm run dev` keeps working against the local backend.
+- Verified: `npm run build` passes; `next start` probe shows CSP/X-Frame-Options/nosniff on all routes, `private, no-store` on `/home`, `/chats/*`, `/login`, and no `X-Powered-By`.
+
 ## OAuth callback now exchanges a code (no tokens in URL) (2026-08-08)
 
 - Backend no longer redirects Google OAuth with `?accessToken/refreshToken/pendingToken` in the URL — those were never meant for URLs and leaks happened. It now issues a short-lived single-use authorization `code` and redirects to `${CLIENT_URL}/oauth-callback?code=…`
