@@ -194,10 +194,6 @@ export default async function RootPage() {
               Sign in
             </Link>
           </div>
-
-          <p className="mt-6 text-xs text-muted-foreground/80 sm:text-sm">
-            SoB is the name of the platform, operated at spherebrilliq.online.
-          </p>
         </section>
 
         {/* Live product showcase — real SoB content */}
