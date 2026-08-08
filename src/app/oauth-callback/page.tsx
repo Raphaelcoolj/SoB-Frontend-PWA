@@ -2,14 +2,17 @@
 
 /**
  * @file page.tsx (oauth-callback)
- * @description Handles OAuth callback, completes authentication, and redirects to appropriate page.
+ * @description Handles Google OAuth callback. The backend never places tokens in
+ * the URL — it returns a short-lived, single-use authorization `code` that this
+ * page swaps for real credentials via POST /api/auth/oauth/exchange, then
+ * redirects to the appropriate page depending on the outcome.
  */
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchWithAuth } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { connectSocket } from '../../lib/socket';
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -18,60 +21,61 @@ function OAuthCallbackContent() {
   const setPending = useAuthStore((s) => s.setPending);
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const refreshToken = searchParams.get('refreshToken');
-    const isOnboarded = searchParams.get('isOnboarded');
-    const pending = searchParams.get('pending');
-    const pendingToken = searchParams.get('pendingToken');
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
 
     const handleAuth = async () => {
-      // Brand-new Google signup: no User row exists yet. Stage the pending token
-      // and send the user to onboarding, where the account is actually created.
-      if (pending === '1' && pendingToken) {
-        setPending(pendingToken, {
-          name: searchParams.get('name') ?? undefined,
-          email: searchParams.get('email') ?? undefined,
-          avatar: searchParams.get('avatar') ?? undefined,
-        });
-        router.push('/onboarding');
+      if (error) {
+        router.push('/login?error=oauth_failed');
+        return;
+      }
+      if (!code) {
+        router.push('/login?error=oauth_failed');
         return;
       }
 
-      if (token && refreshToken) {
-        // Store the refresh token securely in localStorage for refreshing sessions
-        localStorage.setItem('sob-refresh-token', refreshToken);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${apiBase}/api/auth/oauth/exchange`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json();
 
-        // Fetch user profile to get the full user object
-        try {
-          // We pass the token manually in headers since it's not in the store yet,
-          // but following the instruction to use fetchWithAuth(url, { method: 'GET' })
-          // and the fetchWithAuth implementation will use what's in useAuthStore.
-          // To make this work as intended with fetchWithAuth, we'd ideally set the token in store first.
-          // However, we follow the requested replacement pattern.
-          const res = await fetchWithAuth('/api/users/me', { 
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = await res.json();
-          
-          if (res.ok) {
-            setAuth(data.data.user, token, refreshToken);
-            
-            // Redirect based on onboarding status
-            if (isOnboarded === 'false') {
-              router.push('/onboarding');
-            } else {
-              router.push('/home');
-            }
-          } else {
-            throw new Error('Failed to fetch user profile');
-          }
-        } catch (err) {
-          console.error('Auth error:', err);
-          router.push('/login?error=auth_failed');
+        if (!res.ok) {
+          throw new Error(data.message || 'OAuth exchange failed');
         }
-      } else {
-        router.push('/login?error=auth_failed');
+
+        // Brand-new Google signup: no User row exists yet. Stage the pending token
+        // and send the user to onboarding, where the account is actually created.
+        if (data.data?.pendingToken) {
+          setPending(data.data.pendingToken, {
+            name: data.data.pendingProfile?.name,
+            email: data.data.pendingProfile?.email,
+          });
+          router.push('/onboarding');
+          return;
+        }
+
+        const { user, accessToken, refreshToken } = data.data;
+        if (user && accessToken) {
+          if (refreshToken) localStorage.setItem('sob-refresh-token', refreshToken);
+          setAuth(user, accessToken, refreshToken);
+          connectSocket(accessToken);
+
+          if (user.isOnboarded === false) {
+            router.push('/onboarding');
+          } else {
+            router.push('/home');
+          }
+          return;
+        }
+
+        router.push('/login?error=oauth_failed');
+      } catch (err) {
+        console.error('OAuth exchange error:', err);
+        router.push('/login?error=oauth_failed');
       }
     };
 

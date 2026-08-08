@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Compass, MessageSquare, PenLine, Users } from 'lucide-react';
 import { Logo } from '../components/shared/Logo';
@@ -80,16 +79,7 @@ const footerLinks = [
   { label: 'Contact', href: '/contact' },
 ];
 
-export default async function RootPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
-  const searchParams = await props.searchParams;
-
-  if (searchParams.token && searchParams.refreshToken) {
-    const isOnboarded = searchParams.isOnboarded || 'false';
-    redirect(
-      `/oauth-callback?token=${searchParams.token}&refreshToken=${searchParams.refreshToken}&isOnboarded=${isOnboarded}`
-    );
-  }
-
+export default async function RootPage() {
   const jsonLdString = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
 
   return (
