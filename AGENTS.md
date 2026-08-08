@@ -13,6 +13,13 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## OAuth callback now exchanges a code (no tokens in URL) (2026-08-08)
+
+- Backend no longer redirects Google OAuth with `?accessToken/refreshToken/pendingToken` in the URL — those were never meant for URLs and leaks happened. It now issues a short-lived single-use authorization `code` and redirects to `${CLIENT_URL}/oauth-callback?code=…`
+- `src/app/oauth-callback/page.tsx` (rewritten) — reads `?code=` (not tokens), POSTs it to the raw `${NEXT_PUBLIC_API_URL}/api/auth/oauth/exchange`, then: pending Google signup → `setPending(token, profile)` + `/onboarding`; existing user → `setAuth(user, token, refreshToken)` + socket connect + `/home` or `/onboarding`. Any missing/erroneous code → `/login?error=oauth_failed`
+- `src/app/page.tsx` — removed the legacy `?token&refreshToken` handler from the root landing page (the backend never produces those URLs anymore; removed the unused `redirect` import)
+- `npm test` (73 tests) passes; `npm run build` previously passing unchanged. Requires backend `POST /api/auth/oauth/exchange`
+
 ## Production SEO + favicon audit (2026-08-08)
 
 - **Favicon fixed**: production `/favicon.ico` and `/favicon.png` were 404 while `<head>` referenced them — the direct cause of the missing Google Search logo. Added to `public/`:
