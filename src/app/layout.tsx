@@ -11,6 +11,7 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster } from '../components/ui/sonner';
 import { ThemeInitializer } from '../components/shared/ThemeInitializer';
 import PwaProvider from '../components/shared/PwaProvider';
+import { SITE_DESCRIPTION, HOMEPAGE_OG_TITLE, SITE_URL } from '../lib/site';
 import './globals.css';
 
 const inter = Inter({
@@ -20,25 +21,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://spherebrilliq.online'),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'SoB — Connect, Discover & Share | SphereBrilliq',
+    default: HOMEPAGE_OG_TITLE,
     template: '%s | SoB',
   },
-  description:
-    'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
+  description: SITE_DESCRIPTION,
   manifest: '/manifest.json',
-  keywords: [
-    'sob',
-    'SoB',
-    'SOB',
-    'SphereBrilliq',
-    'spherebrilliq.online',
-    'social platform',
-    'knowledge sharing',
-    'community',
-    'learning',
-  ],
+  keywords: ['SoB', 'SphereBrilliq', 'spherebrilliq.online', 'social platform'],
   applicationName: 'SoB',
 
   icons: {
@@ -66,17 +56,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://spherebrilliq.online',
+    url: SITE_URL,
     siteName: 'SoB',
-    title: 'SoB — Connect, Discover & Share | SphereBrilliq',
-    description:
-      'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
+    title: HOMEPAGE_OG_TITLE,
+    description: SITE_DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SoB — Connect, Discover & Share | SphereBrilliq',
-    description:
-      'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
+    title: HOMEPAGE_OG_TITLE,
+    description: SITE_DESCRIPTION,
   },
 
    robots: {
@@ -85,7 +73,7 @@ export const metadata: Metadata = {
   },
 
   alternates: {
-    canonical: 'https://spherebrilliq.online',
+    canonical: SITE_URL,
   },
 };
 

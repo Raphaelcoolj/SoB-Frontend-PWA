@@ -137,7 +137,7 @@ export default function ContactPage() {
 
         <footer className="pt-8 border-t border-border">
           <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest text-center">
-            &copy; 2026 Sphere of Brilliance
+            &copy; {new Date().getFullYear()} SoB · spherebrilliq.online
           </p>
         </footer>
       </div>
