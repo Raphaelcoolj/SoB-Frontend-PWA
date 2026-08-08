@@ -32,20 +32,20 @@ async function fetchHomepageServer(): Promise<{ data: HomepageData; serverFailed
 
 export const metadata: Metadata = {
   title: { absolute: 'SoB — Connect, Discover & Share | SphereBrilliq' },
-  description: 'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
+  description: 'SoB is a social platform operated by SphereBrilliq where people discover topics, publish and share posts and articles, and participate in discussions.',
   keywords: ['sob', 'SoB', 'SOB', 'SphereBrilliq', 'spherebrilliq.online', 'social platform'],
   openGraph: {
     type: 'website',
     url: 'https://spherebrilliq.online',
     siteName: 'SoB',
     title: 'SoB — Connect, Discover & Share | SphereBrilliq',
-    description: 'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
+    description: 'SoB is a social platform operated by SphereBrilliq where people discover topics, publish and share posts and articles, and participate in discussions.',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'SoB — Connect, Discover & Share | SphereBrilliq',
-    description: 'SoB (SphereBrilliq) is a social platform for discovering ideas, sharing knowledge, publishing content, and joining meaningful discussions across diverse topics.',
+    description: 'SoB is a social platform operated by SphereBrilliq where people discover topics, publish and share posts and articles, and participate in discussions.',
   },
   alternates: {
     canonical: 'https://spherebrilliq.online',
@@ -57,18 +57,18 @@ const jsonLd = [
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': 'https://spherebrilliq.online/#organization',
-    name: 'SoB',
-    alternateName: 'SphereBrilliq',
+    name: 'SphereBrilliq',
     url: 'https://spherebrilliq.online',
     logo: 'https://spherebrilliq.online/android-chrome-512x512.png',
-    foundingLocation: 'spherebrilliq.online',
+    description:
+      'SphereBrilliq operates SoB, a social platform for discovering ideas, sharing content, and participating in discussions.',
   },
   {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     '@id': 'https://spherebrilliq.online/#website',
     name: 'SoB',
-    alternateName: 'SphereBrilliq',
+    alternateName: 'SphereBrilliq SoB',
     url: 'https://spherebrilliq.online',
     publisher: { '@id': 'https://spherebrilliq.online/#organization' },
     inLanguage: 'en',
@@ -99,6 +99,7 @@ const features = [
 ];
 
 const footerLinks = [
+  { label: 'About', href: '/about' },
   { label: 'Privacy Policy', href: '/privacy-policy' },
   { label: 'Terms of Use', href: '/terms-of-service' },
   { label: 'Community Guidelines', href: '/community-guidelines' },
@@ -172,12 +173,12 @@ export default async function RootPage() {
           </span>
 
           <h1 className="mt-5 text-[clamp(2.5rem,9vw,4.75rem)] font-bold leading-[1.05] tracking-tight">
-            Welcome to <span className="italic">SoB</span>
+            Where ideas become <span className="italic">conversations.</span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">
-            SoB, operated at spherebrilliq.online, is a social platform for publishing ideas, writing
-            long-form articles, discovering topics, and joining meaningful discussions.
+            SoB is a social platform operated by SphereBrilliq where people discover topics, publish
+            and share posts and articles, and participate in meaningful discussions.
           </p>
 
           <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
