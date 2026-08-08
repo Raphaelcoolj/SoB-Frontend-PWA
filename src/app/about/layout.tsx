@@ -1,25 +1,23 @@
 import type { Metadata } from 'next';
-
-const aboutDescription =
-  'SoB is a social platform operated by SphereBrilliq — discover topics, publish and share posts and articles, and participate in discussions.';
+import { SITE_DESCRIPTION, ABOUT_PAGE } from '../../lib/site';
 
 export const metadata: Metadata = {
   title: 'About',
-  description: aboutDescription,
+  description: SITE_DESCRIPTION,
   openGraph: {
     type: 'website',
-    url: 'https://spherebrilliq.online/about',
+    url: ABOUT_PAGE,
     siteName: 'SoB',
     title: 'SoB — About',
-    description: aboutDescription,
+    description: SITE_DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
     title: 'SoB — About',
-    description: aboutDescription,
+    description: SITE_DESCRIPTION,
   },
   alternates: {
-    canonical: 'https://spherebrilliq.online/about',
+    canonical: ABOUT_PAGE,
   },
 };
 

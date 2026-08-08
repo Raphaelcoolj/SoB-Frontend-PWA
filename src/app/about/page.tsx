@@ -1,6 +1,44 @@
 import Link from 'next/link';
-import { Compass, Heart, MessageSquare, PenLine, Share2, Users } from 'lucide-react';
+import { Compass, ExternalLink, Globe, Heart, MessageSquare, PenLine, Share2, Users } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
+import {
+  ORGANIZATION_ID,
+  WEBSITE_ID,
+  SITE_URL,
+  ORG_NAME,
+  LOGO_URL,
+  PERSON_ID,
+  FOUNDER_NAME,
+  FOUNDER_PAGE,
+  FOUNDER_LINKEDIN,
+  FOUNDER_X,
+  SOB_LINKEDIN,
+} from '../../lib/site';
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': ORGANIZATION_ID,
+    name: ORG_NAME,
+    url: SITE_URL,
+    logo: LOGO_URL,
+    description:
+      'SphereBrilliq was founded and is independently operated by Ekeh Oghenerurie Chukwuemeka. SphereBrilliq develops and operates SoB, a social platform for discovering ideas, sharing content, and participating in discussions.',
+    founder: { '@id': PERSON_ID },
+    sameAs: [SOB_LINKEDIN],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': WEBSITE_ID,
+    name: 'SoB',
+    alternateName: 'SphereBrilliq SoB',
+    url: SITE_URL,
+    publisher: { '@id': ORGANIZATION_ID },
+    inLanguage: 'en',
+  },
+];
 
 const activities = [
   {
@@ -35,9 +73,23 @@ const activities = [
   },
 ];
 
+const founderProfiles = [
+  { label: 'LinkedIn', href: FOUNDER_LINKEDIN, description: 'Personal profile' },
+  { label: 'X', href: FOUNDER_X, description: 'Personal profile' },
+];
+
+const sobProfiles = [
+  { label: 'Official LinkedIn', href: SOB_LINKEDIN, description: 'SoB (SphereBrilliq)' },
+  { label: 'Website', href: SITE_URL, description: 'spherebrilliq.online' },
+];
+
 export default function AboutPage() {
+  const jsonLdString = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-x-hidden bg-background text-foreground">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString }} />
+
       {/* Sticky header */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-md will-change-transform">
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-4 sm:px-6">
@@ -60,9 +112,9 @@ export default function AboutPage() {
               SoB
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              SoB is a social platform where people discover topics, publish and share posts and
-              articles, and participate in discussions. It is a place for ideas and the
-              conversations that grow around them.
+              SoB is a social platform for discovering topics, sharing posts and articles, exploring
+              ideas, and participating in discussions. Users can explore interests, discover
+              content, follow people, publish posts, and participate in conversations.
             </p>
           </section>
 
@@ -71,9 +123,40 @@ export default function AboutPage() {
               SphereBrilliq
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              SphereBrilliq is the operator behind SoB. It runs and maintains the platform at
-              spherebrilliq.online.
+              SphereBrilliq is the organization/project behind SoB. SphereBrilliq develops and
+              operates SoB.
             </p>
+          </section>
+
+          <section aria-labelledby="about-founder">
+            <h2 id="about-founder" className="text-lg font-semibold tracking-tight">
+              Founder
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {FOUNDER_NAME} is the founder and creator of SoB and serves as its Lead Developer. He
+              designed and developed the core platform and continues to lead its technical
+              development.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Link
+                href={FOUNDER_PAGE}
+                className="text-sm font-medium text-accent hover:underline focus-visible:outline-none focus-visible:underline"
+              >
+                Learn more about the founder
+              </Link>
+              {founderProfiles.map((profile) => (
+                <a
+                  key={profile.href}
+                  href={profile.href}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  className="text-sm font-medium text-accent hover:underline focus-visible:outline-none focus-visible:underline"
+                >
+                  {profile.label}
+                  <span className="sr-only"> ({profile.description})</span>
+                </a>
+              ))}
+            </div>
           </section>
 
           <section
@@ -85,9 +168,64 @@ export default function AboutPage() {
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               <strong className="font-semibold text-foreground">SoB is operated by SphereBrilliq.</strong>{' '}
-              SoB is the social platform; SphereBrilliq is the company that builds, runs and
+              SphereBrilliq was founded and is independently operated by {FOUNDER_NAME}. SoB is the
+              social platform; SphereBrilliq is the organization/project that builds, runs and
               maintains it.
             </p>
+          </section>
+
+          <section aria-labelledby="about-profiles">
+            <h2 id="about-profiles" className="text-lg font-semibold tracking-tight">
+              Official profiles
+            </h2>
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card/50 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <ExternalLink className="h-4 w-4 text-accent" aria-hidden />
+                  Founder
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {founderProfiles.map((profile) => (
+                    <li key={profile.href} className="text-sm">
+                      <a
+                        href={profile.href}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        className="font-medium text-accent hover:underline focus-visible:outline-none focus-visible:underline"
+                      >
+                        {profile.label}
+                      </a>
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        ({profile.description})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-border bg-card/50 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Globe className="h-4 w-4 text-accent" aria-hidden />
+                  SoB
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {sobProfiles.map((profile) => (
+                    <li key={profile.href} className="text-sm">
+                      <a
+                        href={profile.href}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        className="font-medium text-accent hover:underline focus-visible:outline-none focus-visible:underline"
+                      >
+                        {profile.label}
+                      </a>
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        ({profile.description})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </section>
 
           <section aria-labelledby="about-activities">
@@ -144,8 +282,14 @@ export default function AboutPage() {
       {/* Footer */}
       <footer className="border-t border-border">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>&copy; {new Date().getFullYear()} SoB · spherebrilliq.online</p>
-          <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
+          <p>Built and operated by SphereBrilliq.</p>
+          <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Footer">
+            <Link href="/about" className="transition-colors hover:text-foreground">
+              About
+            </Link>
+            <Link href="/founder" className="transition-colors hover:text-foreground">
+              Founder
+            </Link>
             <Link href="/privacy-policy" className="transition-colors hover:text-foreground">
               Privacy Policy
             </Link>
@@ -159,6 +303,9 @@ export default function AboutPage() {
               Contact
             </Link>
           </nav>
+        </div>
+        <div className="border-t border-border/70 py-3 text-center text-xs text-muted-foreground">
+          &copy; {new Date().getFullYear()} SoB · spherebrilliq.online
         </div>
       </footer>
     </div>

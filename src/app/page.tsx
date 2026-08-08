@@ -4,6 +4,17 @@ import { Compass, MessageSquare, PenLine, Users } from 'lucide-react';
 import { Logo } from '../components/shared/Logo';
 import HomepageShowcase from '../components/home/HomepageShowcase';
 import type { HomepageData } from '../types/homepage';
+import {
+  SITE_DESCRIPTION,
+  HOMEPAGE_OG_TITLE,
+  ORGANIZATION_ID,
+  WEBSITE_ID,
+  SITE_URL,
+  ORG_NAME,
+  LOGO_URL,
+  PERSON_ID,
+  SOB_LINKEDIN,
+} from '../lib/site';
 
 // ISR: re-render the landing page (and re-fetch the live homepage aggregate)
 // every 60s so real SoB content ships in the initial HTML for SEO. The fetch
@@ -31,24 +42,24 @@ async function fetchHomepageServer(): Promise<{ data: HomepageData; serverFailed
 }
 
 export const metadata: Metadata = {
-  title: { absolute: 'SoB — Connect, Discover & Share | SphereBrilliq' },
-  description: 'SoB is a social platform operated by SphereBrilliq where people discover topics, publish and share posts and articles, and participate in discussions.',
+  title: { absolute: HOMEPAGE_OG_TITLE },
+  description: SITE_DESCRIPTION,
   keywords: ['sob', 'SoB', 'SOB', 'SphereBrilliq', 'spherebrilliq.online', 'social platform'],
   openGraph: {
     type: 'website',
-    url: 'https://spherebrilliq.online',
+    url: SITE_URL,
     siteName: 'SoB',
-    title: 'SoB — Connect, Discover & Share | SphereBrilliq',
-    description: 'SoB is a social platform operated by SphereBrilliq where people discover topics, publish and share posts and articles, and participate in discussions.',
+    title: HOMEPAGE_OG_TITLE,
+    description: SITE_DESCRIPTION,
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SoB — Connect, Discover & Share | SphereBrilliq',
-    description: 'SoB is a social platform operated by SphereBrilliq where people discover topics, publish and share posts and articles, and participate in discussions.',
+    title: HOMEPAGE_OG_TITLE,
+    description: SITE_DESCRIPTION,
   },
   alternates: {
-    canonical: 'https://spherebrilliq.online',
+    canonical: SITE_URL,
   },
 };
 
@@ -56,21 +67,23 @@ const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    '@id': 'https://spherebrilliq.online/#organization',
-    name: 'SphereBrilliq',
-    url: 'https://spherebrilliq.online',
-    logo: 'https://spherebrilliq.online/android-chrome-512x512.png',
+    '@id': ORGANIZATION_ID,
+    name: ORG_NAME,
+    url: SITE_URL,
+    logo: LOGO_URL,
     description:
-      'SphereBrilliq operates SoB, a social platform for discovering ideas, sharing content, and participating in discussions.',
+      'SphereBrilliq develops and operates SoB, a social platform for discovering ideas, sharing content, and participating in discussions.',
+    founder: { '@id': PERSON_ID },
+    sameAs: [SOB_LINKEDIN],
   },
   {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    '@id': 'https://spherebrilliq.online/#website',
+    '@id': WEBSITE_ID,
     name: 'SoB',
     alternateName: 'SphereBrilliq SoB',
-    url: 'https://spherebrilliq.online',
-    publisher: { '@id': 'https://spherebrilliq.online/#organization' },
+    url: SITE_URL,
+    publisher: { '@id': ORGANIZATION_ID },
     inLanguage: 'en',
   },
 ];
@@ -99,7 +112,9 @@ const features = [
 ];
 
 const footerLinks = [
+  { label: 'Home', href: '/' },
   { label: 'About', href: '/about' },
+  { label: 'Founder', href: '/founder' },
   { label: 'Privacy Policy', href: '/privacy-policy' },
   { label: 'Terms of Use', href: '/terms-of-service' },
   { label: 'Community Guidelines', href: '/community-guidelines' },
@@ -177,8 +192,8 @@ export default async function RootPage() {
           </h1>
 
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">
-            SoB is a social platform operated by SphereBrilliq where people discover topics, publish
-            and share posts and articles, and participate in meaningful discussions.
+            SoB is a social platform for discovering topics, sharing posts and articles, exploring
+            ideas, and participating in discussions. Built and operated by SphereBrilliq.
           </p>
 
           <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
@@ -229,7 +244,7 @@ export default async function RootPage() {
             <div className="flex flex-col gap-2">
               <Logo />
               <p className="text-sm text-muted-foreground">
-                SoB — a social platform at spherebrilliq.online.
+                Built and operated by SphereBrilliq.
               </p>
             </div>
             <nav className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm" aria-label="Legal">
