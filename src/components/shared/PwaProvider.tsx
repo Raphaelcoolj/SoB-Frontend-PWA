@@ -20,6 +20,7 @@
 import React, { useEffect } from 'react';
 import { SerwistProvider } from '@serwist/turbopack/react';
 import { fetchWithAuth } from '../../lib/api';
+import { getDeviceId, getPushPlatform } from '../../lib/push';
 
 const canRegisterServiceWorker = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -41,7 +42,11 @@ const usePushSubscriptionChangeSync = () => {
       try {
         await fetchWithAuth('/api/users/push-subscription', {
           method: 'POST',
-          body: JSON.stringify({ subscription: data.subscription }),
+          body: JSON.stringify({
+            subscription: data.subscription,
+            deviceId: getDeviceId(),
+            platform: getPushPlatform(),
+          }),
         });
       } catch (error) {
         console.error('Failed to sync re-subscribed push subscription:', error);

@@ -9,30 +9,34 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, X, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, RotateCcw } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Field } from '../../../../types/user';
 import { fetchWithAuth } from '../../../../lib/api';
-import { urlBase64ToUint8Array } from '../../../../lib/push';
+import { usePushEnable } from '../../../../hooks/usePushEnable';
 import { toast } from 'sonner';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
-const arraysEqual = (a: Uint8Array, b: Uint8Array) =>
-  a.length === b.length && a.every((v, i) => v === b[i]);
-
 export default function NotificationSettingsPage() {
   const { user, accessToken, setUser } = useAuthStore();
   const [saving, setSaving] = useState(false);
-  const [isPushLoading, setIsPushLoading] = useState(false);
-  const [isPushEnabled, setIsPushEnabled] = useState(false);
-  const [pushError, setPushError] = useState<string | null>(null);
   const [isReEngageOptOut, setIsReEngageOptOut] = useState(false);
   const [reattempting, setReattempting] = useState(false);
-  const [isPushDirty, setIsPushDirty] = useState(false);
+
+  const push = usePushEnable();
+  const isPushEnabled = push.state.status === 'enabled';
+  const isPushLoading = push.state.status === 'loading';
+  const pushError = push.state.status === 'error' ? (push.state.message || 'Push failed') : null;
+
+  // Surface enable/disable results with a toast.
+  useEffect(() => {
+    if (push.state.status === 'enabled') toast.success('Push notifications enabled!');
+    else if (push.state.status === 'error') toast.error('Push failed: ' + (push.state.message || 'unknown error'));
+  }, [push.state.status, push.state.message]);
 
   // Form state
   const [isEmailEnabled, setIsEmailEnabled] = useState(false);
@@ -48,131 +52,13 @@ export default function NotificationSettingsPage() {
       setIsEmailEnabled(!!user.emailNotifications?.length);
       const userEmailFields = (user.emailNotifications || []).map(f => typeof f === 'string' ? f : f._id);
       setSelectedFields(userEmailFields);
-      setIsPushEnabled((user as any)?.pushEnabled ?? !!user.pushSubscription?.endpoint);
       setIsReEngageOptOut(!!(user as any)?.settings?.reEngagementOptOut);
     }
   }, [user]);
 
-  const togglePushNotifications = async (enabled: boolean) => {
-    if (enabled) {
-      await enablePushNotifications();
-    } else {
-      await disablePushNotifications();
-    }
-  };
-
-  const enablePushNotifications = async () => {
-    setIsPushLoading(true);
-    setPushError(null);
-    try {
-      if (!('Notification' in window)) {
-        throw new Error('Browser does not support notifications');
-      }
-      if (!('serviceWorker' in navigator)) {
-        throw new Error('Browser does not support service workers');
-      }
-      if (!window.isSecureContext && !/^http:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(window.location.href)) {
-        throw new Error('Service workers require a secure (https) connection');
-      }
-
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') throw new Error('Permission denied');
-
-      console.log('Registering service worker...');
-      const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });
-      
-      console.log('Waiting for SW readiness...');
-      await navigator.serviceWorker.ready;
-      console.log('SW ready.');
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) throw new Error('VAPID key not configured');
-      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
-
-      // Check if subscription already exists
-      let subscription = await registration.pushManager.getSubscription();
-
-      if (subscription) {
-        // The subscription is bound to the applicationServerKey it was created
-        // with. If the VAPID pair was rotated since, the backend (which signs
-        // with the current private key) will be rejected with 400/403 and the
-        // subscription becomes permanently dead. Detect the mismatch and
-        // re-subscribe under the current key instead of silently reusing it.
-        const existingKey = subscription.options?.applicationServerKey;
-        const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
-        const keyMismatch = !existingBytes || !arraysEqual(existingBytes, applicationServerKey);
-
-        if (keyMismatch) {
-          await subscription.unsubscribe();
-          subscription = null;
-        }
-      }
-
-      if (!subscription) {
-        console.log('No valid subscription, creating new one...');
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey,
-        });
-      }
-
-      console.log('Sending to backend...');
-      const response = await fetchWithAuth('/api/users/push-subscription', {
-        method: 'POST',
-        body: JSON.stringify({ subscription: subscription.toJSON() }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Backend rejected subscription:', errorData);
-        throw new Error(errorData.message || 'Failed to save subscription');
-      }
-
-      console.log('Subscription saved successfully');
-      await fetchWithAuth('/api/users/me/notifications', {
-        method: 'PUT',
-        body: JSON.stringify({ pushEnabled: true }),
-      });
-      setIsPushEnabled(true);
-      setIsPushDirty(true);
-      toast.success('Push notifications enabled!');
-      
-      // Refresh user state
-      const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
-      const meData = await meRes.json();
-      if (meRes.ok) setUser(meData.data.user);
-    } catch (error) {
-      console.error('Push error:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      setPushError(message);
-      toast.error('Push failed: ' + message);
-      setIsPushEnabled(false);
-    } finally {
-      setIsPushLoading(false);
-    }
-  };
-
-  const disablePushNotifications = async () => {
-    setIsPushLoading(true);
-    try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration) {
-        const subscription = await registration.pushManager.getSubscription();
-        if (subscription) await subscription.unsubscribe();
-      }
-      await fetchWithAuth('/api/users/push-subscription', { method: 'DELETE' });
-      await fetchWithAuth('/api/users/me/notifications', {
-        method: 'PUT',
-        body: JSON.stringify({ pushEnabled: false }),
-      });
-      setIsPushEnabled(false);
-      setIsPushDirty(true);
-      toast.success('Push notifications disabled');
-    } catch (error) {
-      setPushError('Failed to disable notifications');
-    } finally {
-      setIsPushLoading(false);
-    }
+  const togglePushNotifications = (enabled: boolean) => {
+    if (enabled) push.enable();
+    else push.disable();
   };
 
   const toggleField = (fieldId: string) => {
@@ -205,11 +91,10 @@ export default function NotificationSettingsPage() {
 
     try {
       const finalFields = isEmailEnabled ? selectedFields : [];
-      // Only send pushEnabled when the user explicitly toggled push — otherwise
-      // a routine "Save Preferences" click could overwrite the server's
-      // pushEnabled flag with stale local state and silently disable push.
+      // Push enablement is handled live by the toggle (it registers/unregisters
+      // the device and flips pushEnabled immediately), so "Save Preferences"
+      // only persists email preferences — it never overwrites the push flag.
       const body: Record<string, unknown> = { emailNotifications: finalFields };
-      if (isPushDirty) body.pushEnabled = isPushEnabled;
       const res = await fetchWithAuth('/api/users/me/notifications', { 
         method: 'PUT', 
         body: JSON.stringify(body) 
@@ -221,7 +106,6 @@ export default function NotificationSettingsPage() {
       const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
       const meData = await meRes.json();
       if (meRes.ok) setUser(meData.data.user);
-      setIsPushDirty(false);
 
       toast.success('Preferences saved successfully!');
     } catch (err: any) {
@@ -271,12 +155,6 @@ export default function NotificationSettingsPage() {
           <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg mt-2">
             <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
             <p className="text-sm text-red-600 dark:text-red-400 flex-1">{pushError}</p>
-            <button
-              onClick={() => setPushError(null)}
-              className="text-red-400 hover:text-red-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         )}
 
