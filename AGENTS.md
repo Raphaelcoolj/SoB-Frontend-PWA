@@ -13,6 +13,15 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Push re-subscription, VAPID-rotation recovery & Mux streaming (2026-08-09)
+
+- **`src/app/(main)/settings/notifications/page.tsx`** — the enable-push flow now detects when an existing PushSubscription is bound to a stale `applicationServerKey` (VAPID rotated server-side) and `unsubscribe()`s before re-subscribing under the current key, so the backend (which signs with the current private key) stops rejecting the sub with 400/403. Also: "Save Preferences" only sends `pushEnabled` when the user actually toggled push (`isPushDirty`), preventing a routine save from overwriting the server's flag with stale local state.
+- **`src/sw.ts`** — added a `pushsubscriptionchange` handler that re-subscribes under the same `applicationServerKey` and posts `{ type: 'PUSH_SUBSCRIPTION_CHANGED', subscription }` to open window clients (the SW itself has no JWT to persist it). The `push` handler now wraps `showNotification` in `event.waitUntil(...)`. Added a `RuntimeCaching` rule making all `stream.mux.com` requests (`NetworkOnly`) so HLS manifests/segments bypass the cross-origin NetworkFirst cache and never buffer/stale.
+- **`src/components/shared/PwaProvider.tsx`** — new `usePushSubscriptionChangeSync` hook listens for the SW `PUSH_SUBSCRIPTION_CHANGED` message and persists the fresh subscription to `POST /api/users/push-subscription` via `fetchWithAuth`, so push keeps working after browser-driven rotation.
+- **`next.config.ts` + `netlify.toml`** — CSP `img-src`/`connect-src`/`media-src` widened from `https://image.mux.com` / `https://stream.mux.com` to the `https://*.mux.com` wildcard so Mux playback + thumbnails are never blocked by CSP.
+- Backend must serve the new feed projection fields (`muxPlaybackId`/`muxAssetId`) and clear + disable stale push subs — see `sob-backend/AGENTS.md` (2026-08-09).
+- Verified: `npx eslint` clean on all touched files; `npx tsc --noEmit` clean on touched files.
+
 ## Founder attribution, entity identity & organization graph (2026-08-09)
 
 - **`src/lib/site.ts`** (new) — single source of truth for the public identity: `SITE_URL`/`SITE_NAME`/`ORG_NAME` (SoB / SphereBrilliq / spherebrilliq.online), `FOUNDER_NAME` (Ekeh Oghenerurie Chukwuemeka), `FOUNDER_ROLE` ("Founder & Lead Developer"), entity `@id`s (`PERSON_ID` = `/founder#person`, `ORGANIZATION_ID` = `/#organization`, `WEBSITE_ID` = `/#website`), external profiles (`FOUNDER_LINKEDIN`, `FOUNDER_X`, `SOB_LINKEDIN` = `/company/sob-spherebrilliq/`), `LOGO_URL`, and canonical copy (`SITE_DESCRIPTION`, `HOMEPAGE_OG_TITLE`, `FOUNDER_OG_TITLE`). Use these constants instead of hard-coded URL/copy strings.
