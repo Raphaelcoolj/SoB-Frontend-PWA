@@ -36,6 +36,9 @@ export interface Notification {
     _id: string;
     title?: string;
     body?: string;
+    contentType?: 'post' | 'article';
+    mediaUrls?: string[];
+    muxPlaybackId?: string;
   };
   data?: WeeklyDigestData | null;
   comment?: string;

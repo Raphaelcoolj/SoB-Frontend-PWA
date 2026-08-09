@@ -2,17 +2,19 @@
 
 /**
  * @file page.tsx (create)
- * @description Unified content creation page.
+ * @description Unified content creation page. Media is constrained to a single
+ * type per post (images OR a single video) via the shared lib/media model.
  */
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, MessageSquare, Image as ImageIcon, Video, BarChart3 } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../store/authStore';
+import type { Field } from '../../../types/user';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
@@ -24,6 +26,13 @@ import MentionTextarea from '../../../components/shared/MentionTextarea';
 import PollComposer, { DraftPoll } from '../../../components/post/PollComposer';
 import { toast } from 'sonner';
 import { stripHtml } from '../../../lib/utils';
+import {
+  MediaItem,
+  makeNewMediaItem,
+  releaseMediaItem,
+  mergeMediaWithConstraint,
+  purgeRemoved,
+} from '../../../lib/media';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
@@ -69,8 +78,7 @@ export default function CreatePage() {
   const router = useRouter();
   const { accessToken } = useAuthStore();
   const [mode, setMode] = useState<ContentMode>('post');
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [fieldSearch, setFieldSearch] = useState('');
   const [showFieldDropdown, setShowFieldDropdown] = useState(false);
@@ -84,24 +92,37 @@ export default function CreatePage() {
   const [poll, setPoll] = useState<DraftPoll | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const addMediaItems = useCallback((files: File[]) => {
+    if (files.length === 0) return;
+    const incoming = files.map(makeNewMediaItem);
+    setMedia(prev => {
+      const { merged, replaced } = mergeMediaWithConstraint(prev, incoming);
+      replaced.forEach(releaseMediaItem);
+      return purgeRemoved(merged);
+    });
+  }, []);
+
+  const clearMedia = useCallback(() => {
+    setMedia(prev => {
+      prev.forEach(releaseMediaItem);
+      return [];
+    });
+  }, []);
+
   const handleTrimComplete = (trimmedFile: File) => {
     setIsTrimmerOpen(false);
     if (trimmingIndex !== null) {
-      setImages(prev => {
+      setMedia(prev => {
         const next = [...prev];
-        next[trimmingIndex] = trimmedFile;
-        return next;
-      });
-      setImagePreviews(prev => {
-        const next = [...prev];
-        URL.revokeObjectURL(next[trimmingIndex]);
-        next[trimmingIndex] = URL.createObjectURL(trimmedFile);
+        const old = next[trimmingIndex];
+        const replacement = makeNewMediaItem(trimmedFile);
+        if (old && old.kind === 'new') releaseMediaItem(old);
+        next[trimmingIndex] = replacement;
         return next;
       });
       toast.success('Video trimmed successfully!');
     } else {
-      setImages(prev => [...prev, trimmedFile]);
-      setImagePreviews(prev => [...prev, URL.createObjectURL(trimmedFile)]);
+      addMediaItems([trimmedFile]);
       toast.success('Video trimmed and added!');
     }
     setTrimmingFile(null);
@@ -111,21 +132,17 @@ export default function CreatePage() {
   const handleCropComplete = (croppedFile: File) => {
     setIsCropperOpen(false);
     if (croppingIndex !== null) {
-      setImages(prev => {
+      setMedia(prev => {
         const next = [...prev];
-        next[croppingIndex] = croppedFile;
-        return next;
-      });
-      setImagePreviews(prev => {
-        const next = [...prev];
-        URL.revokeObjectURL(next[croppingIndex]);
-        next[croppingIndex] = URL.createObjectURL(croppedFile);
+        const old = next[croppingIndex];
+        const replacement = makeNewMediaItem(croppedFile);
+        if (old && old.kind === 'new') releaseMediaItem(old);
+        next[croppingIndex] = replacement;
         return next;
       });
       toast.success('Image cropped successfully!');
     } else {
-      setImages(prev => [...prev, croppedFile]);
-      setImagePreviews(prev => [...prev, URL.createObjectURL(croppedFile)]);
+      addMediaItems([croppedFile]);
     }
     setCroppingFile(null);
     setCroppingIndex(null);
@@ -133,53 +150,64 @@ export default function CreatePage() {
 
   const processFiles = async (files: File[]) => {
     const validFiles: File[] = [];
-    let croppingOpened = false;
+    let modalOpened = false;
     for (const file of files) {
       if (file.type.startsWith('video/')) {
         const isValid = await validateVideoDuration(file);
         if (!isValid) {
           toast.info(`Video "${file.name}" exceeds 60s limit. Opening trimmer...`);
-          setTrimmingFile(file);
-          setTrimmingIndex(null);
-          setIsTrimmerOpen(true);
+          if (!modalOpened) {
+            setTrimmingFile(file);
+            setTrimmingIndex(null);
+            setIsTrimmerOpen(true);
+            modalOpened = true;
+          }
           continue;
         }
         validFiles.push(file);
-      } else if (file.type.startsWith('image/') && !croppingOpened) {
-        setCroppingFile(file);
-        setCroppingIndex(null);
-        setIsCropperOpen(true);
-        croppingOpened = true;
-      } else {
+      } else if (file.type.startsWith('image/')) {
+        if (!modalOpened) {
+          setCroppingFile(file);
+          setCroppingIndex(null);
+          setIsCropperOpen(true);
+          modalOpened = true;
+          continue;
+        }
         validFiles.push(file);
+      } else {
+        toast.error(`Unsupported file type: ${file.name || 'unknown'}`);
       }
     }
 
-    if (validFiles.length > 0) {
-      setImages(prev => [...prev, ...validFiles]);
-      setImagePreviews(prev => [...prev, ...validFiles.map(f => URL.createObjectURL(f))]);
-    }
+    if (validFiles.length > 0) addMediaItems(validFiles);
   };
-  
+
   const { data: fieldsData } = useSWR(`${BASE_URL}/api/fields`, fetcher, { revalidateOnFocus: false });
-  const fields: any[] = fieldsData?.fields || fieldsData || [];
+  const fields: Field[] = fieldsData?.fields || fieldsData || [];
 
   const filteredFields = fields.filter(f => f.name.toLowerCase().includes(fieldSearch.toLowerCase()));
   const schema = mode === 'post' ? postSchema : articleSchema;
 
-  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<any>({
-    resolver: zodResolver(schema),
+  interface CreateFormValues {
+    body: string;
+    title: string;
+    field: string;
+  }
+
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<CreateFormValues>({
+    resolver: zodResolver(schema) as unknown as Resolver<CreateFormValues>,
     defaultValues: { body: '', field: '', title: '' },
   });
 
   const bodyValue = watch('body') || '';
+  const hasMedia = media.some(i => !i.removed);
 
-  const onSubmit = async (values: Record<string, string>) => {
+  const onSubmit = async (values: CreateFormValues) => {
     if (!accessToken) return;
     setSubmitting(true);
 
     // NEW: Enforce that posts have either text body or attached media files
-    if (mode === 'post' && !values.body?.trim() && images.length === 0 && !poll) {
+    if (mode === 'post' && !values.body?.trim() && media.filter(i => !i.removed).length === 0 && !poll) {
       toast.error('Post must contain either text, media (image/video), or a poll');
       setSubmitting(false);
       return;
@@ -205,7 +233,7 @@ export default function CreatePage() {
       formData.append('contentType', mode);
       formData.append('body', values.body || '');
       formData.append('isSensitive', isSensitive.toString());
-      
+
       if (values.field) formData.append('field', values.field);
       if (mode === 'article') {
         formData.append('title', values.title);
@@ -219,8 +247,9 @@ export default function CreatePage() {
         };
         formData.append('poll', JSON.stringify(pollPayload));
       }
-      
-      images.forEach(img => formData.append('media', img));
+
+      media.filter(i => !i.removed && i.kind === 'new' && i.file)
+        .forEach(item => formData.append('media', item.file as File));
 
       const res = await fetch(`${BASE_URL}/api/posts`, {
         method: 'POST',
@@ -234,8 +263,8 @@ export default function CreatePage() {
       }
 
       router.push('/home');
-    } catch (err: any) {
-      toast.error(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSubmitting(false);
     }
@@ -246,11 +275,11 @@ export default function CreatePage() {
       <div className="flex gap-1 bg-muted p-1 rounded-xl">
         {(['post', 'article'] as ContentMode[]).map((m) => (
           <button
-          key={m}
-          onClick={() => { setMode(m); reset(); setImages([]); setImagePreviews([]); setFieldSearch(''); setPoll(null); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
-            mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-          }`}
+            key={m}
+            onClick={() => { setMode(m); reset(); clearMedia(); setFieldSearch(''); setPoll(null); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
+              mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
           >
             {m === 'post' ? <MessageSquare className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
             {m === 'article' ? 'Article/Story' : 'Post'}
@@ -277,7 +306,7 @@ export default function CreatePage() {
           {showFieldDropdown && (
             <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-md max-h-48 overflow-y-auto">
               {filteredFields.length > 0 ? (
-                filteredFields.map((f: any) => (
+                filteredFields.map((f) => (
                   <button
                     key={f._id}
                     type="button"
@@ -304,7 +333,7 @@ export default function CreatePage() {
             value={bodyValue}
             onChange={(val) => setValue('body', val, { shouldValidate: true })}
             rows={4}
-            placeholder="What's happening?"
+            placeholder={hasMedia ? 'Add a caption...' : "What's happening?"}
             className="w-full bg-transparent border-none text-sm resize-none focus:outline-none placeholder:text-muted-foreground"
             maxLength={400}
           />
@@ -316,35 +345,36 @@ export default function CreatePage() {
             minHeight="300px"
           />
         )}
-        
-        <MediaUploader 
-          files={images}
-          previews={imagePreviews}
-          onUpload={processFiles}
-          onRemove={(index) => {
-            setImages(prev => prev.filter((_, i) => i !== index));
-            setImagePreviews(prev => {
-              URL.revokeObjectURL(prev[index]);
-              return prev.filter((_, i) => i !== index);
-            });
-          }}
-          onTrim={(index) => {
-            const file = images[index];
-            if (file && file.type.startsWith('video/')) {
-              setTrimmingFile(file);
-              setTrimmingIndex(index);
-              setIsTrimmerOpen(true);
-            }
-          }}
-          onCrop={(index) => {
-            const file = images[index];
-            if (file && file.type.startsWith('image/')) {
-              setCroppingFile(file);
-              setCroppingIndex(index);
-              setIsCropperOpen(true);
-            }
-          }}
-        />
+
+        {hasMedia && (
+          <MediaUploader
+            items={media}
+            onRemove={(index) => {
+              setMedia(prev => {
+                const target = prev[index];
+                const next = prev.filter((_, i) => i !== index);
+                if (target && target.kind === 'new') releaseMediaItem(target);
+                return next;
+              });
+            }}
+            onTrim={(index) => {
+              const item = media[index];
+              if (item && item.isVideo && item.kind === 'new' && item.file) {
+                setTrimmingFile(item.file);
+                setTrimmingIndex(index);
+                setIsTrimmerOpen(true);
+              }
+            }}
+            onCrop={(index) => {
+              const item = media[index];
+              if (item && !item.isVideo && item.kind === 'new' && item.file) {
+                setCroppingFile(item.file);
+                setCroppingIndex(index);
+                setIsCropperOpen(true);
+              }
+            }}
+          />
+        )}
 
         {poll && (
           <PollComposer
@@ -355,10 +385,10 @@ export default function CreatePage() {
         )}
 
         <div className="flex items-center gap-2 px-1">
-          <input 
-            type="checkbox" 
-            id="isSensitive" 
-            checked={isSensitive} 
+          <input
+            type="checkbox"
+            id="isSensitive"
+            checked={isSensitive}
             onChange={(e) => setIsSensitive(e.target.checked)}
             className="w-4 h-4 accent-accent rounded"
           />
@@ -366,47 +396,40 @@ export default function CreatePage() {
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
-          <div className="flex gap-2 text-muted-foreground">
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><ImageIcon className="w-5 h-5" /></button>
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent"><Video className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent cursor-pointer" title="Add image(s)"><ImageIcon className="w-5 h-5" /></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-accent cursor-pointer" title="Add a video"><Video className="w-5 h-5" /></button>
             <button
               type="button"
               onClick={() => setPoll(poll ? null : { question: '', options: ['', ''], allowMultiple: false })}
-              className={`hover:text-accent ${poll ? 'text-accent' : ''}`}
+              className={`hover:text-accent cursor-pointer ${poll ? 'text-accent' : ''}`}
               title="Add a poll"
             >
               <BarChart3 className="w-5 h-5" />
             </button>
           </div>
           <div className="flex items-center gap-3">
-           <div className="flex flex-col items-end">
-                 <span className={`text-xs ${stripHtml(bodyValue).length > (mode === 'post' ? 400 : 10000) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {stripHtml(bodyValue).length}/{mode === 'post' ? '400' : '10000'}
-                </span>
-                {stripHtml(bodyValue).length > (mode === 'post' ? 400 : 10000) && (
-                  <span className="text-[10px] text-destructive">
-                    {mode === 'post' ? 'Post limit exceeded' : 'Article limit exceeded'}
-                  </span>
-                )}
-              </div>
-             <Button type="submit" loading={submitting}>Publish</Button>
+            <span className={`text-xs ${stripHtml(bodyValue).length > (mode === 'post' ? 400 : 10000) ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {stripHtml(bodyValue).length}/{mode === 'post' ? '400' : '10000'}
+            </span>
+            <Button type="submit" loading={submitting}>Publish</Button>
           </div>
         </div>
-        
+
         {/* Hidden File Input for the icons to trigger */}
-        <input 
-          ref={fileInputRef} 
-          type="file" 
-          accept="image/*,video/*" 
-          multiple 
-          className="hidden" 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          className="hidden"
           onChange={async (e) => {
             const files = Array.from(e.target.files || []);
             if (files.length > 0) {
               await processFiles(files);
             }
             e.target.value = '';
-          }} 
+          }}
         />
       </form>
 
