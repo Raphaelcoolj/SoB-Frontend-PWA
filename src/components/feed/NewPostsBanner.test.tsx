@@ -28,8 +28,18 @@ const swrState: { data?: { count: number } | undefined; mutate: ReturnType<typeo
 };
 vi.mock('swr', () => ({ default: () => swrState }));
 
-const { socket } = await import('../../lib/socket');
-const { __handlers } = await import('../../lib/socket');
+type SocketMock = {
+  socket: {
+    on: ReturnType<typeof vi.fn>;
+    off: ReturnType<typeof vi.fn>;
+    emit: ReturnType<typeof vi.fn>;
+  };
+  __handlers: Record<string, ((...args: unknown[]) => void)[]>;
+};
+
+const socketModule = (await import('../../lib/socket')) as unknown as SocketMock;
+const { socket } = socketModule;
+const { __handlers } = socketModule;
 
 const fireSocket = (event: string) => {
   const cbs = __handlers[event] || [];

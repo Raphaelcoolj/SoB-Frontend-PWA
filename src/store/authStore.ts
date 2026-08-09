@@ -13,13 +13,13 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   pendingToken: string | null;
-  pendingProfile: { name?: string; email?: string; avatar?: string } | null;
+  pendingProfile: { name?: string; email?: string; avatar?: string; agreedToTerms?: boolean } | null;
   isLoading: boolean;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
   setAuth: (user: User, accessToken: string, refreshToken?: string) => void;
   setAccessToken: (token: string) => void;
-  setPending: (token: string, profile?: { name?: string; email?: string; avatar?: string }) => void;
+  setPending: (token: string, profile?: { name?: string; email?: string; avatar?: string; agreedToTerms?: boolean }) => void;
   clearPending: () => void;
   clearAuth: () => void;
   logout: () => void;

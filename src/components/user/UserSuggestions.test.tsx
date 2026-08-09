@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import UserSuggestions from './UserSuggestions';
 
-const store = { accessToken: 'test-token' };
+const store: { accessToken: string | null } = { accessToken: 'test-token' };
 vi.mock('../../store/authStore', () => ({
   useAuthStore: () => store,
 }));

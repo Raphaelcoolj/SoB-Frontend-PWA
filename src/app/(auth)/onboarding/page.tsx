@@ -5,7 +5,7 @@
  * @description User onboarding: username, optional bio, avatar, and 5 priority fields.
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { Camera, Pencil, ChevronDown, Calendar, ArrowLeft } from 'lucide-react';
@@ -15,11 +15,10 @@ import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
 import { UserAvatar } from '../../../components/user/UserAvatar';
 import { fetchWithAuth } from '../../../lib/api';
+import { useUsernameAvailability } from '../../../hooks/useUsernameAvailability';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import ImageCropperModal from '../../../components/post/ImageCropperModal';
-
-type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -72,57 +71,16 @@ export default function OnboardingPage() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
-  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastCheckedRef = useRef('');
+  // Send the caller's token (pending signup, or legacy access token) so the
+  // backend excludes the caller's OWN records from the availability check —
+  // otherwise re-entering the username staged at register reports "unavailable".
+  const { usernameStatus, handleUsernameChange } = useUsernameAvailability(pendingToken || accessToken);
 
-  const checkUsername = useCallback(async (username: string) => {
-    if (username.length < 3) {
-      setUsernameStatus('idle');
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(username)) {
-      setUsernameStatus('invalid');
-      return;
-    }
-    setUsernameStatus('checking');
-    try {
-      const res = await fetch(`${API_URL}/api/auth/check-username?username=${encodeURIComponent(username)}`);
-      const data = await res.json();
-      if (data.success) {
-        setUsernameStatus(data.data.available ? 'available' : 'taken');
-      } else {
-        setUsernameStatus('idle');
-      }
-    } catch {
-      setUsernameStatus('idle');
-    }
-  }, []);
-
-  const handleUsernameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-    setFormData(prev => ({ ...prev, username: raw }));
-    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
-    if (raw.length < 3) {
-      setUsernameStatus('idle');
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(raw)) {
-      setUsernameStatus('invalid');
-      return;
-    }
-    if (raw === lastCheckedRef.current) return;
-    checkTimerRef.current = setTimeout(() => {
-      lastCheckedRef.current = raw;
-      checkUsername(raw);
-    }, 400);
-  }, [checkUsername]);
-
-  useEffect(() => {
-    return () => {
-      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
-    };
-  }, []);
+  // Terms were already accepted during the register step (staged on the pending
+  // signup) — don't ask a second time for email signups. Google pendings stage
+  // `agreedToTerms: false`, so they still must accept here.
+  const termsAlreadyAgreed = !!(user?.agreedToTerms || pendingProfile?.agreedToTerms);
+  const termsSatisfied = termsAlreadyAgreed || agreeToTerms;
 
   const { data: fieldsData } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/fields`, fetcher);
   const fields = fieldsData?.fields || [];
@@ -159,7 +117,7 @@ export default function OnboardingPage() {
   };
 
   const handleSubmit = async () => {
-    if (!user?.agreedToTerms && !agreeToTerms) {
+    if (!termsSatisfied) {
       toast.error('You must agree to the Terms of Service and Privacy Policy');
       return;
     }
@@ -200,7 +158,7 @@ export default function OnboardingPage() {
         bio: formData.bio,
         dob: dob ? dob.toISOString() : undefined,
         priorityFields: selectedFields,
-        agreedToTerms: !user?.agreedToTerms ? agreeToTerms : undefined
+        agreedToTerms: !termsAlreadyAgreed ? agreeToTerms : undefined
       });
 
       // Pending signups carry a `typ: pending` token; legacy users use their real token.
@@ -335,7 +293,11 @@ export default function OnboardingPage() {
                 placeholder="@username"
                 required
                 value={formData.username}
-                onChange={handleUsernameChange}
+                onChange={e => {
+                  const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                  setFormData(prev => ({ ...prev, username: raw }));
+                  handleUsernameChange(raw);
+                }}
                 error={usernameStatus === 'taken' || usernameStatus === 'invalid'}
               />
               {usernameStatus === 'checking' && (
@@ -529,7 +491,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {!user?.agreedToTerms && (
+          {!termsAlreadyAgreed && (
             <div className="flex items-start gap-2.5 pt-2 pb-1 text-left">
               <input
                 id="agreeToTerms"
@@ -565,7 +527,7 @@ export default function OnboardingPage() {
               onClick={handleSubmit} 
               className="w-full h-12 text-sm font-semibold" 
               loading={loading} 
-              disabled={(!user?.agreedToTerms && !agreeToTerms) || selectedFields.length < 2}
+              disabled={!termsSatisfied || selectedFields.length < 2}
             >
               Complete
             </Button>

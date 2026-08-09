@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2 } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
+import { isVideoUrl } from '../../lib/media';
 import { Notification } from '../../types/notification';
 
 interface NotificationItemProps {
@@ -18,7 +19,7 @@ interface NotificationItemProps {
   onMarkAsRead?: (id: string) => void;
 }
 
-const NOTIFICATION_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
+const NOTIFICATION_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; label: string }> = {
   like: { icon: Heart, color: 'text-red-500 bg-red-500/10', label: 'liked your post' },
   comment: { icon: MessageCircle, color: 'text-blue-500 bg-blue-500/10', label: 'commented on your post' },
   follow: { icon: UserPlus, color: 'text-accent bg-accent/10', label: 'started following you' },
@@ -28,6 +29,16 @@ const NOTIFICATION_CONFIG: Record<string, { icon: any; color: string; label: str
   weekly_digest: { icon: Calendar, color: 'text-accent bg-accent/10', label: 'your weekly digest is ready' },
   poll_vote: { icon: BarChart2, color: 'text-indigo-500 bg-indigo-500/10', label: 'voted on your poll' },
 };
+
+// NEW: Resolve a thumbnail for the post's media (Mux video thumb or first image URL).
+function getMediaThumb(post: Notification['post']): string | null {
+  if (!post) return null;
+  if (post.muxPlaybackId) {
+    return `https://image.mux.com/${post.muxPlaybackId}/thumbnail.jpg`;
+  }
+  const image = (post.mediaUrls || []).find((u) => !isVideoUrl(u));
+  return image || null;
+}
 
 export default function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
   const config = NOTIFICATION_CONFIG[notification.type] || NOTIFICATION_CONFIG.like;
@@ -44,6 +55,8 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
   const senderAvatar = notification.type === 'weekly_digest' ? undefined : notification.sender?.avatar;
 
   const digest = notification.type === 'weekly_digest' ? notification.data : null;
+  const post = notification.type !== 'weekly_digest' ? notification.post : undefined;
+  const mediaThumb = post ? getMediaThumb(post) : null;
 
   return (
     <Link 
@@ -91,10 +104,17 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
           </div>
         )}
 
-        {notification.post && notification.type !== 'weekly_digest' && (
-          <div className="bg-muted/40 p-2 rounded-lg border border-border/50">
-            <p className="text-[10px] text-muted-foreground line-clamp-1 italic">
-              {notification.post.title || notification.post.body || 'View post'}
+        {post && (
+          <div className="flex items-center gap-2 bg-muted/40 p-2 rounded-lg border border-border/50">
+            {mediaThumb && (
+              <img
+                src={mediaThumb}
+                alt=""
+                className="w-10 h-10 rounded object-cover border border-border/50 flex-shrink-0 bg-black"
+              />
+            )}
+            <p className="text-[10px] text-muted-foreground line-clamp-1 italic min-w-0">
+              {post.title || post.body || 'View post'}
             </p>
           </div>
         )}

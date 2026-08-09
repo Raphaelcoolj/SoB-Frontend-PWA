@@ -5,7 +5,7 @@
  * @description Multi-step user registration page with a visual progress indicator.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../../store/authStore';
@@ -13,11 +13,8 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { fetchWithAuth } from '../../../lib/api';
+import { useUsernameAvailability } from '../../../hooks/useUsernameAvailability';
 import { toast } from 'sonner';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 const STEPS = ['Account', 'Username', 'Password'];
 
@@ -35,60 +32,15 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
-  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastCheckedRef = useRef('');
-
-  const checkUsername = useCallback(async (username: string) => {
-    if (username.length < 3) {
-      setUsernameStatus('idle');
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(username)) {
-      setUsernameStatus('invalid');
-      return;
-    }
-    setUsernameStatus('checking');
-    try {
-      const res = await fetch(`${API_URL}/api/auth/check-username?username=${encodeURIComponent(username)}`);
-      const data = await res.json();
-      if (data.success) {
-        setUsernameStatus(data.data.available ? 'available' : 'taken');
-      } else {
-        setUsernameStatus('idle');
-      }
-    } catch {
-      setUsernameStatus('idle');
-    }
-  }, []);
-
-  const handleUsernameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-    setFormData(prev => ({ ...prev, username: raw }));
-    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
-    if (raw.length < 3) {
-      setUsernameStatus('idle');
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(raw)) {
-      setUsernameStatus('invalid');
-      return;
-    }
-    if (raw === lastCheckedRef.current) return;
-    checkTimerRef.current = setTimeout(() => {
-      lastCheckedRef.current = raw;
-      checkUsername(raw);
-    }, 400);
-  }, [checkUsername]);
-
-  useEffect(() => {
-    return () => {
-      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
-    };
-  }, []);
+  // No token yet during registration — nothing of the caller's is staged, so
+  // the availability check runs against the full set of users + pending signups.
+  const { usernameStatus, handleUsernameChange } = useUsernameAvailability(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Guard against a duplicate submission (e.g. Enter-key replay while the
+    // first register request is still in flight).
+    if (loading) return;
     if (!agreeToTerms) {
       toast.error('You must agree to the Terms of Service and Privacy Policy');
       return;
@@ -161,7 +113,11 @@ export default function RegisterPage() {
                 placeholder="Username (3-20 chars)"
                 required
                 value={formData.username}
-                onChange={handleUsernameChange}
+                onChange={e => {
+                  const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                  setFormData(prev => ({ ...prev, username: raw }));
+                  handleUsernameChange(raw);
+                }}
                 error={usernameStatus === 'taken' || usernameStatus === 'invalid'}
               />
               {usernameStatus === 'checking' && (
