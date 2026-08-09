@@ -14,7 +14,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://image.mux.com platform-data:; font-src 'self' data:; connect-src 'self' blob: https://api.spherebrilliq.online wss://api.spherebrilliq.online https://sob-backend-api.onrender.com wss://sob-backend-api.onrender.com https://res.cloudinary.com https://stream.mux.com; media-src 'self' blob: https://stream.mux.com https://res.cloudinary.com platform-data:; worker-src 'self'; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://*.mux.com platform-data:; font-src 'self' data:; connect-src 'self' blob: https://api.spherebrilliq.online wss://api.spherebrilliq.online https://sob-backend-api.onrender.com wss://sob-backend-api.onrender.com https://res.cloudinary.com https://*.mux.com; media-src 'self' blob: https://*.mux.com https://res.cloudinary.com platform-data:; worker-src 'self'; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
 

@@ -21,6 +21,9 @@ const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
+const arraysEqual = (a: Uint8Array, b: Uint8Array) =>
+  a.length === b.length && a.every((v, i) => v === b[i]);
+
 export default function NotificationSettingsPage() {
   const { user, accessToken, setUser } = useAuthStore();
   const [saving, setSaving] = useState(false);
@@ -29,6 +32,7 @@ export default function NotificationSettingsPage() {
   const [pushError, setPushError] = useState<string | null>(null);
   const [isReEngageOptOut, setIsReEngageOptOut] = useState(false);
   const [reattempting, setReattempting] = useState(false);
+  const [isPushDirty, setIsPushDirty] = useState(false);
 
   // Form state
   const [isEmailEnabled, setIsEmailEnabled] = useState(false);
@@ -83,15 +87,32 @@ export default function NotificationSettingsPage() {
 
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) throw new Error('VAPID key not configured');
+      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
 
       // Check if subscription already exists
       let subscription = await registration.pushManager.getSubscription();
-      
+
+      if (subscription) {
+        // The subscription is bound to the applicationServerKey it was created
+        // with. If the VAPID pair was rotated since, the backend (which signs
+        // with the current private key) will be rejected with 400/403 and the
+        // subscription becomes permanently dead. Detect the mismatch and
+        // re-subscribe under the current key instead of silently reusing it.
+        const existingKey = subscription.options?.applicationServerKey;
+        const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
+        const keyMismatch = !existingBytes || !arraysEqual(existingBytes, applicationServerKey);
+
+        if (keyMismatch) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
+
       if (!subscription) {
-        console.log('No existing subscription, creating new one...');
+        console.log('No valid subscription, creating new one...');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey)
+          applicationServerKey,
         });
       }
 
@@ -113,6 +134,7 @@ export default function NotificationSettingsPage() {
         body: JSON.stringify({ pushEnabled: true }),
       });
       setIsPushEnabled(true);
+      setIsPushDirty(true);
       toast.success('Push notifications enabled!');
       
       // Refresh user state
@@ -144,6 +166,7 @@ export default function NotificationSettingsPage() {
         body: JSON.stringify({ pushEnabled: false }),
       });
       setIsPushEnabled(false);
+      setIsPushDirty(true);
       toast.success('Push notifications disabled');
     } catch (error) {
       setPushError('Failed to disable notifications');
@@ -182,9 +205,14 @@ export default function NotificationSettingsPage() {
 
     try {
       const finalFields = isEmailEnabled ? selectedFields : [];
+      // Only send pushEnabled when the user explicitly toggled push — otherwise
+      // a routine "Save Preferences" click could overwrite the server's
+      // pushEnabled flag with stale local state and silently disable push.
+      const body: Record<string, unknown> = { emailNotifications: finalFields };
+      if (isPushDirty) body.pushEnabled = isPushEnabled;
       const res = await fetchWithAuth('/api/users/me/notifications', { 
         method: 'PUT', 
-        body: JSON.stringify({ emailNotifications: finalFields, pushEnabled: isPushEnabled }) 
+        body: JSON.stringify(body) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update preferences');
@@ -193,6 +221,7 @@ export default function NotificationSettingsPage() {
       const meRes = await fetchWithAuth('/api/users/me', { method: 'GET' });
       const meData = await meRes.json();
       if (meRes.ok) setUser(meData.data.user);
+      setIsPushDirty(false);
 
       toast.success('Preferences saved successfully!');
     } catch (err: any) {

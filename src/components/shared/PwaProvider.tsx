@@ -17,8 +17,9 @@
  * context), so there is no hydration mismatch.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SerwistProvider } from '@serwist/turbopack/react';
+import { fetchWithAuth } from '../../lib/api';
 
 const canRegisterServiceWorker = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -27,7 +28,33 @@ const canRegisterServiceWorker = (): boolean => {
   return /^http:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(window.location.href);
 };
 
+// When the service worker re-subscribes after a pushsubscriptionchange event,
+// persist the fresh subscription to the backend so push keeps working.
+const usePushSubscriptionChangeSync = () => {
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+
+    const onMessage = async (event: MessageEvent) => {
+      const data = event.data as { type?: string; subscription?: PushSubscriptionJSON } | undefined;
+      if (!data || data.type !== 'PUSH_SUBSCRIPTION_CHANGED' || !data.subscription) return;
+
+      try {
+        await fetchWithAuth('/api/users/push-subscription', {
+          method: 'POST',
+          body: JSON.stringify({ subscription: data.subscription }),
+        });
+      } catch (error) {
+        console.error('Failed to sync re-subscribed push subscription:', error);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, []);
+};
+
 export default function PwaProvider({ children }: { children: React.ReactNode }) {
+  usePushSubscriptionChangeSync();
   if (!canRegisterServiceWorker()) return <>{children}</>;
   return <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>;
 }
