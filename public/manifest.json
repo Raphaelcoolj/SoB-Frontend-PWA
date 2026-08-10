@@ -4,8 +4,8 @@
   "description": "SoB — an educational and social content platform.",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "transparent",
-  "background_color": "transparent",
+  "theme_color": "#000000",
+  "background_color": "#09090B",
   "start_url": "/home",
   "icons": [
     {
