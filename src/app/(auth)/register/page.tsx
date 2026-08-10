@@ -13,10 +13,9 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { fetchWithAuth } from '../../../lib/api';
-import { useUsernameAvailability } from '../../../hooks/useUsernameAvailability';
 import { toast } from 'sonner';
 
-const STEPS = ['Account', 'Username', 'Password'];
+const STEPS = ['Account', 'Password'];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,17 +23,12 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ 
     name: '', 
-    username: '', 
     email: '', 
     password: '', 
     confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-
-  // No token yet during registration — nothing of the caller's is staged, so
-  // the availability check runs against the full set of users + pending signups.
-  const { usernameStatus, handleUsernameChange } = useUsernameAvailability(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +50,6 @@ export default function RegisterPage() {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
-          username: formData.username,
           email: formData.email,
           password: formData.password
         })
@@ -107,56 +100,6 @@ export default function RegisterPage() {
         )}
         
         {step === 2 && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="space-y-1.5">
-              <Input
-                placeholder="Username (3-20 chars)"
-                required
-                value={formData.username}
-                onChange={e => {
-                  const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                  setFormData(prev => ({ ...prev, username: raw }));
-                  handleUsernameChange(raw);
-                }}
-                error={usernameStatus === 'taken' || usernameStatus === 'invalid'}
-              />
-              {usernameStatus === 'checking' && (
-                <p className="text-xs text-muted-foreground ml-1">Checking...</p>
-              )}
-              {usernameStatus === 'invalid' && (
-                <p className="text-xs text-destructive ml-1">Username can only contain letters, numbers, and underscores</p>
-              )}
-              {usernameStatus === 'taken' && (
-                <p className="text-xs text-destructive ml-1">Username not available</p>
-              )}
-              {usernameStatus === 'available' && (
-                <p className="text-xs text-emerald-500 ml-1">Username available</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="w-full" onClick={() => setStep(1)}>Back</Button>
-              <Button
-                className="w-full"
-                disabled={usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking'}
-                onClick={() => {
-                  if (usernameStatus === 'taken') {
-                    toast.error('This username is taken. Please choose another.');
-                  } else if (usernameStatus === 'invalid') {
-                    toast.error('Username can only contain letters, numbers, and underscores');
-                  } else if (!formData.username) {
-                    toast.error('Username required');
-                  } else {
-                    setStep(3);
-                  }
-                }}
-              >
-                Continue
-              </Button>
-            </div>
-          </div>
-        )}
-        
-        {step === 3 && (
           <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-300">
             <PasswordInput placeholder="Password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
             <PasswordInput placeholder="Confirm Password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
@@ -187,7 +130,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" className="w-full" type="button" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="outline" className="w-full" type="button" onClick={() => setStep(1)}>Back</Button>
               <Button type="submit" className="w-full" loading={loading} disabled={!agreeToTerms}>Register</Button>
             </div>
           </form>

@@ -13,6 +13,12 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Register page no longer asks for a username (2026-08-10)
+
+- **`src/app/(auth)/register/page.tsx`** — removed the standalone **Username step**; the PWA no longer asks for a username during signup (it was staged on the pending row and functionally discarded, since the onboarding username becomes the real account username). The flow is now 2 steps: **Account** (name, email) → **Password** (password, confirm, terms). The register payload no longer sends `username`; `useUsernameAvailability` is no longer used on this page. The hook itself is unchanged and still used by the onboarding page — the single place the PWA now chooses and checks the username.
+- Backend contract (same day, see `sob-backend/AGENTS.md`): `POST /api/auth/register` accepts an optional `username`; a pending signup staged without one defaults `username` to `null`, and the authoritative availability check remains at `complete-onboarding`.
+- Verified: `npx tsc --noEmit` clean, `npx eslint` clean on the page, `npx vitest run` **151/151** (18 files).
+
 ## Smart PWA installation banner (2026-08-10)
 
 - **`src/lib/pwa/detection.ts`** (new) — SSR-safe PWA/environment detection. `isStandalone()` (display-mode `standalone`/`fullscreen`/`minimal-ui` + legacy iOS `navigator.standalone`), `isIos()` (UA + iPadOS-13 MacIntel/multi-touch heuristic), `isIosSafari()` (excludes CriOS/FxiOS/EdgiOS/OPiOS/DuckDuckGo). Only the unavoidable iOS/Safari bits sniff the UA, and they're isolated here.
