@@ -47,7 +47,7 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
 
   const getLink = () => {
     if (notification.type === 'follow') return `/profile/${notification.sender?.username}`;
-    if (notification.type === 'weekly_digest') return '/';
+    if (notification.type === 'weekly_digest') return `/digest/${notification._id}`;
     if (notification.post) return `/post/${notification.post._id || notification.post}`;
     return '/';
   };
@@ -92,7 +92,8 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
           <div className="bg-muted/40 p-2 rounded-lg border border-border/50 space-y-1">
             {digest.topPost && (
               <p className="text-[11px] text-foreground line-clamp-1">
-                <span className="font-medium">Top post:</span> {digest.topPost.title} — {digest.topPost.views} views · {digest.topPost.likes} likes
+                <span className="font-medium">Top post:</span>{' '}
+                {digest.topPost.title || digest.topPost.bodyPreview} — {digest.topPost.views} views · {digest.topPost.likes} likes
               </p>
             )}
             {digest.followersGained > 0 && (
@@ -100,11 +101,14 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
                 <span className="font-medium">{digest.followersGained}</span> new follower{digest.followersGained === 1 ? '' : 's'} gained
               </p>
             )}
-            {digest.fieldRankings.length > 0 && (
-              <p className="text-[11px] text-foreground line-clamp-1">
-                <span className="font-medium">Ranked</span> in {digest.fieldRankings.map((r) => `${r.field.name} #${r.rank}`).join(', ')}
-              </p>
-            )}
+            {(() => {
+              const validRankings = (digest.fieldRankings || []).filter((r) => r.field?.name);
+              return validRankings.length > 0 ? (
+                <p className="text-[11px] text-foreground line-clamp-1">
+                  <span className="font-medium">Ranked</span> in {validRankings.map((r) => `${r.field.name} #${r.rank}`).join(', ')}
+                </p>
+              ) : null;
+            })()}
           </div>
         )}
 
