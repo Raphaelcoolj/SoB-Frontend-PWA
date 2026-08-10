@@ -17,6 +17,7 @@ import { Bell, X, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { usePushEnable } from '../../hooks/usePushEnable';
 import { getPushPlatform } from '../../lib/push';
+import { isStandalone } from '../../lib/pwa/detection';
 import { Button } from '../ui/Button';
 
 const DISMISS_KEY = 'sob-push-prompt-dismissed';
@@ -34,12 +35,9 @@ export default function NotificationEnableBanner() {
 
   // PWA (installed) is the primary surface; skip iOS Safari until it is added
   // to the Home Screen (web push requires the installed PWA there).
-  const isStandalone =
-    typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in window.navigator && (window.navigator as unknown as { standalone?: boolean }).standalone));
+  const isStandalonePwa = isStandalone();
 
-  const platformBlocked = getPushPlatform() === 'ios' && !isStandalone;
+  const platformBlocked = getPushPlatform() === 'ios' && !isStandalonePwa;
 
   const showPrompt = !!user && !platformBlocked && !dismissedRecently && state.status === 'prompt';
   const showDenied = !!user && state.status === 'denied';
