@@ -12,7 +12,10 @@ export type NotificationType =
 
 export interface WeeklyDigestData {
   topPost: {
-    title: string;
+    /** Post title, or null for body-only posts (contentType 'post'). */
+    title: string | null;
+    /** Truncated plain-text body excerpt — used when title is null. */
+    bodyPreview: string | null;
     views: number;
     likes: number;
   } | null;
