@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { fetchWithAuth } from '../lib/api';
+import { track } from '../lib/analytics';
 import {
   urlBase64ToUint8Array,
   keysEqual,
@@ -115,9 +116,11 @@ export const usePushEnable = () => {
       if (Notification.permission !== 'granted') {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
+          track({ event: 'push_permission_denied' });
           setState({ status: 'denied' });
           return;
         }
+        track({ event: 'push_permission_granted' });
       }
 
       const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });

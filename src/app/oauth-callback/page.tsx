@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
 import { connectSocket } from '../../lib/socket';
+import { track } from '../../lib/analytics';
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -54,6 +55,7 @@ function OAuthCallbackContent() {
             name: data.data.pendingProfile?.name,
             email: data.data.pendingProfile?.email,
           });
+          track({ event: 'signup_started', properties: { method: 'google' } });
           router.push('/onboarding');
           return;
         }
@@ -63,6 +65,7 @@ function OAuthCallbackContent() {
           if (refreshToken) localStorage.setItem('sob-refresh-token', refreshToken);
           setAuth(user, accessToken, refreshToken);
           connectSocket(accessToken);
+          track({ event: 'login_completed', properties: { method: 'google' } });
 
           if (user.isOnboarded === false) {
             router.push('/onboarding');

@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useSWRConfig } from 'swr';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
+import { track } from '../../lib/analytics';
 import { Button } from '../ui/Button';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
@@ -56,6 +57,10 @@ export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange,
       } else {
         setIsFollowing(data.data.isFollowing);
         onFollowChange?.(data.data.isFollowing, data.data.followersCount);
+        track({
+          event: data.data.isFollowing ? 'follow_created' : 'follow_removed',
+          properties: { targetUserId: String(targetUserId) },
+        });
         // FIXED: Invalidate user search cache
         mutate(key => typeof key === 'string' && key.includes('/api/search/users'));
       }

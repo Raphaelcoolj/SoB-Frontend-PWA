@@ -7,6 +7,7 @@ import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, P
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
+import { track } from '../../../../lib/analytics';
 import { socket, connectSocket } from '../../../../lib/socket';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import ConversationsSidebar from '../../../../components/layout/ConversationsSidebar';
@@ -458,6 +459,7 @@ function ChatConversation() {
         } else {
           setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
         }
+        track({ event: 'message_sent', properties: { type: 'text' } });
       } else {
         setLocalMessages((prev) => prev.filter((m) => m._id !== tempId));
       }
@@ -578,7 +580,10 @@ function ChatConversation() {
         method: 'POST', body: formData, headers: {},
       });
       const json = await res.json();
-      if (json?.data?.message) { mutateMessages(); setReplyTo(null); }
+      if (json?.data?.message) {
+        mutateMessages(); setReplyTo(null);
+        track({ event: 'message_sent', properties: { type: 'media' } });
+      }
     } catch { } finally {
       setUploadingMedia(false); setPreviewImage(null); setSelectedFile(null);
       textareaRef.current?.focus();
@@ -1277,7 +1282,10 @@ function ChatConversation() {
                     setRecordingDuration(0);
                     const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, { method: 'POST', body: formData, headers: {} });
                     const json = await res.json();
-                    if (json?.data?.message) mutateMessages();
+                    if (json?.data?.message) {
+                      mutateMessages();
+                      track({ event: 'message_sent', properties: { type: 'voice' } });
+                    }
                   } catch { } finally { setSending(false); textareaRef.current?.focus(); }
                 }}
                 disabled={sending}

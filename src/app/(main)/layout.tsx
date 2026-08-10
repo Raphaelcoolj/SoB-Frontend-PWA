@@ -17,7 +17,7 @@ import { useAuthStore } from '../../store/authStore';
 import { connectSocket } from '../../lib/socket';
 import { useThemeStore, ACCENT_MAP } from '../../store/themeStore';
 import TermsAgreementModal from '../../components/shared/TermsAgreementModal';
-import NotificationEnableBanner from '../../components/shared/NotificationEnableBanner';
+import OnboardingBannerCoordinator from '../../components/pwa/OnboardingBannerCoordinator';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useSocket } from '../../hooks/useSocket';
 
@@ -89,8 +89,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       {/* Terms agreement modal overlay */}
       <TermsAgreementModal />
 
-      {/* Push notification enablement banner */}
-      <NotificationEnableBanner />
+      {/* Onboarding banners — PWA install first, push notifications second */}
+      <OnboardingBannerCoordinator />
     </div>
   );
 }

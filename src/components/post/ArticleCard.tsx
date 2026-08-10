@@ -14,6 +14,7 @@ import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHo
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
+import { track } from '../../lib/analytics';
 import { socket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
 import FeedImage from './FeedImage';
@@ -101,8 +102,10 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
   const handleLike = async () => {
     if (!accessToken) return;
-    setIsLiked((prev) => !prev);
+    const nowLiked = !isLiked;
+    setIsLiked(nowLiked);
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+    track({ event: nowLiked ? 'post_liked' : 'post_unliked', properties: { postId: article._id, contentType: 'article' } });
 
     try {
       const res = await fetchWithAuth(`/api/posts/${article._id}/like`, {
@@ -121,7 +124,9 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
   const handleBookmark = async () => {
     if (!accessToken) return;
-    setIsBookmarked((prev) => !prev);
+    const nowSaved = !isBookmarked;
+    setIsBookmarked(nowSaved);
+    track({ event: nowSaved ? 'post_saved' : 'post_unsaved', properties: { postId: article._id, contentType: 'article' } });
     try {
       await fetchWithAuth(`/api/posts/${article._id}/bookmark`, {
         method: 'POST',
@@ -134,6 +139,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${article._id}`;
+    track({ event: 'post_shared', properties: { postId: article._id, contentType: 'article' } });
     try {
       await fetchWithAuth(`/api/posts/${article._id}/share`, { method: 'POST', body: JSON.stringify({}) });
       if (navigator.share) {

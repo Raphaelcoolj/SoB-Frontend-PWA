@@ -10,7 +10,9 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '../components/ui/sonner';
 import { ThemeInitializer } from '../components/shared/ThemeInitializer';
+import ThemeColorSync from '../components/shared/ThemeColorSync';
 import PwaProvider from '../components/shared/PwaProvider';
+import AnalyticsProvider from '../components/shared/AnalyticsProvider';
 import { SITE_DESCRIPTION, HOMEPAGE_OG_TITLE, SITE_URL } from '../lib/site';
 import './globals.css';
 
@@ -90,6 +92,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  // Static SSR default (dark mode is the app default). ThemeColorSync updates
+  // this meta tag client-side to match the active light/dark theme.
+  themeColor: '#000000',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -113,6 +118,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           <PwaProvider>
             <ThemeInitializer />
+            <ThemeColorSync />
+            <AnalyticsProvider />
             {children}
             <Toaster />
           </PwaProvider>

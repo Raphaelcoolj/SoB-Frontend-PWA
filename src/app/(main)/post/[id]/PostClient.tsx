@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { fetchWithAuth } from '../../../../lib/api';
+import { track } from '../../../../lib/analytics';
 import PostCard from '../../../../components/post/PostCard';
 import CommentSection from '../../../../components/comment/CommentSection';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -20,8 +21,19 @@ export default function PostClient({ postId }: PostClientProps) {
     `/api/posts/${postId}`,
     fetcher
   );
+  const viewedRef = useRef<string | null>(null);
 
   const post = data?.post;
+
+  useEffect(() => {
+    if (post && viewedRef.current !== post._id) {
+      viewedRef.current = post._id;
+      track({
+        event: 'post_viewed',
+        properties: { postId: String(post._id), contentType: post.contentType },
+      });
+    }
+  }, [post]);
 
   if (isLoading) {
     return (

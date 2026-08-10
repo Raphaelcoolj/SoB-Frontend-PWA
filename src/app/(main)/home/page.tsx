@@ -7,9 +7,10 @@
  * skeleton loaders, empty states, and pull-to-refresh.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFeed } from '../../../hooks/useFeed';
 import { useFollowingFeed } from '../../../hooks/useFollowingFeed';
+import { track } from '../../../lib/analytics';
 import PostFeed from '../../../components/post/PostFeed';
 import TrendingSection from '../../../components/trending/TrendingSection';
 import UserAvatar from '../../../components/user/UserAvatar';
@@ -20,6 +21,10 @@ import { useAuthStore } from '../../../store/authStore';
 
 function ForYouTab() {
   const feed = useFeed('all');
+
+  useEffect(() => {
+    track({ event: 'feed_viewed', properties: { feed: 'foryou' } });
+  }, []);
 
   return (
     <>

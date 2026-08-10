@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '../../../hooks/useAuth';
+import { track } from '../../../lib/analytics';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
@@ -45,23 +46,27 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    track({ event: 'login_started', properties: { method: 'password' } });
     const result = await login({
       email: values.email,
       password: values.password,
     });
 
     if (result.success && result.user) {
+      track({ event: 'login_completed', properties: { method: 'password' } });
       if (result.user.isOnboarded) {
         router.push('/home');
       } else {
         router.push('/onboarding');
       }
     } else {
-       toast.error(authError || 'Invalid email or password');
+      track({ event: 'login_failed', properties: { method: 'password' } });
+      toast.error(authError || 'Invalid email or password');
     }
   };
 
   const handleGoogleOAuth = () => {
+    track({ event: 'login_started', properties: { method: 'google' } });
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     window.location.href = `${apiBase}/api/auth/google`;
   };
