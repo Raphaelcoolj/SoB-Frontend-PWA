@@ -12,6 +12,7 @@ import { Toaster } from '../components/ui/sonner';
 import { ThemeInitializer } from '../components/shared/ThemeInitializer';
 import ThemeColorSync from '../components/shared/ThemeColorSync';
 import PwaProvider from '../components/shared/PwaProvider';
+import AnalyticsProvider from '../components/shared/AnalyticsProvider';
 import { SITE_DESCRIPTION, HOMEPAGE_OG_TITLE, SITE_URL } from '../lib/site';
 import './globals.css';
 
@@ -118,6 +119,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PwaProvider>
             <ThemeInitializer />
             <ThemeColorSync />
+            <AnalyticsProvider />
             {children}
             <Toaster />
           </PwaProvider>

@@ -10,6 +10,7 @@ import useSWRInfinite from 'swr/infinite';
 import { Send, X, MessageCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
+import { track } from '../../lib/analytics';
 import { toast } from 'sonner';
 import CommentCard from './CommentCard';
 import { Button } from '../ui/Button';
@@ -67,6 +68,10 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
         setReplyTo(null);
         setCommentType('comment');
         mutate(); // Refresh comments
+        track({
+          event: replyTo?.id ? 'comment_replied' : 'comment_created',
+          properties: { postId: String(postId), type: commentType },
+        });
       } else {
         const data = await res.json();
         toast.error(data.message || 'Failed to post comment');

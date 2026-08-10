@@ -13,6 +13,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { fetchWithAuth } from '../../../lib/api';
+import { track } from '../../../lib/analytics';
 import { toast } from 'sonner';
 
 const STEPS = ['Account', 'Password'];
@@ -60,13 +61,16 @@ export default function RegisterPage() {
         // onboarding is completed. Hold the pending token for the verify-email
         // and onboarding screens.
         const { pendingToken, pendingProfile } = data.data;
+        track({ event: 'signup_started', properties: { method: 'email' } });
         setPending(pendingToken, pendingProfile);
         toast.success('Registration successful! Please check your email (and spam folder) for the verification code.');
         router.push('/verify-email');
       } else {
+        track({ event: 'signup_failed', properties: { method: 'email', reason: 'rejected' } });
         toast.error(data.message || 'Registration failed');
       }
     } catch {
+      track({ event: 'signup_failed', properties: { method: 'email', reason: 'error' } });
       toast.error('An error occurred');
     } finally {
       setLoading(false);

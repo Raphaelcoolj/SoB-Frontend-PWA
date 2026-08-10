@@ -15,6 +15,7 @@ import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
 import { UserAvatar } from '../../../components/user/UserAvatar';
 import { fetchWithAuth } from '../../../lib/api';
+import { track } from '../../../lib/analytics';
 import { useUsernameAvailability } from '../../../hooks/useUsernameAvailability';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -184,6 +185,8 @@ export default function OnboardingPage() {
         } else {
           setUser(completedUser);
         }
+        track({ event: 'signup_completed', properties: { method: pendingToken ? 'email' : 'google' } });
+        track({ event: 'onboarding_completed' });
       } else {
         toast.error(data.message || 'Onboarding failed. Please try again.');
         return;

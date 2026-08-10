@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2 } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
+import { track } from '../../lib/analytics';
 import { isVideoUrl } from '../../lib/media';
 import { Notification } from '../../types/notification';
 
@@ -61,7 +62,10 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
   return (
     <Link 
       href={getLink()} 
-      onClick={() => !notification.isRead && onMarkAsRead?.(notification._id)}
+      onClick={() => {
+        track({ event: 'notification_clicked', properties: { type: notification.type } });
+        if (!notification.isRead) onMarkAsRead?.(notification._id);
+      }}
       className={`flex items-start gap-4 p-4 transition-all duration-200 border-b border-border/50 hover:bg-muted/30 group ${
         !notification.isRead ? 'bg-accent/5 border-l-4 border-l-accent' : 'bg-transparent border-l-4 border-l-transparent'
       }`}

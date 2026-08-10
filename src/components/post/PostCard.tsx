@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
+import { track } from '../../lib/analytics';
 import { socket } from '../../lib/socket';
 import { UserAvatar } from '../user/UserAvatar';
 import VideoPlayer from './VideoPlayer';
@@ -94,9 +95,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
 
   const handleLike = async () => {
     if (!accessToken) return;
+    const nowLiked = !isLiked;
     // Optimistic update
-    setIsLiked((prev) => !prev);
+    setIsLiked(nowLiked);
     setLikeCount((prev: number) => (isLiked ? prev - 1 : prev + 1));
+    track({ event: nowLiked ? 'post_liked' : 'post_unliked', properties: { postId: post._id, contentType: post.contentType } });
 
     try {
       const res = await fetchWithAuth(`/api/posts/${post._id}/like`, {
@@ -116,7 +119,9 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
 
   const handleBookmark = async () => {
     if (!accessToken) return;
-    setIsBookmarked((prev) => !prev);
+    const nowSaved = !isBookmarked;
+    setIsBookmarked(nowSaved);
+    track({ event: nowSaved ? 'post_saved' : 'post_unsaved', properties: { postId: post._id, contentType: post.contentType } });
     try {
       await fetchWithAuth(`/api/posts/${post._id}/bookmark`, {
         method: 'POST',
@@ -130,6 +135,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
   const handleShare = async () => {
     // FIXED: Use correct post URL for sharing
     const shareUrl = `${window.location.origin}/post/${post._id}`;
+    track({ event: 'post_shared', properties: { postId: post._id, contentType: post.contentType } });
 
     try {
       await fetchWithAuth(`/api/posts/${post._id}/share`, {

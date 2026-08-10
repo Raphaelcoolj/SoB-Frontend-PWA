@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isIos, isIosSafari, isStandalone } from '../lib/pwa/detection';
+import { track } from '../lib/analytics';
 import {
   APP_INSTALLED_EVENT,
   INSTALL_PROMPT_EVENT,
@@ -40,6 +41,13 @@ export type PwaInstallStatus =
 export const usePwaInstall = () => {
   const [status, setStatus] = useState<PwaInstallStatus>('checking');
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
+  const bannerShownRef = useRef(false);
+
+  const markBannerShown = () => {
+    if (bannerShownRef.current) return;
+    bannerShownRef.current = true;
+    track({ event: 'pwa_install_banner_shown' });
+  };
 
   const resolve = useCallback(() => {
     // Installed PWA (or standalone) always wins — never show the banner.
@@ -49,10 +57,12 @@ export const usePwaInstall = () => {
     }
     if (deferredPrompt.current) {
       setStatus('installable');
+      markBannerShown();
       return;
     }
     if (isIos()) {
       setStatus(isIosSafari() ? 'iosSafari' : 'iosNonSafari');
+      markBannerShown();
       return;
     }
     setStatus('notEligible');
@@ -72,6 +82,7 @@ export const usePwaInstall = () => {
     const onAppInstalled = () => {
       deferredPrompt.current = null;
       setStatus('installedSuccessfully');
+      track({ event: 'pwa_installed_detected' });
     };
 
     window.addEventListener(INSTALL_PROMPT_EVENT, onBeforeInstallPrompt);
@@ -93,20 +104,26 @@ export const usePwaInstall = () => {
     const prompt = deferredPrompt.current;
     if (!prompt) return;
     setStatus('installing');
+    track({ event: 'pwa_install_prompt_triggered' });
     const outcome = await promptToInstall(prompt);
     deferredPrompt.current = null;
     if (outcome === 'accepted') {
       // Installation completed; the banner must not reappear.
       setStatus('installedSuccessfully');
+      track({ event: 'pwa_install_accepted' });
     } else {
       // Dismissed or prompt failed — do NOT treat this as installed; keep the
       // banner available in this session.
       setStatus('installable');
+      track({ event: 'pwa_install_declined' });
     }
   }, []);
 
   /** Hide the banner for the current load only (never persisted). */
-  const dismiss = useCallback(() => setStatus('dismissed'), []);
+  const dismiss = useCallback(() => {
+    setStatus('dismissed');
+    track({ event: 'pwa_install_banner_dismissed' });
+  }, []);
 
   return { status, install, dismiss };
 };

@@ -13,6 +13,19 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Client analytics: behavioral events → backend ingestion (2026-08-10)
+
+- **`src/lib/analytics.ts`** (new) — buffered, batched client tracker. `track({ event, properties?, context? })` validates + sanitizes (drops sensitive keys — password/token/email/… — and non-primitive values), tags each event with a persistent `anonymousId` (`sob-anonymous-id`) + per-tab `sessionId` (`sob-session-id`, survives reloads), and **never sends a userId** (the backend derives it from the Bearer token). Flushes via `POST /api/analytics/track/batch` (`keepalive: true`) at 50 events or every 5s; `flushAnalytics()` / `endSession()` / `shutdownAnalytics()` flush on demand. Never throws; errors logged ≤1/min.
+- **`src/components/shared/AnalyticsProvider.tsx`** (new, mounted in `src/app/layout.tsx`) — renderless client provider: `startSession()` on mount, `page_viewed { path }` on every route change (`usePathname`), `session_ended { durationSec }` on `pagehide`, flush on `visibilitychange:hidden`, and `client_error` capture for uncaught errors + unhandled rejections (rate-limited, benign patterns filtered).
+- **Instrumented events** (all match the backend catalog — see `sob-backend/AGENTS.md`):
+  - **Auth funnel**: `signup_started`/`signup_failed` (register), `login_started`/`login_completed`/`login_failed` (login, method password/google), `signup_started` (Google pending via oauth-callback), `login_completed` (Google existing), `signup_completed` + `onboarding_completed` (onboarding page).
+  - **Engagement** (shared components so every feed/detail surface is covered): `post_liked`/`post_unliked`, `post_saved`/`post_unsaved`, `post_shared` (PostCard + ArticleCard), `comment_created`/`comment_replied` (CommentSection), `follow_created`/`follow_removed` (FollowButton), `post_viewed` (PostClient detail), `notification_clicked { type }` (NotificationItem).
+  - **Search/feed**: `search_performed { query }` once per distinct debounced query (search page), `feed_viewed { feed: 'foryou' }` (home ForYou tab).
+  - **Chat**: `message_sent { type: text|media|voice }` on each send path (`[conversations]/page.tsx`).
+  - **Push/PWA**: `push_permission_granted`/`push_permission_denied` (usePushEnable), `pwa_install_banner_shown`/`pwa_install_prompt_triggered`/`pwa_install_accepted`/`pwa_install_declined`/`pwa_install_banner_dismissed`/`pwa_installed_detected` (usePwaInstall state machine).
+- **Not yet instrumented (catalog supports them):** `api_error`, `content_impression`, `post_read*`, `conversation_created`, `message_read`, `web_vital_recorded` — and the native app (`sob-native-app/AGENTS.md`) has no tracking yet.
+- **Tests** — `src/lib/analytics.test.ts` (5: batch payload shape, never-sends-userId, sensitive/non-primitive dropping, anonymousId/sessionId persistence semantics, session_ended duration) + `src/components/shared/AnalyticsProvider.test.tsx` (4: session start + initial page_viewed, route-change page_viewed, pagehide ends session, background flush). Full suite: **160/160** (20 files); `npx tsc --noEmit` clean; new files eslint-clean (legacy pre-existing errors untouched); `npm run build` passes (46 routes).
+
 ## Register page no longer asks for a username (2026-08-10)
 
 - **`src/app/(auth)/register/page.tsx`** — removed the standalone **Username step**; the PWA no longer asks for a username during signup (it was staged on the pending row and functionally discarded, since the onboarding username becomes the real account username). The flow is now 2 steps: **Account** (name, email) → **Password** (password, confirm, terms). The register payload no longer sends `username`; `useUsernameAvailability` is no longer used on this page. The hook itself is unchanged and still used by the onboarding page — the single place the PWA now chooses and checks the username.

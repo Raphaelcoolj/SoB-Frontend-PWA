@@ -10,6 +10,7 @@ import { Search, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useSearch } from '../../../hooks/useSearch';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import { track } from '../../../lib/analytics';
 import SearchResults from '../../../components/search/SearchResults';
 import DiscoverFields from '../../../components/search/DiscoverFields';
 import UserSuggestions from '../../../components/user/UserSuggestions';
@@ -24,6 +25,16 @@ export default function SearchPage() {
   const isSearching = debouncedQuery.trim().length > 0;
   
   const { posts, users, isLoading, hasQuery } = useSearch(debouncedQuery);
+
+  // Fire search_performed once per distinct non-empty query (debounced).
+  const lastTrackedQueryRef = useRef<string>('');
+  useEffect(() => {
+    const q = debouncedQuery.trim();
+    if (q && q !== lastTrackedQueryRef.current) {
+      lastTrackedQueryRef.current = q;
+      track({ event: 'search_performed', properties: { query: q.slice(0, 120) } });
+    }
+  }, [debouncedQuery]);
 
   // Auto-focus on mount
   useEffect(() => {
