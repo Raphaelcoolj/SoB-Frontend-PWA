@@ -12,7 +12,7 @@ import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, MessageSquare, Image as ImageIcon, Video, BarChart3 } from 'lucide-react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useAuthStore } from '../../../store/authStore';
 import type { Field } from '../../../types/user';
 import { Button } from '../../../components/ui/Button';
@@ -79,7 +79,8 @@ const validateVideoDuration = (file: File): Promise<boolean> => {
 
 export default function CreatePage() {
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, user } = useAuthStore();
+  const { mutate } = useSWRConfig();
   const [mode, setMode] = useState<ContentMode>('post');
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -297,7 +298,32 @@ export default function CreatePage() {
         throw new Error(data.message || 'Failed to create post');
       }
 
-      router.push('/home');
+      // Bust the profile posts SWR cache so the new post shows immediately
+      // when the user lands on their profile page.
+      if (user?.username) {
+        const base = BASE_URL;
+        // Invalidate all pages of the profile posts cache for both tabs so
+        // whichever tab the user lands on fetches fresh data.
+        await mutate(
+          (key: unknown) =>
+            Array.isArray(key) &&
+            typeof key[0] === 'string' &&
+            key[0].includes(`/api/posts/user/`),
+          undefined,
+          { revalidate: true }
+        );
+        // Also bust the profile stats (postsCount in header).
+        await mutate(`${base}/api/users/${user.username}`);
+      }
+
+      // Redirect straight to the user's own profile on the correct tab so
+      // they can immediately see the new post/article.
+      const targetTab = mode === 'article' ? 'articles' : 'posts';
+      if (user?.username) {
+        router.push(`/profile/${user.username}?tab=${targetTab}`);
+      } else {
+        router.push('/home');
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
