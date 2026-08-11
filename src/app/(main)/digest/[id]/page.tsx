@@ -53,9 +53,15 @@ function weekLabel(createdAt: string): string {
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
-/** Returns the displayable post heading: title if available, else bodyPreview. */
-function postHeading(topPost: NonNullable<WeeklyDigestData['topPost']>): string {
+/** Returns the displayable top-post title (falls back to the body excerpt for title-less posts). */
+function postTitle(topPost: NonNullable<WeeklyDigestData['topPost']>): string {
   return topPost.title || topPost.bodyPreview || '';
+}
+
+/** Returns the body excerpt rendered as a secondary line under the title, if any. */
+function postPreview(topPost: NonNullable<WeeklyDigestData['topPost']>): string {
+  if (!topPost.bodyPreview) return '';
+  return topPost.bodyPreview === topPost.title ? '' : topPost.bodyPreview;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +161,10 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
   // Only show field rankings that have a real field name resolved.
   const validRankings = (digest?.fieldRankings ?? []).filter((r) => r.field?.name);
 
-  const heading = digest?.topPost ? postHeading(digest.topPost) : null;
+  const topPost = digest?.topPost ?? null;
+  const topPostTitle = topPost ? postTitle(topPost) : '';
+  const topPostPreview = topPost ? postPreview(topPost) : '';
+  const hasPostContent = !!(topPostTitle || topPostPreview);
 
   return (
     <div className="space-y-5 pt-4 pb-20 animate-in fade-in duration-300">
@@ -177,7 +186,7 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
       </div>
 
       {/* ── Top Post ───────────────────────────────────────────────── */}
-      {digest?.topPost && heading && (
+      {topPost && hasPostContent && (
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="px-4 pt-4 pb-1 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-accent flex-shrink-0" />
@@ -192,31 +201,45 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
               href={`/post/${topPostRef._id}`}
               className="block px-4 pb-4 pt-2 hover:bg-muted/30 transition-colors group"
             >
-              <p className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-3 leading-snug">
-                {heading}
-              </p>
+              {topPostTitle && (
+                <p className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-3 leading-snug">
+                  {topPostTitle}
+                </p>
+              )}
+              {topPostPreview && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-snug">
+                  {topPostPreview}
+                </p>
+              )}
               <div className="flex items-center gap-3 mt-2">
                 <span className="text-xs text-muted-foreground">
-                  {digest.topPost.views.toLocaleString()} views
+                  {topPost.views.toLocaleString()} views
                 </span>
                 <span className="text-xs text-muted-foreground">·</span>
                 <span className="text-xs text-muted-foreground">
-                  {digest.topPost.likes.toLocaleString()} likes
+                  {topPost.likes.toLocaleString()} likes
                 </span>
               </div>
             </Link>
           ) : (
             <div className="px-4 pb-4 pt-2">
-              <p className="text-sm font-semibold text-foreground line-clamp-3 leading-snug">
-                {heading}
-              </p>
+              {topPostTitle && (
+                <p className="text-sm font-semibold text-foreground line-clamp-3 leading-snug">
+                  {topPostTitle}
+                </p>
+              )}
+              {topPostPreview && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-snug">
+                  {topPostPreview}
+                </p>
+              )}
               <div className="flex items-center gap-3 mt-2">
                 <span className="text-xs text-muted-foreground">
-                  {digest.topPost.views.toLocaleString()} views
+                  {topPost.views.toLocaleString()} views
                 </span>
                 <span className="text-xs text-muted-foreground">·</span>
                 <span className="text-xs text-muted-foreground">
-                  {digest.topPost.likes.toLocaleString()} likes
+                  {topPost.likes.toLocaleString()} likes
                 </span>
               </div>
             </div>
@@ -266,7 +289,7 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
       )}
 
       {/* ── Empty digest ───────────────────────────────────────────── */}
-      {!digest?.topPost && !((digest?.followersGained ?? 0) > 0) && validRankings.length === 0 && (
+      {!hasPostContent && !((digest?.followersGained ?? 0) > 0) && validRankings.length === 0 && (
         <div className="bg-card border border-border rounded-2xl px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">
             No activity was recorded for this week.
