@@ -391,7 +391,7 @@ export default function VideoTrimmerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black animate-in fade-in duration-300">
-      {/* Header */}
+      {/* Header — always visible at top */}
       <header className="flex h-14 shrink-0 items-center justify-between px-3 text-white">
         <button
           onClick={onClose}
@@ -400,7 +400,7 @@ export default function VideoTrimmerModal({
         >
           Cancel
         </button>
-        <h3 className="flex items-center gap-2 text-base font-bold">
+        <h3 className="flex items-center gap-2 text-base font-bold text-white">
           <Pause className="hidden" />
           Trim Video
         </h3>
@@ -414,85 +414,91 @@ export default function VideoTrimmerModal({
         </button>
       </header>
 
-      {/* Preview */}
-      <div className="relative mx-3 min-h-0 flex-1 overflow-hidden rounded-xl bg-black/60">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          onLoadedMetadata={handleLoadedMetadata}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={() => setIsPlaying(false)}
-          className="h-full w-full object-contain"
-          playsInline
-        />
-        {!isTrimming && (
-          <button
-            onClick={togglePlay}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/60 p-4 text-white hover:bg-black/80"
-          >
-            {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-          </button>
-        )}
-      </div>
-
-      {/* Time readout */}
-      <div className="flex items-center justify-between px-4 pt-3 text-xs font-semibold tabular-nums text-white/80">
-        <span>{formatTrimTime(currentTime)}</span>
-        <span className="text-white">
-          Selected {formatTrimTime(trim.start)} – {formatTrimTime(trim.end)} · {formatTrimTime(trimLength)}
-        </span>
-        <span>{formatTrimTime(videoDuration)}</span>
-      </div>
-
-      {/* Filmstrip timeline with two-handle trim */}
-      {videoDuration > 0 && !isTrimming && (
-        <div className="px-4 pt-3">
-          <FilmstripTimeline
-            frames={frames}
-            duration={videoDuration}
-            trim={trim}
-            currentTime={currentTime}
-            onChange={handleHandleMove}
+      {/* Scrollable body — video + controls. Flex-1 lets it fill remaining
+          height; overflow-y-auto lets controls scroll into view on small
+          screens so the Save button is never hidden behind the viewport. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {/* Preview — capped so it never pushes controls off screen */}
+        <div className="relative mx-3 shrink-0 overflow-hidden rounded-xl bg-black/60"
+             style={{ height: 'min(55vh, 340px)' }}>
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            onLoadedMetadata={handleLoadedMetadata}
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={() => setIsPlaying(false)}
+            className="h-full w-full object-contain"
+            playsInline
           />
-
-          {trimLength > 60 && (
-            <p className="pt-2 text-center text-xs font-semibold text-red-400">
-              Please reduce your selection to 60 seconds or less.
-            </p>
+          {!isTrimming && (
+            <button
+              onClick={togglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/60 p-4 text-white hover:bg-black/80"
+            >
+              {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+            </button>
           )}
-
-          <div className="flex gap-3 pt-4">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button className="flex-1" disabled={!valid} onClick={startTrimming}>
-              Trim & Save
-            </Button>
-          </div>
         </div>
-      )}
 
-      {/* Processing State */}
-      {isTrimming && (
-        <div className="flex flex-col items-center space-y-4 py-10 text-white">
-          <RefreshCw className="h-10 w-10 animate-spin text-white" />
-          <div className="text-center">
-            <p className="font-semibold">Processing Video clip...</p>
-            <p className="mt-1 text-xs text-white/70">Please wait while we trim the file.</p>
-          </div>
-          <div className="h-2 w-full max-w-[200px] overflow-hidden rounded-full border border-white/20 bg-white/10">
-            <div
-              className="h-full rounded-full bg-white transition-all duration-300"
-              style={{ width: `${trimProgress}%` }}
+        {/* Time readout */}
+        <div className="flex shrink-0 items-center justify-between px-4 pt-3 text-xs font-semibold tabular-nums text-white/80">
+          <span>{formatTrimTime(currentTime)}</span>
+          <span className="text-white">
+            Selected {formatTrimTime(trim.start)} – {formatTrimTime(trim.end)} · {formatTrimTime(trimLength)}
+          </span>
+          <span>{formatTrimTime(videoDuration)}</span>
+        </div>
+
+        {/* Filmstrip timeline with two-handle trim */}
+        {videoDuration > 0 && !isTrimming && (
+          <div className="shrink-0 px-4 pt-3 pb-2">
+            <FilmstripTimeline
+              frames={frames}
+              duration={videoDuration}
+              trim={trim}
+              currentTime={currentTime}
+              onChange={handleHandleMove}
             />
-          </div>
-          <span className="text-xs font-bold">{trimProgress}%</span>
-        </div>
-      )}
 
-      {/* Safe-area bottom padding for the nav area on mobile */}
-      <div style={{ height: 'max(env(safe-area-inset-bottom, 0px), 12px)' }} />
+            {trimLength > 60 && (
+              <p className="pt-2 text-center text-xs font-semibold text-red-400">
+                Please reduce your selection to 60 seconds or less.
+              </p>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button className="flex-1" disabled={!valid} onClick={startTrimming}>
+                Trim & Save
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Processing State */}
+        {isTrimming && (
+          <div className="flex flex-col items-center space-y-4 py-10 text-white">
+            <RefreshCw className="h-10 w-10 animate-spin text-white" />
+            <div className="text-center">
+              <p className="font-semibold">Processing Video clip...</p>
+              <p className="mt-1 text-xs text-white/70">Please wait while we trim the file.</p>
+            </div>
+            <div className="h-2 w-full max-w-[200px] overflow-hidden rounded-full border border-white/20 bg-white/10">
+              <div
+                className="h-full rounded-full bg-white transition-all duration-300"
+                style={{ width: `${trimProgress}%` }}
+              />
+            </div>
+            <span className="text-xs font-bold">{trimProgress}%</span>
+          </div>
+        )}
+
+        {/* Safe-area bottom padding */}
+        <div className="shrink-0" style={{ height: 'max(env(safe-area-inset-bottom, 0px), 16px)' }} />
+      </div>
     </div>
   );
 }
