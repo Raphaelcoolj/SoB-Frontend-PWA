@@ -101,6 +101,11 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
                 <span className="font-medium">{digest.followersGained}</span> new follower{digest.followersGained === 1 ? '' : 's'} gained
               </p>
             )}
+            {digest.readingActivity && digest.readingActivity.totalArticlesRead > 0 && (
+              <p className="text-[11px] text-foreground">
+                <span className="font-medium">{digest.readingActivity.totalArticlesRead}</span> article{digest.readingActivity.totalArticlesRead === 1 ? '' : 's'} read this week
+              </p>
+            )}
             {(() => {
               const validRankings = (digest.fieldRankings || []).filter((r) => r.field?.name);
               return validRankings.length > 0 ? (

@@ -15,6 +15,13 @@ interface MentionTextProps {
   as?: 'p' | 'span';
   linksOnly?: boolean;
   linkClassName?: string;
+  /**
+   * When provided, `@username` renders as a link only if the username exists
+   * in this list (used for bios, where mentions may reference non-existent
+   * users). Any other mention stays plain text. Pass the values exactly as
+   * they appear after `@` (e.g. `bioMentions.map((m) => m.username)`).
+   */
+  validMentions?: string[];
 }
 
 const cleanUrl = (rawUrl: string): { href: string; display: string } => {
@@ -30,8 +37,11 @@ const MentionText: React.FC<MentionTextProps> = ({
   as: Tag = 'p',
   linksOnly = false,
   linkClassName,
+  validMentions,
 }) => {
   if (!text) return null;
+
+  const validSet = validMentions ? new Set(validMentions) : null;
 
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -45,7 +55,7 @@ const MentionText: React.FC<MentionTextProps> = ({
     }
 
     if (match[1]) {
-      if (linksOnly) {
+      if (linksOnly || (validSet && !validSet.has(match[1]))) {
         parts.push(text.slice(match.index, match.index + match[0].length));
       } else {
         const username = match[1];

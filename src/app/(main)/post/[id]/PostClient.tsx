@@ -22,17 +22,35 @@ export default function PostClient({ postId }: PostClientProps) {
     fetcher
   );
   const viewedRef = useRef<string | null>(null);
+  const readStartRef = useRef<number | null>(null);
 
   const post = data?.post;
 
   useEffect(() => {
     if (post && viewedRef.current !== post._id) {
       viewedRef.current = post._id;
+      readStartRef.current = Date.now();
       track({
         event: 'post_viewed',
         properties: { postId: String(post._id), contentType: post.contentType },
       });
     }
+
+    return () => {
+      // Report time-on-page to the read-time endpoint on unmount so the
+      // backend can build weekly reading-activity stats (fires best-effort).
+      if (readStartRef.current !== null) {
+        const seconds = Math.min(Math.round((Date.now() - readStartRef.current) / 1000), 3600);
+        readStartRef.current = null;
+        if (seconds >= 1) {
+          fetchWithAuth(`/api/posts/${post?._id}/read-time`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seconds }),
+          }).catch(() => {});
+        }
+      }
+    };
   }, [post]);
 
   if (isLoading) {

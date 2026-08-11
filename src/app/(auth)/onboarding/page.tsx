@@ -20,6 +20,7 @@ import { useUsernameAvailability } from '../../../hooks/useUsernameAvailability'
 import { toast } from 'sonner';
 import Link from 'next/link';
 import ImageCropperModal from '../../../components/post/ImageCropperModal';
+import MentionTextarea from '../../../components/shared/MentionTextarea';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -322,13 +323,13 @@ export default function OnboardingPage() {
                 <Label htmlFor="bio" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bio (optional)</Label>
                 <span className="text-[10px] text-muted-foreground">{formData.bio.length}/160</span>
               </div>
-              <textarea 
+              <MentionTextarea 
                 id="bio"
-                placeholder="Tell the world about yourself..." 
+                placeholder="Tell the world about yourself... Type @ to mention someone." 
                 maxLength={160}
                 rows={3}
                 value={formData.bio} 
-                onChange={e => setFormData({...formData, bio: e.target.value})} 
+                onChange={v => setFormData({...formData, bio: v})} 
                 className="flex w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent disabled:cursor-not-allowed disabled:opacity-50 transition-all resize-none"
               />
             </div>

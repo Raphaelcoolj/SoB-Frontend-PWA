@@ -23,6 +23,7 @@ import BlockButton from '../../../../components/user/BlockButton';
 import ReportUserModal from '../../../../components/user/ReportUserModal';
 import PostCard from '../../../../components/post/PostCard';
 import FieldBadge from '../../../../components/shared/FieldBadge';
+import MentionText from '../../../../components/shared/MentionText';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 import { Field } from '../../../../types/user';
 import { Post } from '../../../../types/post';
@@ -252,7 +253,12 @@ export default function ProfilePage() {
 
         {/* Bio */}
         {profile.bio && !isBlockedByViewer && (
-          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
+          <MentionText
+            text={profile.bio}
+            as="span"
+            className="block text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap"
+            validMentions={(profile.bioMentions ?? []).map((m: { username: string }) => m.username)}
+          />
         )}
 
         {/* Priority Fields badges */}

@@ -12,6 +12,11 @@ export interface User {
   googleId?: string;
   avatar?: string;
   bio?: string;
+  bioMentions?: {
+    username: string;
+    name: string;
+    avatar?: string;
+  }[];
   dob?: string | Date;
   role: 'user' | 'admin';
   priorityFields: string[] | Field[];
