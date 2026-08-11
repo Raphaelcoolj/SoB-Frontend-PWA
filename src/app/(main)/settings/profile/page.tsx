@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ArrowLeft, Camera, AlertCircle } from 'lucide-react';
@@ -17,6 +17,7 @@ import { Input } from '../../../../components/ui/Input';
 import { Label } from '../../../../components/ui/Label';
 import { UserAvatar } from '../../../../components/user/UserAvatar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
+import MentionTextarea from '../../../../components/shared/MentionTextarea';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -155,12 +156,20 @@ export default function EditProfilePage() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="bio">Bio</Label>
-            <textarea
-              id="bio"
-              {...profileForm.register('bio')}
-              rows={3}
-              maxLength={300}
-              className="w-full bg-background border border-input rounded-xl p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+            <Controller
+              name="bio"
+              control={profileForm.control}
+              render={({ field }) => (
+                <MentionTextarea
+                  id="bio"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  rows={3}
+                  maxLength={300}
+                  placeholder="Tell people about yourself. Type @ to mention someone."
+                  className="w-full bg-background border border-input rounded-xl p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+                />
+              )}
             />
           </div>
           {!user?.dob && (

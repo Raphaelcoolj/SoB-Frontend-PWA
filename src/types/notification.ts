@@ -10,7 +10,49 @@ export type NotificationType =
   | 'weekly_digest'
   | 'poll_vote';
 
+export interface DigestArticle {
+  _id: string;
+  title: string | null;
+  bodyPreview: string | null;
+  fieldId: string | null;
+  fieldName: string | null;
+  author: {
+    _id: string;
+    name: string;
+    username: string;
+    avatar?: string;
+  } | null;
+  readCount: number;
+  mediaUrl?: string | null;
+}
+
+export interface DigestField {
+  fieldId: string;
+  fieldName: string;
+  articleCount: number;
+}
+
+export interface DigestSuggestion {
+  _id: string;
+  title: string | null;
+  bodyPreview: string | null;
+  fieldId: string | null;
+  fieldName: string | null;
+  author: {
+    _id: string;
+    name: string;
+    username: string;
+    avatar?: string;
+  } | null;
+  mediaUrl?: string | null;
+  reason: string | null;
+}
+
 export interface WeeklyDigestData {
+  period: {
+    start: string;
+    end: string;
+  } | null;
   topPost: {
     /** Post title, or null for body-only posts (contentType 'post'). */
     title: string | null;
@@ -28,6 +70,12 @@ export interface WeeklyDigestData {
     rank: number;
     total: number;
   }[];
+  readingActivity: {
+    totalArticlesRead: number;
+    topArticles: DigestArticle[];
+    topFields: DigestField[];
+  };
+  suggestions: DigestSuggestion[];
 }
 
 export interface Notification {

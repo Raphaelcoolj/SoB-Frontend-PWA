@@ -17,10 +17,11 @@ interface MentionTextareaProps {
   rows?: number;
   className?: string;
   maxLength?: number;
+  id?: string;
 }
 
 const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
-  ({ value, onChange, placeholder, disabled, rows, className, maxLength }, ref) => {
+  ({ value, onChange, placeholder, disabled, rows, className, maxLength, id }, ref) => {
     const [mentionSearch, setMentionSearch] = useState('');
     const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([]);
     const [mentionIndex, setMentionIndex] = useState(-1);
@@ -141,13 +142,14 @@ const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
 
     return (
       <div className="relative">
-        <textarea
-          ref={(el) => {
-            (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
-            if (typeof ref === 'function') ref(el);
-            else if (ref) (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
-          }}
-          value={value}
+          <textarea
+            ref={(el) => {
+              (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+              if (typeof ref === 'function') ref(el);
+              else if (ref) (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+            }}
+            id={id}
+            value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}

@@ -19,7 +19,7 @@ import React from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { use } from 'react';
-import { ArrowLeft, Calendar, TrendingUp, Users, Trophy, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, Users, Trophy, AlertCircle, BookOpen, Sparkles } from 'lucide-react';
 import { fetchWithAuth } from '../../../../lib/api';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 import { formatDistanceToNow } from '../../../../lib/utils';
@@ -43,11 +43,11 @@ const fetcher = (url: string) =>
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Returns a human-readable week label derived from the notification createdAt. */
-function weekLabel(createdAt: string): string {
-  const end = new Date(createdAt);
-  const start = new Date(end);
-  start.setDate(start.getDate() - 7);
+/** Returns a human-readable week label, preferring the digest period when present. */
+function weekLabel(createdAt: string, period: WeeklyDigestData['period']): string {
+  const end = period?.end ? new Date(period.end) : new Date(createdAt);
+  const start = period?.start ? new Date(period.start) : new Date(end);
+  if (!period?.start) start.setDate(start.getDate() - 7);
   const fmt = (d: Date) =>
     d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return `${fmt(start)} – ${fmt(end)}`;
@@ -161,6 +161,13 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
   // Only show field rankings that have a real field name resolved.
   const validRankings = (digest?.fieldRankings ?? []).filter((r) => r.field?.name);
 
+  // Reading activity always has a defined shape on the backend (never undefined).
+  const readingActivity = digest?.readingActivity ?? {
+    totalArticlesRead: 0,
+    topArticles: [],
+    topFields: [],
+  };
+
   const topPost = digest?.topPost ?? null;
   const topPostTitle = topPost ? postTitle(topPost) : '';
   const topPostPreview = topPost ? postPreview(topPost) : '';
@@ -180,7 +187,7 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
             Your Weekly Digest
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {weekLabel(notification.createdAt)}
+            {weekLabel(notification.createdAt, digest?.period ?? null)}
           </p>
         </div>
       </div>
@@ -282,6 +289,108 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
                 <span className="text-xs text-muted-foreground tabular-nums">
                   #{r.rank} of {r.total}
                 </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ── Reading Activity ──────────────────────────────────────── */}
+      {readingActivity.totalArticlesRead > 0 && (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="px-4 pt-4 pb-1 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-accent flex-shrink-0" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-accent">
+              Reading Activity
+            </span>
+          </div>
+          <p className="px-4 pt-1 text-sm text-foreground">
+            <span className="font-bold">
+              {readingActivity.totalArticlesRead.toLocaleString()}
+            </span>{' '}
+            article{readingActivity.totalArticlesRead === 1 ? '' : 's'} read this week
+          </p>
+
+          {readingActivity.topFields.length > 0 && (
+            <div className="px-4 pt-2 flex flex-wrap gap-1.5">
+              {readingActivity.topFields.map((f) => (
+                <span
+                  key={f.fieldId}
+                  className="text-[11px] font-medium px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                >
+                  {f.fieldName} · {f.articleCount}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {readingActivity.topArticles.length > 0 && (
+            <ul className="divide-y divide-border/50 pt-2">
+              {readingActivity.topArticles.map((a) => (
+                <li key={a._id}>
+                  <Link
+                    href={`/post/${a._id}`}
+                    className="block px-4 py-3 hover:bg-muted/30 transition-colors group"
+                  >
+                    <p className="text-sm text-foreground font-medium group-hover:text-accent transition-colors line-clamp-1 leading-snug">
+                      {a.title || a.bodyPreview || 'Untitled'}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {a.fieldName && (
+                        <span className="text-[11px] text-muted-foreground">
+                          {a.fieldName}
+                        </span>
+                      )}
+                      {a.fieldName && <span className="text-[11px] text-muted-foreground">·</span>}
+                      <span className="text-[11px] text-muted-foreground">
+                        {a.author ? `by ${a.author.name}` : ''}
+                        {a.author && a.readCount > 1 ? ' · ' : ''}
+                        {a.readCount > 1 ? `read ${a.readCount}×` : ''}
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* ── Suggested for You ──────────────────────────────────────── */}
+      {digest?.suggestions && digest.suggestions.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="px-4 pt-4 pb-1 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent flex-shrink-0" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-accent">
+              Suggested for You
+            </span>
+          </div>
+          <ul className="divide-y divide-border/50">
+            {digest.suggestions.map((s) => (
+              <li key={s._id}>
+                <Link
+                  href={`/post/${s._id}`}
+                  className="block px-4 py-3 hover:bg-muted/30 transition-colors group"
+                >
+                  <p className="text-sm text-foreground font-medium group-hover:text-accent transition-colors line-clamp-2 leading-snug">
+                    {s.title || s.bodyPreview || 'Untitled'}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                    {s.author?.name && (
+                      <span className="text-[11px] text-muted-foreground">
+                        by {s.author.name}
+                      </span>
+                    )}
+                    {s.fieldName && (
+                      <span className="text-[11px] text-accent">{s.fieldName}</span>
+                    )}
+                  </div>
+                  {s.reason && (
+                    <p className="text-[11px] text-muted-foreground mt-1 italic">
+                      {s.reason}
+                    </p>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
