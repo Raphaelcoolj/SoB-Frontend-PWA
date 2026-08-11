@@ -193,11 +193,22 @@ Key breaking changes noted in the bundled docs:
 - Verified: `npm run build` passes.
 
 ## Agent Workflow Instructions
-After every task, an agent MUST:
-1. Update this AGENTS.md file if any new components, pages, hooks, or features were added
-2. Run `npm run build` and verify it compiles without errors
-3. Commit all changes with a structured commit message
-4. Never leave uncommitted work behind
+
+Before **every commit**, all four checks below MUST pass in order. Do not commit if any step fails.
+
+1. **TypeScript** — `npx tsc --noEmit`
+   - Must exit 0 with no type errors.
+2. **Lint** — `npx eslint src --max-warnings=0` (or `npm run lint`)
+   - Must exit 0. No new lint errors or warnings may be introduced.
+3. **Tests** — `npx vitest run`
+   - All tests must pass. Write new tests for any new features or bug fixes.
+4. **Build** — `npm run build`
+   - The Next.js production build must compile without errors.
+
+After every task, an agent MUST also:
+- Update this AGENTS.md file if any new components, pages, hooks, or features were added.
+- Commit all changes with a structured commit message.
+- Never leave uncommitted work behind.
 
 ## SEO metadata, robots & sitemap overhaul with consistent branding (2026-08-07)
 
