@@ -44,6 +44,15 @@ describe('MediaUploader', () => {
     expect(screen.getByTitle('Crop Image')).toBeInTheDocument();
   });
 
+  it('renders the action overlay always visible (no hover-gating)', () => {
+    const item = makeNewMediaItem(new File(['x'], 'a.jpg', { type: 'image/jpeg' }));
+    const { container } = render(<MediaUploader items={[item]} onRemove={() => {}} onEdit={() => {}} onCrop={() => {}} />);
+    const overlay = container.querySelector('.absolute.inset-0');
+    expect(overlay).not.toBeNull();
+    expect(overlay!.className).not.toContain('opacity-0');
+    expect(overlay!.className).not.toContain('group-hover');
+  });
+
   it('hides trim/crop for existing media and shows restore for removed items', () => {
     const onRestore = vi.fn();
     const existing = makeExistingMediaItem('https://cloudinary.test/img.jpg');

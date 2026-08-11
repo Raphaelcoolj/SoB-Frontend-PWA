@@ -1,14 +1,38 @@
 'use client';
 
-// NEW: Video trimming modal component.
-// Performance: trims via native HTMLMediaElement.captureStream() (no canvas +
-// 30fps requestAnimationFrame re-draw); a low-framerate canvas fallback covers
-// browsers without captureStream. Start/end selection uses a single two-handle
-// range slider that enforces the 60-second max selection while dragging.
+/**
+ * @file VideoTrimmerModal.tsx
+ * @description SoB video editor (PWA) — full-screen trim modal.
+ *
+ * UI: a native-style timeline with a **filmstrip** of frame thumbnails sampled
+ * across the full clip (canvas draws from a hidden video), a **two-handle**
+ * selection over the filmstrip that enforces the 60s Mux limit (see
+ * `src/lib/videoTrim.ts` for the pure math), a play/pause preview restricted
+ * to the selected range, and a live time readout (current / selected / total).
+ *
+ * Export: trims via `HTMLMediaElement.captureStream()` + `MediaRecorder` (no
+ * canvas re-draw per frame); a low-framerate canvas fallback covers browsers
+ * without captureStream. The modal replaces the selected media item with the
+ * newly encoded `File`.
+ *
+ * Usage: `<VideoTrimmerModal file isOpen onClose onTrimComplete />`.
+ */
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Play, Pause, Scissors, RefreshCw } from 'lucide-react';
+import { X, Play, Pause, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../ui/Button';
+import {
+  FILMSTRIP_FRAME_COUNT,
+  filmstripTimes,
+  formatTrimTime,
+  initialTrim,
+  isTrimValid,
+  moveHandle,
+  pctForTime,
+  clamp,
+  type TrimRange,
+} from '../../lib/videoTrim';
 
 interface VideoTrimmerModalProps {
   file: File;
@@ -16,16 +40,6 @@ interface VideoTrimmerModalProps {
   onClose: () => void;
   onTrimComplete: (trimmedFile: File) => void;
 }
-
-interface TrimRangeSliderProps {
-  min: number;
-  max: number;
-  start: number;
-  end: number;
-  onChange: (start: number, end: number) => void;
-}
-
-const MAX_SELECTION_SECONDS = 60;
 
 type CaptureStreamVideo = HTMLVideoElement & {
   captureStream?: (frameRate?: number) => MediaStream;
@@ -41,86 +55,73 @@ function tryCaptureStream(video: HTMLVideoElement): MediaStream | null {
   }
 }
 
-function TrimRangeSlider({ min, max, start, end, onChange }: TrimRangeSliderProps) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<'start' | 'end' | null>(null);
+/**
+ * Draws one filmstrip frame per `filmstripTimes(duration)` sample onto an
+ * offscreen canvas, returning JPEG data URLs. Best-effort — resolves with
+ * whatever frames were produced (possibly none) if the video can't be read.
+ */
+function renderFilmstrip(videoUrl: string, duration: number): Promise<string[]> {
+  return new Promise((resolve) => {
+    const strip = document.createElement('video');
+    strip.src = videoUrl;
+    strip.muted = true;
+    strip.preload = 'auto';
+    strip.playsInline = true;
+    strip.style.display = 'none';
+    document.body.appendChild(strip);
 
-  const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
-  const valueToPct = (v: number) => ((v - min) / (max - min)) * 100;
+    const times = filmstripTimes(duration, FILMSTRIP_FRAME_COUNT);
+    const W = 96;
+    const H = Math.max(1, Math.round((W * 9) / 16));
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const frames: string[] = [];
 
-  const applyFromX = useCallback(
-    (which: 'start' | 'end', clientX: number) => {
-      const el = trackRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.width <= 0) return;
-      const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
-      const raw = min + ratio * (max - min);
+    let i = 0;
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      strip.removeAttribute('src');
+      document.body.removeChild(strip);
+      resolve(frames);
+    };
 
-      if (which === 'start') {
-        const s = clamp(raw, min, max);
-        let e = end;
-        if (e - s > MAX_SELECTION_SECONDS) e = s + MAX_SELECTION_SECONDS;
-        if (e <= s) e = Math.min(s + MAX_SELECTION_SECONDS, max);
-        onChange(s, e);
-      } else {
-        const e = clamp(raw, min, max);
-        let s = start;
-        if (e - s > MAX_SELECTION_SECONDS) s = e - MAX_SELECTION_SECONDS;
-        if (e <= s) s = Math.max(e - 0.1, min);
-        onChange(s, e);
-      }
-    },
-    [min, max, start, end, onChange]
-  );
+    strip.addEventListener('loadedmetadata', () => {
+      const onSeeked = () => {
+        if (finished) return;
+        try {
+          if (ctx) {
+            ctx.drawImage(strip, 0, 0, W, H);
+            frames.push(canvas.toDataURL('image/jpeg', 0.7));
+          }
+        } catch {
+          /* skip a frame we couldn't decode */
+        }
+        i += 1;
+        step();
+      };
+      strip.addEventListener('seeked', onSeeked);
 
-  const onTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const el = trackRef.current;
-    if (!el) return;
-    el.setPointerCapture(e.pointerId);
-    const rect = el.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const ratio = clamp((e.clientX - rect.left) / rect.width, 0, 1);
-    const raw = min + ratio * (max - min);
-    const which = Math.abs(raw - start) <= Math.abs(raw - end) ? 'start' : 'end';
-    setDrag(which);
-    applyFromX(which, e.clientX);
-  };
+      const step = () => {
+        if (finished) return;
+        if (i >= times.length) {
+          done();
+          return;
+        }
+        try {
+          strip.currentTime = times[i];
+        } catch {
+          done();
+        }
+      };
+      step();
+    });
 
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (drag) applyFromX(drag, e.clientX);
-  };
-
-  const onPointerUp = () => setDrag(null);
-
-  const startPct = valueToPct(start);
-  const endPct = valueToPct(end);
-
-  return (
-    <div
-      ref={trackRef}
-      className="relative h-8 flex items-center cursor-pointer touch-none select-none"
-      onPointerDown={onTrackPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-    >
-      <div className="absolute left-0 right-0 h-1.5 bg-muted rounded-full" />
-      <div
-        className="absolute h-1.5 bg-accent rounded-full"
-        style={{ left: `${startPct}%`, width: `${endPct - startPct}%` }}
-      />
-      <div
-        className="absolute w-4 h-4 -ml-2 bg-white border-2 border-accent rounded-full shadow pointer-events-none"
-        style={{ left: `${startPct}%` }}
-      />
-      <div
-        className="absolute w-4 h-4 -ml-2 bg-white border-2 border-accent rounded-full shadow pointer-events-none"
-        style={{ left: `${endPct}%` }}
-      />
-    </div>
-  );
+    strip.addEventListener('error', done, { once: true });
+  });
 }
 
 export default function VideoTrimmerModal({
@@ -130,56 +131,92 @@ export default function VideoTrimmerModal({
   onTrimComplete,
 }: VideoTrimmerModalProps) {
   const [videoDuration, setVideoDuration] = useState(0);
-  const [startTime, setStartTime] = useState(0);
-  const [endTime, setEndTime] = useState(0);
+  const [trim, setTrim] = useState<TrimRange>({ start: 0, end: 0 });
+  const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTrimming, setIsTrimming] = useState(false);
   const [trimProgress, setTrimProgress] = useState(0);
+  const [frames, setFrames] = useState<string[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Keep the object URL alive for both the preview and the export pipeline,
+  // which creates its OWN hidden <video> using the same URL. One URL per file;
+  // the previous URL is revoked only after a new one exists (see cleanup).
+  const urlRef = useRef<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
 
   useEffect(() => {
-    const url = URL.createObjectURL(file);
-    const timer = setTimeout(() => {
-      setVideoUrl(url);
-    }, 0);
+    const next = URL.createObjectURL(file);
+    urlRef.current = next;
+    // Deferred (not synchronous) so the react-hooks/set-state-in-effect rule
+    // stays satisfied — same pattern as the other PWA effects.
+    const t = window.setTimeout(() => setVideoUrl(next), 0);
     return () => {
-      clearTimeout(timer);
-      URL.revokeObjectURL(url);
+      window.clearTimeout(t);
+      URL.revokeObjectURL(next);
+      setVideoUrl('');
     };
   }, [file]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       const duration = videoRef.current.duration;
+      if (!duration || !Number.isFinite(duration) || duration <= 0) return;
       setVideoDuration(duration);
-      setEndTime(Math.min(duration, MAX_SELECTION_SECONDS));
+      setTrim(initialTrim(duration));
     }
   };
 
+  // Build the filmstrip once the duration is known. Frames are applied in the
+  // async callback (not synchronously in the effect body).
+  useEffect(() => {
+    if (!videoUrl || videoDuration <= 0) return;
+    let cancelled = false;
+    renderFilmstrip(videoUrl, videoDuration).then((result) => {
+      if (!cancelled) setFrames(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [videoUrl, videoDuration]);
+
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      if (videoRef.current.currentTime >= endTime) {
-        videoRef.current.currentTime = startTime;
-        if (!isPlaying) {
-          videoRef.current.pause();
-        }
+    const v = videoRef.current;
+    if (!v) return;
+    setCurrentTime(v.currentTime);
+    if (v.currentTime >= trim.end) {
+      v.currentTime = trim.start;
+      if (!isPlaying) {
+        v.pause();
       }
     }
   };
 
   const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isPlaying) {
+      v.pause();
+      setIsPlaying(false);
+      return;
+    }
+    v.currentTime = trim.start;
+    setCurrentTime(trim.start);
+    void v.play();
+    setIsPlaying(true);
+  };
+
+  /** Handle drag over the filmstrip timeline. */
+  const handleHandleMove = (which: 'start' | 'end', pct: number) => {
+    const next = moveHandle(which, pct, trim, videoDuration);
+    setTrim(next);
     if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.currentTime = startTime;
-        void videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
+      videoRef.current.currentTime = which === 'start' ? next.start : next.end;
+      setCurrentTime(which === 'start' ? next.start : next.end);
     }
   };
+
+  /* ---------- trim export (captureStream → MediaRecorder) ---------- */
 
   const startTrimming = () => {
     setIsTrimming(true);
@@ -192,7 +229,7 @@ export default function VideoTrimmerModal({
     video.muted = false;
     document.body.appendChild(video);
 
-    const totalDuration = endTime - startTime;
+    const totalDuration = trim.end - trim.start;
 
     let cleanupDone = false;
     const cleanup = () => {
@@ -263,9 +300,9 @@ export default function VideoTrimmerModal({
       };
       let frameId = 0;
       const draw = () => {
-        const pct = Math.min(((v.currentTime - startTime) / totalDuration) * 100, 100);
+        const pct = Math.min(((v.currentTime - trim.start) / totalDuration) * 100, 100);
         setTrimProgress(Math.floor(pct));
-        if (v.currentTime >= endTime || v.ended) {
+        if (v.currentTime >= trim.end || v.ended) {
           recorder.stop();
           return;
         }
@@ -286,7 +323,7 @@ export default function VideoTrimmerModal({
 
     video.onloadedmetadata = () => {
       try {
-        video.currentTime = startTime;
+        video.currentTime = trim.start;
       } catch {
         fail('Failed to seek video.');
         return;
@@ -323,9 +360,9 @@ export default function VideoTrimmerModal({
         };
 
         const interval = window.setInterval(() => {
-          const pct = Math.min(((video.currentTime - startTime) / totalDuration) * 100, 100);
+          const pct = Math.min(((video.currentTime - trim.start) / totalDuration) * 100, 100);
           setTrimProgress(Math.floor(pct));
-          if (video.currentTime >= endTime || video.ended) {
+          if (video.currentTime >= trim.end || video.ended) {
             window.clearInterval(interval);
             recorder.stop();
           }
@@ -349,110 +386,214 @@ export default function VideoTrimmerModal({
 
   if (!isOpen) return null;
 
-  const trimLength = endTime - startTime;
+  const trimLength = trim.end - trim.start;
+  const valid = isTrimValid(trim);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="relative bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl p-6 flex flex-col max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <Scissors className="w-5 h-5 text-accent animate-pulse" />
-            Trim Video Clip
-          </h3>
+    <div className="fixed inset-0 z-50 flex flex-col bg-black animate-in fade-in duration-300">
+      {/* Header */}
+      <header className="flex h-14 shrink-0 items-center justify-between px-3 text-white">
+        <button
+          onClick={onClose}
+          disabled={isTrimming}
+          className="rounded-xl px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 disabled:opacity-40"
+        >
+          Cancel
+        </button>
+        <h3 className="flex items-center gap-2 text-base font-bold">
+          <Pause className="hidden" />
+          Trim Video
+        </h3>
+        <button
+          onClick={onClose}
+          disabled={isTrimming}
+          aria-label="Close"
+          className="rounded-full p-2 text-white/80 hover:bg-white/10 disabled:opacity-40"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </header>
+
+      {/* Preview */}
+      <div className="relative mx-3 min-h-0 flex-1 overflow-hidden rounded-xl bg-black/60">
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          onLoadedMetadata={handleLoadedMetadata}
+          onTimeUpdate={handleTimeUpdate}
+          onEnded={() => setIsPlaying(false)}
+          className="h-full w-full object-contain"
+          playsInline
+        />
+        {!isTrimming && (
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-muted transition-colors"
-            disabled={isTrimming}
+            onClick={togglePlay}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/60 p-4 text-white hover:bg-black/80"
           >
-            <X className="w-5 h-5" />
+            {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
           </button>
-        </div>
-
-        {/* Video Preview */}
-        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-border flex items-center justify-center">
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            onLoadedMetadata={handleLoadedMetadata}
-            onTimeUpdate={handleTimeUpdate}
-            className="w-full h-full object-contain"
-            playsInline
-          />
-          {!isTrimming && (
-            <button
-              onClick={togglePlay}
-              className="absolute p-3 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all hover:scale-105 active:scale-95"
-            >
-              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-            </button>
-          )}
-        </div>
-
-        {/* Range Controls */}
-        {videoDuration > 0 && !isTrimming && (
-          <div className="mt-6 space-y-4">
-            <div className="flex justify-between text-xs text-muted-foreground font-medium">
-              <span>Start: {startTime.toFixed(1)}s</span>
-              <span className={trimLength > 60 ? 'text-destructive font-bold' : 'text-accent'}>
-                Selected Duration: {trimLength.toFixed(1)}s (Max: 60s)
-              </span>
-              <span>End: {endTime.toFixed(1)}s</span>
-            </div>
-
-            {/* Two-handle range slider */}
-            <TrimRangeSlider
-              min={0}
-              max={videoDuration}
-              start={startTime}
-              end={endTime}
-              onChange={(s, e) => {
-                setStartTime(s);
-                setEndTime(e);
-                if (videoRef.current) {
-                  videoRef.current.currentTime = s;
-                }
-              }}
-            />
-
-            {trimLength > 60 && (
-              <p className="text-xs text-red-500 text-center font-semibold">
-                Please reduce your selection to 60 seconds or less.
-              </p>
-            )}
-
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={trimLength > 60 || trimLength <= 0}
-                onClick={startTrimming}
-              >
-                Trim & Save
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Processing State */}
-        {isTrimming && (
-          <div className="mt-8 flex flex-col items-center justify-center space-y-4 py-4">
-            <RefreshCw className="w-10 h-10 text-accent animate-spin" />
-            <div className="text-center">
-              <p className="font-semibold">Processing Video clip...</p>
-              <p className="text-xs text-muted-foreground mt-1">Please wait while we trim the file.</p>
-            </div>
-            <div className="w-full max-w-[200px] bg-muted rounded-full h-2 overflow-hidden border border-border">
-              <div
-                className="bg-accent h-full transition-all duration-300 rounded-full"
-                style={{ width: `${trimProgress}%` }}
-              />
-            </div>
-            <span className="text-xs font-bold text-accent">{trimProgress}%</span>
-          </div>
         )}
       </div>
+
+      {/* Time readout */}
+      <div className="flex items-center justify-between px-4 pt-3 text-xs font-semibold tabular-nums text-white/80">
+        <span>{formatTrimTime(currentTime)}</span>
+        <span className="text-white">
+          Selected {formatTrimTime(trim.start)} – {formatTrimTime(trim.end)} · {formatTrimTime(trimLength)}
+        </span>
+        <span>{formatTrimTime(videoDuration)}</span>
+      </div>
+
+      {/* Filmstrip timeline with two-handle trim */}
+      {videoDuration > 0 && !isTrimming && (
+        <div className="px-4 pt-3">
+          <FilmstripTimeline
+            frames={frames}
+            duration={videoDuration}
+            trim={trim}
+            currentTime={currentTime}
+            onChange={handleHandleMove}
+          />
+
+          {trimLength > 60 && (
+            <p className="pt-2 text-center text-xs font-semibold text-red-400">
+              Please reduce your selection to 60 seconds or less.
+            </p>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button className="flex-1" disabled={!valid} onClick={startTrimming}>
+              Trim & Save
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Processing State */}
+      {isTrimming && (
+        <div className="flex flex-col items-center space-y-4 py-10 text-white">
+          <RefreshCw className="h-10 w-10 animate-spin text-white" />
+          <div className="text-center">
+            <p className="font-semibold">Processing Video clip...</p>
+            <p className="mt-1 text-xs text-white/70">Please wait while we trim the file.</p>
+          </div>
+          <div className="h-2 w-full max-w-[200px] overflow-hidden rounded-full border border-white/20 bg-white/10">
+            <div
+              className="h-full rounded-full bg-white transition-all duration-300"
+              style={{ width: `${trimProgress}%` }}
+            />
+          </div>
+          <span className="text-xs font-bold">{trimProgress}%</span>
+        </div>
+      )}
+
+      {/* Safe-area bottom padding for the nav area on mobile */}
+      <div style={{ height: 'max(env(safe-area-inset-bottom, 0px), 12px)' }} />
+    </div>
+  );
+}
+
+/**
+ * The filmstrip timeline: a row of thumbnail frames with a two-handle selection
+ * overlay on top. Pointer events resolve a client X to a normalized [0..1]
+ * position on the track; the parent maps that to a time via `moveHandle`.
+ */
+function FilmstripTimeline({
+  frames,
+  duration,
+  trim,
+  currentTime,
+  onChange,
+}: {
+  frames: string[];
+  duration: number;
+  trim: TrimRange;
+  currentTime: number;
+  onChange: (which: 'start' | 'end', pct: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<'start' | 'end' | null>(null);
+
+  const pctFor = useCallback((clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    return clamp((clientX - rect.left) / rect.width, 0, 1);
+  }, []);
+
+  const startPct = pctForTime(trim.start, duration);
+  const endPct = pctForTime(trim.end, duration);
+  const currentPct = pctForTime(currentTime, duration);
+
+  return (
+    <div
+      ref={trackRef}
+      className="relative h-20 w-full cursor-pointer touch-none select-none overflow-hidden rounded-lg"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        const el = trackRef.current;
+        if (!el) return;
+        el.setPointerCapture(e.pointerId);
+        const pct = pctFor(e.clientX);
+        const which = Math.abs(pct - startPct) <= Math.abs(pct - endPct) ? 'start' : 'end';
+        setDrag(which);
+        onChange(which, pct);
+      }}
+      onPointerMove={(e) => {
+        if (drag) onChange(drag, pctFor(e.clientX));
+      }}
+      onPointerUp={() => setDrag(null)}
+      onPointerCancel={() => setDrag(null)}
+    >
+      {/* Filmstrip frames */}
+      <div className="absolute inset-0 flex">
+        {frames.length === 0 ? (
+          <div className="flex h-full w-full items-center justify-center bg-white/10 text-xs text-white/60">
+            Generating preview…
+          </div>
+        ) : (
+          frames.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt=""
+              className="h-full min-w-0 flex-1 object-cover"
+              draggable={false}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Selection band */}
+      <div
+        className="pointer-events-none absolute inset-y-0 bg-white/25"
+        style={{ left: `${startPct * 100}%`, width: `${(endPct - startPct) * 100}%` }}
+      />
+
+      {/* Start / end handles */}
+      <div
+        className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-sm bg-white"
+        style={{ left: `${startPct * 100}%` }}
+      >
+        <div className="absolute left-1/2 top-1/2 h-4 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded bg-black" />
+      </div>
+      <div
+        className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-sm bg-white"
+        style={{ left: `${endPct * 100}%` }}
+      >
+        <div className="absolute left-1/2 top-1/2 h-4 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded bg-black" />
+      </div>
+
+      {/* Playback scrubber */}
+      <div
+        className="pointer-events-none absolute inset-y-0 w-0.5 bg-yellow-300"
+        style={{ left: `${currentPct * 100}%` }}
+      />
     </div>
   );
 }
