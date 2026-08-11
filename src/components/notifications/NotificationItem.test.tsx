@@ -77,3 +77,88 @@ describe('NotificationItem media previews', () => {
     expect(screen.getByText('started following you')).toBeInTheDocument();
   });
 });
+
+describe('NotificationItem comment replies', () => {
+  it('shows "replied to your comment" when the comment notification is a reply', () => {
+    const notification = baseNotification({
+      type: 'comment',
+      post: { _id: 'p1', title: 'An article' },
+      data: { replyToComment: true },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText('replied to your comment')).toBeInTheDocument();
+  });
+
+  it('shows "commented on your post" for a top-level comment', () => {
+    const notification = baseNotification({
+      type: 'comment',
+      post: { _id: 'p1', title: 'An article' },
+      data: null,
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText('commented on your post')).toBeInTheDocument();
+  });
+});
+
+describe('NotificationItem debate notifications', () => {
+  it('deep-links via the server-generated path and shows the proposition', () => {
+    const notification = baseNotification({
+      type: 'debate_created',
+      post: { _id: 'p1', title: 'An article' },
+      data: {
+        debateId: 'd1',
+        proposition: 'Universities should make AI literacy mandatory',
+        contentId: 'p1',
+        contentType: 'article',
+        deepLinkPath: '/post/p1?tab=debate',
+        summary: '',
+      },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/post/p1?tab=debate');
+    expect(screen.getByText('started a debate on your post')).toBeInTheDocument();
+    expect(screen.getByText(/AI literacy mandatory/)).toBeInTheDocument();
+  });
+
+  it('shows an aggregated support count when debate_support carries a count', () => {
+    const notification = baseNotification({
+      type: 'debate_support',
+      post: { _id: 'p1' },
+      data: {
+        debateId: 'd1',
+        proposition: 'Open source is the future',
+        contentId: 'p1',
+        contentType: 'post',
+        argumentId: 'a1',
+        deepLinkPath: '/post/p1?tab=debate&argument=a1',
+        summary: '',
+        count: 3,
+      },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/post/p1?tab=debate&argument=a1');
+    expect(screen.getByText(/supported your argument/)).toBeInTheDocument();
+    expect(screen.getByText(/and 2 others/)).toBeInTheDocument();
+    expect(screen.getByText('+2')).toBeInTheDocument();
+    expect(screen.getByText('more supporters on your argument')).toBeInTheDocument();
+  });
+
+  it('renders the argument summary for a rebuttal', () => {
+    const notification = baseNotification({
+      type: 'debate_rebuttal',
+      post: { _id: 'p1' },
+      data: {
+        debateId: 'd1',
+        proposition: 'Remote work is better',
+        contentId: 'p1',
+        contentType: 'article',
+        argumentId: 'a2',
+        deepLinkPath: '/post/p1?tab=debate&argument=a2',
+        summary: 'Actually, focus time drops 30% at home.',
+      },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText(/Actually, focus time drops 30% at home/)).toBeInTheDocument();
+    expect(screen.getByText('rebutted your argument')).toBeInTheDocument();
+  });
+});
