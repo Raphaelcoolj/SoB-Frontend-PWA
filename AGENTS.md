@@ -13,6 +13,14 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Comment notifications: "replied to your comment" for replies (2026-08-11)
+
+- **`src/components/notifications/NotificationItem.tsx`** — `comment` notifications now render **"replied to your comment"** when `notification.data.replyToComment` is set (the backend persists it for comments that reply to a comment); otherwise they keep "commented on your post".
+- **`src/types/notification.ts`** — added `CommentNotificationData` (`{ replyToComment?: boolean }`) to the `NotificationData` union.
+- **Tests** — `NotificationItem.test.tsx` +2 (reply label vs top-level comment label). Suite: 9/9.
+- Backend contract (same day, see `sob-backend/AGENTS.md`): `comment` notifications carry `data.replyToComment`.
+- Verified: `npx tsc --noEmit` clean.
+
 ## Weekly digest UI (reading activity + suggestions) + bio @mention tagging (2026-08-11)
 
 - **Digest payload (`src/types/notification.ts`)** — `WeeklyDigestData` extended to mirror the backend contract: `period: { start, end } | null`, `readingActivity: { totalArticlesRead, topArticles: DigestArticle[], topFields: DigestField[] }` (always defined), and `suggestions: DigestSuggestion[]`. New exported types: `DigestArticle` (`{ _id, title, bodyPreview, fieldId, fieldName, author{_id,name,username,avatar}|null, readCount, mediaUrl|null }`), `DigestField` (`{ fieldId, fieldName, articleCount }`), `DigestSuggestion` (`{ _id, title, bodyPreview, fieldId, fieldName, author|null, mediaUrl|null, reason|null }`). `topPost` is unchanged (no `_id` — the populated `notification.post` provides the deep link).

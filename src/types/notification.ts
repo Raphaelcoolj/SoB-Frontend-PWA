@@ -1,4 +1,5 @@
 import { User } from './user';
+import { DebateNotificationData } from './debate';
 
 export type NotificationType =
   | 'like'
@@ -8,7 +9,22 @@ export type NotificationType =
   | 'new_post'
   | 'mention'
   | 'weekly_digest'
-  | 'poll_vote';
+  | 'poll_vote'
+  | 'debate_created'
+  | 'debate_rebuttal'
+  | 'debate_reply'
+  | 'debate_support'
+  | 'debate_mention'
+  | 'debate_closed';
+
+export const DEBATE_NOTIFICATION_TYPES: NotificationType[] = [
+  'debate_created',
+  'debate_rebuttal',
+  'debate_reply',
+  'debate_support',
+  'debate_mention',
+  'debate_closed',
+];
 
 export interface DigestArticle {
   _id: string;
@@ -78,6 +94,13 @@ export interface WeeklyDigestData {
   suggestions: DigestSuggestion[];
 }
 
+/** Payload for `comment` notifications. True when the comment is a reply to the recipient's comment. */
+export interface CommentNotificationData {
+  replyToComment?: boolean;
+}
+
+export type NotificationData = WeeklyDigestData | DebateNotificationData | CommentNotificationData;
+
 export interface Notification {
   _id: string;
   recipient: string;
@@ -91,7 +114,7 @@ export interface Notification {
     mediaUrls?: string[];
     muxPlaybackId?: string;
   };
-  data?: WeeklyDigestData | null;
+  data?: NotificationData | null;
   comment?: string;
   isRead: boolean;
   createdAt: string;

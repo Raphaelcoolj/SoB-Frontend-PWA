@@ -8,12 +8,13 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2 } from 'lucide-react';
+import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2, Swords } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
 import { track } from '../../lib/analytics';
 import { isVideoUrl } from '../../lib/media';
-import { Notification } from '../../types/notification';
+import { DEBATE_NOTIFICATION_TYPES, Notification, WeeklyDigestData } from '../../types/notification';
+import { DebateNotificationData } from '../../types/debate';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -29,6 +30,12 @@ const NOTIFICATION_CONFIG: Record<string, { icon: React.ComponentType<{ classNam
   mention: { icon: AtSign, color: 'text-purple-500 bg-purple-500/10', label: 'mentioned you' },
   weekly_digest: { icon: Calendar, color: 'text-accent bg-accent/10', label: 'your weekly digest is ready' },
   poll_vote: { icon: BarChart2, color: 'text-indigo-500 bg-indigo-500/10', label: 'voted on your poll' },
+  debate_created: { icon: Swords, color: 'text-orange-500 bg-orange-500/10', label: 'started a debate on your post' },
+  debate_rebuttal: { icon: Swords, color: 'text-purple-500 bg-purple-500/10', label: 'rebutted your argument' },
+  debate_reply: { icon: Swords, color: 'text-blue-500 bg-blue-500/10', label: 'replied to your argument' },
+  debate_support: { icon: Swords, color: 'text-emerald-500 bg-emerald-500/10', label: 'supported your argument' },
+  debate_mention: { icon: Swords, color: 'text-purple-500 bg-purple-500/10', label: 'mentioned you in a debate' },
+  debate_closed: { icon: Swords, color: 'text-muted-foreground bg-muted/40', label: 'closed a debate' },
 };
 
 // NEW: Resolve a thumbnail for the post's media (Mux video thumb or first image URL).
@@ -41,11 +48,25 @@ function getMediaThumb(post: Notification['post']): string | null {
   return image || null;
 }
 
+// Debate notifications carry a structured data payload (proposition, deep link…).
+function getDebateData(notification: Notification): DebateNotificationData | null {
+  if (!DEBATE_NOTIFICATION_TYPES.includes(notification.type)) return null;
+  return notification.data ? (notification.data as DebateNotificationData) : null;
+}
+
 export default function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
   const config = NOTIFICATION_CONFIG[notification.type] || NOTIFICATION_CONFIG.like;
   const Icon = config.icon;
 
+  // Comment replies read as "replied to your comment" instead of "commented on your post".
+  const isCommentReply =
+    notification.type === 'comment' &&
+    !!(notification.data as { replyToComment?: boolean } | null)?.replyToComment;
+  const label = isCommentReply ? 'replied to your comment' : config.label;
+
   const getLink = () => {
+    const debateData = getDebateData(notification);
+    if (debateData?.deepLinkPath) return debateData.deepLinkPath;
     if (notification.type === 'follow') return `/profile/${notification.sender?.username}`;
     if (notification.type === 'weekly_digest') return `/digest/${notification._id}`;
     if (notification.post) return `/post/${notification.post._id || notification.post}`;
@@ -55,9 +76,14 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
   const senderName = notification.type === 'weekly_digest' ? 'SoB' : notification.sender?.name || 'SoB';
   const senderAvatar = notification.type === 'weekly_digest' ? undefined : notification.sender?.avatar;
 
-  const digest = notification.type === 'weekly_digest' ? notification.data : null;
+  const digest = notification.type === 'weekly_digest' ? (notification.data as WeeklyDigestData | null) : null;
+  const debateData = getDebateData(notification);
   const post = notification.type !== 'weekly_digest' ? notification.post : undefined;
   const mediaThumb = post ? getMediaThumb(post) : null;
+
+  const aggregateOthers = notification.type === 'debate_support' && (debateData?.count ?? 0) > 1
+    ? (debateData?.count ?? 0) - 1
+    : 0;
 
   return (
     <Link 
@@ -81,7 +107,10 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-foreground leading-snug">
             <span className="font-medium">{senderName}</span>{' '}
-            <span className="text-muted-foreground">{config.label}</span>
+            <span className="text-muted-foreground">
+              {label}
+              {aggregateOthers > 0 && ` (and ${aggregateOthers} other${aggregateOthers === 1 ? '' : 's'})`}
+            </span>
           </p>
           <span className="text-[10px] text-muted-foreground flex-shrink-0">
             {formatDistanceToNow(notification.createdAt)}
@@ -114,6 +143,24 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
                 </p>
               ) : null;
             })()}
+          </div>
+        )}
+
+        {debateData && (
+          <div className="bg-muted/40 p-2 rounded-lg border border-border/50 space-y-1">
+            {debateData.proposition && (
+              <p className="text-[11px] text-foreground line-clamp-1 italic">
+                &ldquo;{debateData.proposition}&rdquo;
+              </p>
+            )}
+            {debateData.summary && (
+              <p className="text-[11px] text-muted-foreground line-clamp-2">{debateData.summary}</p>
+            )}
+            {notification.type === 'debate_support' && aggregateOthers > 0 && (
+              <p className="text-[11px] text-foreground">
+                <span className="font-medium">+{aggregateOthers}</span> more supporter{aggregateOthers === 1 ? '' : 's'} on your argument
+              </p>
+            )}
           </div>
         )}
 
