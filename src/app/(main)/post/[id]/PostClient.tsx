@@ -116,21 +116,21 @@ export default function PostClient({ postId }: PostClientProps) {
 
       {isArticle ? (
         <>
-          <nav aria-label="Article sections" className="flex gap-1 border-b border-border">
+          <nav aria-label="Article sections" className="flex border-b border-border w-full overflow-hidden">
             {ARTICLE_TABS.map(({ key, label, Icon }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setActiveTab(key)}
                 aria-current={activeTab === key ? 'page' : undefined}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+                className={`flex flex-1 min-w-0 items-center justify-center gap-1.5 px-2 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
                   activeTab === key
                     ? 'text-accent border-accent'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                {label}
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{label}</span>
               </button>
             ))}
           </nav>

@@ -68,7 +68,7 @@ export default function ProfilePage() {
   const { data: profileData, isLoading: profileLoading, mutate: mutateProfile } = useSWR(
     username ? `${BASE}/api/users/${username}` : null,
     (url) => profileFetcher(url, accessToken || undefined),
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: true, revalidateOnMount: true }
   );
 
   const profile = profileData?.user;
@@ -94,10 +94,10 @@ export default function ProfilePage() {
     return [`${BASE}/api/posts/user/${profile._id}?page=${pageIndex + 1}&limit=10&contentType=${activeTab === 'articles' ? 'article' : 'post'}`, accessToken || undefined];
   };
 
-  const { data: postsPages, size, setSize, isValidating, error: postsError } = useSWRInfinite<{ posts: Post[] }>(
+  const { data: postsPages, size, setSize, isValidating, error: postsError, mutate: mutatePosts } = useSWRInfinite<{ posts: Post[] }>(
     getPostKey,
     ([url, token]) => postsFetcher(url, token),
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: true, revalidateOnMount: true, revalidateFirstPage: true }
   );
 
   const posts = postsPages ? postsPages.flatMap(p => p.posts) : [];
@@ -398,7 +398,7 @@ export default function ProfilePage() {
               return (
                 <button
                   key={tab}
-                  onClick={() => { setActiveTab(tab); setSize(1); }}
+                  onClick={() => { setActiveTab(tab); setSize(1); mutatePosts(undefined, { revalidate: true }); }}
                   className="flex-1 py-3.5 text-sm font-semibold transition-all duration-200 cursor-pointer relative text-center flex flex-col items-center justify-center"
                 >
                   <span className={`${isActive ? 'text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>
