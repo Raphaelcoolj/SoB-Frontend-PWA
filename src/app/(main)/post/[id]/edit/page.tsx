@@ -24,6 +24,9 @@ import ImageCropperModal from '../../../../../components/post/ImageCropperModal'
 import ContentEditor from '../../../../../components/post/ContentEditor';
 import MentionTextarea from '../../../../../components/shared/MentionTextarea';
 import PollComposer, { DraftPoll } from '../../../../../components/post/PollComposer';
+import { SoBImageEditor } from '../../../../../components/editor/SoBImageEditor';
+import { inspectImageFile, releaseSource } from '../../../../../lib/editor/load';
+import type { EditorResult, EditorSource } from '../../../../../lib/editor/types';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '../../../../../lib/api';
 import { stripHtml } from '../../../../../lib/utils';
@@ -89,6 +92,8 @@ export default function EditPostPage() {
   const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [poll, setPoll] = useState<DraftPoll | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingSource, setEditingSource] = useState<EditorSource | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addMediaItems = useCallback((files: File[]) => {
@@ -150,6 +155,40 @@ export default function EditPostPage() {
     setCroppingFile(null);
     setCroppingIndex(null);
   };
+
+  const handleEditStart = useCallback(async (index: number) => {
+    const item = media[index];
+    if (!item || item.isVideo || item.kind !== 'new' || !item.file) return;
+    try {
+      const src = await inspectImageFile(item.file);
+      setEditingIndex(index);
+      setEditingSource(src);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not open the image editor.');
+    }
+  }, [media]);
+
+  const handleEditDone = useCallback((result: EditorResult) => {
+    if (editingIndex === null) return;
+    setMedia(prev => {
+      const next = [...prev];
+      const old = next[editingIndex];
+      const replacement = makeNewMediaItem(result.file);
+      if (old && old.kind === 'new') releaseMediaItem(old);
+      next[editingIndex] = replacement;
+      return next;
+    });
+    toast.success('Image edited successfully!');
+    if (editingSource) releaseSource(editingSource);
+    setEditingSource(null);
+    setEditingIndex(null);
+  }, [editingIndex, editingSource]);
+
+  const handleEditClose = useCallback(() => {
+    if (editingSource) releaseSource(editingSource);
+    setEditingSource(null);
+    setEditingIndex(null);
+  }, [editingSource]);
 
   const processFiles = async (files: File[]) => {
     const validFiles: File[] = [];
@@ -424,6 +463,7 @@ export default function EditPostPage() {
                   setIsCropperOpen(true);
                 }
               }}
+              onEdit={handleEditStart}
             />
           )}
 
@@ -489,6 +529,14 @@ export default function EditPostPage() {
             setCroppingIndex(null);
           }}
           onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {editingSource && (
+        <SoBImageEditor
+          source={editingSource}
+          onClose={handleEditClose}
+          onDone={handleEditDone}
         />
       )}
     </div>

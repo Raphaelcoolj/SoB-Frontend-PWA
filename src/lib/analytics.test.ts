@@ -56,7 +56,7 @@ describe('client analytics tracker', () => {
         email: 'a@b.com',
         nested: { a: 1 },
         list: [1, 2],
-      } as Record<string, string | number | boolean | null | undefined>,
+      } as unknown as Record<string, string | number | boolean | null | undefined>,
     });
     flushAnalytics();
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
