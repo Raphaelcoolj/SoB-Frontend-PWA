@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
@@ -54,10 +54,15 @@ const postsFetcher = async (url: string, token?: string) => {
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const username = params.username as string;
   const { user: currentUser, accessToken } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'articles' | 'posts'>('posts');
+  // Honour ?tab=articles deep-link (used by the create page after publishing).
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'articles' | 'posts'>(
+    tabParam === 'articles' ? 'articles' : 'posts'
+  );
   const [followersCount, setFollowersCount] = useState<number | null>(null);
   const [isBlockedByViewer, setIsBlockedByViewer] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
