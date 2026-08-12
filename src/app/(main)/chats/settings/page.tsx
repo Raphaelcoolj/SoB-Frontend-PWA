@@ -23,12 +23,14 @@ export default function ChatSettingsPage() {
   const [savingNeverDelete, setSavingNeverDelete] = useState(false);
   const [savingAllowFrom, setSavingAllowFrom] = useState(false);
 
-  React.useEffect(() => {
+  const [prevData, setPrevData] = useState<typeof data>(undefined);
+  if (data !== prevData) {
+    setPrevData(data);
     if (data) {
       if (data.neverDeleteMessages !== undefined) setNeverDelete(data.neverDeleteMessages);
       if (data.allowMessagesFrom) setAllowFrom(data.allowMessagesFrom);
     }
-  }, [data]);
+  }
 
   const toggleNeverDelete = async () => {
     setSavingNeverDelete(true);

@@ -58,9 +58,11 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showOptions]);
 
-  useEffect(() => {
+  const [prevComments, setPrevComments] = useState(article.comments);
+  if (article.comments !== prevComments) {
+    setPrevComments(article.comments);
     setCommentCount(article.comments.length);
-  }, [article.comments]);
+  }
 
   useEffect(() => {
     if (!socket.connected) return;
@@ -166,11 +168,11 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
               <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
                 <Link
                   href={`/profile/${article.author.username}`}
-                  className="font-bold text-sm text-foreground hover:underline truncate flex-shrink-0 max-w-[120px] sm:max-w-[200px]"
+                  className="font-semibold text-sm text-foreground hover:underline truncate flex-shrink-0 max-w-[120px] sm:max-w-[200px]"
                 >
                   {article.author.name}
                 </Link>
-                <span className="text-muted-foreground text-xs truncate min-w-0 flex-1">@{article.author.username}</span>
+                <span className="text-muted-foreground text-xs truncate min-w-0 flex-1 ml-0.5">@{article.author.username}</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(article.createdAt)}</span>
               </div>
@@ -250,32 +252,32 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
                 onClick={handleCommentClick}
-              className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 p-2 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-[17px] h-[17px]" />
                 <span className="text-xs">{commentCount}</span>
               </button>
 
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 p-1.5 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
+                className={`flex items-center gap-1.5 p-2 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
               >
-                <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+                <Heart className={`w-[17px] h-[17px] ${isLiked ? 'fill-red-500' : ''}`} />
                 <span className="text-xs">{likeCount}</span>
               </button>
 
               <button
                 onClick={handleShare}
-                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 p-2 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-[17px] h-[17px]" />
               </button>
 
               <button
                 onClick={handleBookmark}
-              className={`p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
+              className={`p-2 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
               >
-                {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                {isBookmarked ? <BookmarkCheck className="w-[17px] h-[17px]" /> : <Bookmark className="w-[17px] h-[17px]" />}
               </button>
             </div>
           </div>
@@ -408,7 +410,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
               onClick={handleCommentClick}
               className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-[17px] h-[17px]" />
               <span className="text-xs font-medium">{commentCount}</span>
             </button>
             <button
@@ -417,14 +419,14 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                 isLiked ? 'text-red-500' : 'text-muted-foreground'
               }`}
             >
-              <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+              <Heart className={`w-[17px] h-[17px] ${isLiked ? 'fill-red-500' : ''}`} />
               <span className="text-xs font-medium">{likeCount}</span>
             </button>
             <button
               onClick={handleShare}
               className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-[17px] h-[17px]" />
             </button>
             <button
               onClick={handleBookmark}
@@ -432,7 +434,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                 isBookmarked ? 'text-accent' : 'text-muted-foreground'
               }`}
             >
-              {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+              {isBookmarked ? <BookmarkCheck className="w-[17px] h-[17px]" /> : <Bookmark className="w-[17px] h-[17px]" />}
             </button>
           </div>
         </div>

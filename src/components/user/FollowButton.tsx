@@ -6,7 +6,7 @@
  * Calls backend POST /api/users/:id/follow and updates UI state optimistically.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -27,10 +27,11 @@ export const FollowButton = ({ targetUserId, initialIsFollowing, onFollowChange,
   const { mutate } = useSWRConfig();
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [loading, setLoading] = useState(false);
-  // Sync with prop if it changes (e.g. on navigation)
-  useEffect(() => {
+  const [prevInitialIsFollowing, setPrevInitialIsFollowing] = useState(initialIsFollowing);
+  if (initialIsFollowing !== prevInitialIsFollowing) {
+    setPrevInitialIsFollowing(initialIsFollowing);
     setIsFollowing(initialIsFollowing);
-  }, [initialIsFollowing]);
+  }
 
   // Don't render if it's the user's own profile
   if (user?._id === targetUserId) return null;

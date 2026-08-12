@@ -74,8 +74,14 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
-    setImageUrl(url);
-    return () => { URL.revokeObjectURL(url); setImageUrl(null); };
+    const timeout = setTimeout(() => {
+      setImageUrl(url);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      URL.revokeObjectURL(url);
+      setImageUrl(null);
+    };
   }, [file]);
 
   useEffect(() => {
@@ -120,20 +126,19 @@ export default function ImageCropperModal({ file, isOpen, onClose, onCropComplet
     return null;
   }, []);
 
-  const initBox = useCallback(() => {
-    if (!imgRect || imgRect.w === 0 || imgRect.h === 0) return;
-    const m = 0;
-    setBox({
-      x: imgRect.x + imgRect.w * m,
-      y: imgRect.y + imgRect.h * m,
-      w: imgRect.w * (1 - 2 * m),
-      h: imgRect.h * (1 - 2 * m),
-    });
-  }, [imgRect]);
-
-  useEffect(() => {
-    if (imgRect) initBox();
-  }, [imgRect, initBox]);
+  const [prevImgRect, setPrevImgRect] = useState<Rect | null>(null);
+  if (imgRect !== prevImgRect) {
+    setPrevImgRect(imgRect);
+    if (imgRect && imgRect.w !== 0 && imgRect.h !== 0) {
+      const m = 0;
+      setBox({
+        x: imgRect.x + imgRect.w * m,
+        y: imgRect.y + imgRect.h * m,
+        w: imgRect.w * (1 - 2 * m),
+        h: imgRect.h * (1 - 2 * m),
+      });
+    }
+  }
 
   const onImgLoad = () => {
     if (imgRef.current && containerRef.current) {

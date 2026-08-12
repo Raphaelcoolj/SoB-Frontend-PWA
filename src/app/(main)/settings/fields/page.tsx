@@ -5,7 +5,7 @@
  * @description Priority fields management. Users must maintain exactly 5 priority fields.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowLeft, BookOpen, Check, AlertCircle, Search } from 'lucide-react';
@@ -31,11 +31,13 @@ export default function PriorityFieldsPage() {
   const allFields: Field[] = fieldsData?.fields || fieldsData || [];
 
   // Initialize from user object
-  useEffect(() => {
+  const [prevUser, setPrevUser] = useState<typeof user>(null);
+  if (user !== prevUser) {
+    setPrevUser(user);
     if (user?.priorityFields) {
       setSelectedFields(user.priorityFields.map(f => typeof f === 'string' ? f : f._id));
     }
-  }, [user]);
+  }
 
   const toggleField = (fieldId: string) => {
     setSelectedFields(prev => {

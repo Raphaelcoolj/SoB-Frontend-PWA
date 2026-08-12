@@ -47,14 +47,16 @@ export default function NotificationSettingsPage() {
   const allFields: Field[] = fieldsData?.fields || fieldsData || [];
 
   // Initialize form state from user object
-  useEffect(() => {
+  const [prevUser, setPrevUser] = useState<typeof user>(null);
+  if (user !== prevUser) {
+    setPrevUser(user);
     if (user) {
       setIsEmailEnabled(!!user.emailNotifications?.length);
       const userEmailFields = (user.emailNotifications || []).map(f => typeof f === 'string' ? f : f._id);
       setSelectedFields(userEmailFields);
       setIsReEngageOptOut(!!(user as any)?.settings?.reEngagementOptOut);
     }
-  }, [user]);
+  }
 
   const togglePushNotifications = (enabled: boolean) => {
     if (enabled) push.enable();
@@ -233,7 +235,7 @@ export default function NotificationSettingsPage() {
             {selectedFields.length === 0 && (
               <div className="flex items-center gap-2 text-xs text-orange-400 bg-orange-400/10 p-2 rounded-lg border border-orange-400/20">
                 <AlertTriangle className="w-4 h-4" />
-                <span>You won't receive emails until you select at least one field.</span>
+                <span>{"You won't receive emails until you select at least one field."}</span>
               </div>
             )}
           </div>

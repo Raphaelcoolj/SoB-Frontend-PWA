@@ -52,7 +52,7 @@ export default function SearchResults({ query, users, posts, isLoading }: Search
         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-3xl">🔍</div>
         <h3 className="font-medium text-foreground">No results found</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
-          We couldn't find anything matching "{query}". Try different keywords.
+          {"We couldn't find anything matching \"" + query + "\". Try different keywords."}
         </p>
       </div>
     );

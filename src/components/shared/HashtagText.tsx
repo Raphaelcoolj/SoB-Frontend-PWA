@@ -15,11 +15,11 @@ export default function HashtagText({ text, className, as: Tag = 'p' }: HashtagT
   if (!text) return null;
 
   const parts: React.ReactNode[] = [];
+  const regex = new RegExp(HASHTAG_REGEX.source, HASHTAG_REGEX.flags);
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  HASHTAG_REGEX.lastIndex = 0;
-  while ((match = HASHTAG_REGEX.exec(text)) !== null) {
+  while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }

@@ -126,18 +126,20 @@ export const useAuth = () => {
     }
 
     try {
-      const res = await fetchWithAuth('/api/users/me', { method: 'GET' });
+      let res = await fetchWithAuth('/api/users/me', { method: 'GET' });
       
+      if (res.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          res = await fetchWithAuth('/api/users/me', { method: 'GET' });
+        }
+      }
+
       if (res.ok) {
         const data = await res.json();
         setUser(data.data.user);
-        connectSocket(accessToken);
-      } else if (res.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-            checkSession(); // Retry with new token
-            return;
-        }
+        const currentToken = useAuthStore.getState().accessToken;
+        connectSocket(currentToken || accessToken);
       } else {
         logout();
       }

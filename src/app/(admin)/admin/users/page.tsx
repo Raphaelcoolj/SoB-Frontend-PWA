@@ -433,7 +433,7 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">Suspend @{suspendModal.user.username}</h3>
-                <p className="text-xs text-muted-foreground">Temporarily restrict the user's access.</p>
+                <p className="text-xs text-muted-foreground">{"Temporarily restrict the user's access."}</p>
               </div>
             </div>
             <div className="space-y-1.5">

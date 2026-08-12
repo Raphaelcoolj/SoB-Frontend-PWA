@@ -54,7 +54,7 @@ export default function TermsAgreementModal() {
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-2xl font-extrabold tracking-tight">Terms & Privacy Update</CardTitle>
           <CardDescription>
-            We've updated our Terms of Service and Privacy Policy. Please review and accept them to continue using SoB.
+            {"We've updated our Terms of Service and Privacy Policy. Please review and accept them to continue using SoB."}
           </CardDescription>
         </CardHeader>
         

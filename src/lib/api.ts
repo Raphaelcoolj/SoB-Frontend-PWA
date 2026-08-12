@@ -43,7 +43,7 @@ export const fetchWithAuth = async (
     })
   }
 
-  let response = await makeRequest(accessToken)
+  const response = await makeRequest(accessToken)
 
   // If not 401, return immediately — no refresh needed
   if (response.status !== 401) {

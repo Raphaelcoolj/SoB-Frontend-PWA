@@ -3,7 +3,7 @@
  * @description SWR-powered infinite scroll discovery feed hook for a specific field.
  */
 
-import { useMemo } from 'react';
+
 import useSWRInfinite from 'swr/infinite';
 import { fetchWithAuth } from '../lib/api';
 
@@ -29,9 +29,17 @@ const fetcher = async (url: string): Promise<FeedPage> => {
   return json.data as FeedPage;
 };
 
+const seeds: Record<string, string> = {};
+const getSeed = (fieldId: string) => {
+  if (!seeds[fieldId]) {
+    seeds[fieldId] = Math.random().toString(36).substring(7);
+  }
+  return seeds[fieldId];
+};
+
 export const useDiscoverFeed = (fieldId: string | null) => {
   // NEW: Generate a stable seed for this session to ensure consistent shuffling across pages
-  const seed = useMemo(() => Math.random().toString(36).substring(7), [fieldId]);
+  const seed = fieldId ? getSeed(fieldId) : '';
 
   const getKey = (pageIndex: number, previousPageData: FeedPage | null) => {
     if (!fieldId) return null;

@@ -63,9 +63,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showOptions]);
 
-  useEffect(() => {
+  const [prevComments, setPrevComments] = useState(post.comments);
+  if (post.comments !== prevComments) {
+    setPrevComments(post.comments);
     setCommentCount((post.comments || []).length);
-  }, [post.comments]);
+  }
 
   useEffect(() => {
     if (!socket.connected) return;
@@ -186,11 +188,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
                 <Link
                   href={`/profile/${post.author.username}`}
-                  className="font-bold text-sm text-foreground hover:underline truncate flex-shrink-0 max-w-[120px] sm:max-w-[200px]"
+                  className="font-semibold text-sm text-foreground hover:underline truncate flex-shrink-0 max-w-[120px] sm:max-w-[200px]"
                 >
                   {post.author.name}
                 </Link>
-                <span className="text-muted-foreground text-xs truncate min-w-0 flex-1">@{post.author.username}</span>
+                <span className="text-muted-foreground text-xs truncate min-w-0 flex-1 ml-0.5">@{post.author.username}</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
               </div>
@@ -288,33 +290,33 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
             <div className="flex items-center justify-between mt-3 max-w-md text-muted-foreground pr-4">
               <button
                 onClick={handleCommentClick}
-                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 p-2 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-[17px] h-[17px]" />
                 <span className="text-xs">{commentCount}</span>
               </button>
 
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 p-1.5 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
+                className={`flex items-center gap-1.5 p-2 rounded-full hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer ${isLiked ? 'text-red-500' : ''}`}
               >
-                <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+                <Heart className={`w-[17px] h-[17px] ${isLiked ? 'fill-red-500' : ''}`} />
                 <span className="text-xs">{likeCount}</span>
               </button>
 
               <button
                 onClick={handleShare}
-                className="flex items-center gap-1.5 p-1.5 rounded-full hover:text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 p-2 rounded-full hover:text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-[17px] h-[17px]" />
                 <span className="text-xs">{post.shares}</span>
               </button>
 
               <button
                 onClick={handleBookmark}
-                className={`p-1.5 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
+                className={`p-2 rounded-full hover:text-accent hover:bg-muted transition-colors cursor-pointer ${isBookmarked ? 'text-accent' : ''}`}
               >
-                {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                {isBookmarked ? <BookmarkCheck className="w-[17px] h-[17px]" /> : <Bookmark className="w-[17px] h-[17px]" />}
               </button>
             </div>
           </div>
@@ -350,7 +352,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
               >
                 {post.author.name}
               </Link>
-              <span className="text-muted-foreground text-[11px] leading-none truncate">@{post.author.username}</span>
+              <span className="text-muted-foreground text-[11px] leading-none truncate mt-0.5">@{post.author.username}</span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
@@ -490,7 +492,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
           onClick={handleCommentClick}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
         >
-          <MessageCircle className="w-4 h-4" />
+          <MessageCircle className="w-[17px] h-[17px]" />
           <span className="text-xs font-medium">{commentCount}</span>
         </button>
 
@@ -500,7 +502,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
             isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+          <Heart className={`w-[17px] h-[17px] ${isLiked ? 'fill-red-500' : ''}`} />
           <span className="text-xs font-medium">{likeCount}</span>
         </button>
 
@@ -508,7 +510,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
           onClick={handleShare}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
         >
-          <Share2 className="w-4 h-4" />
+          <Share2 className="w-[17px] h-[17px]" />
           <span className="text-xs font-medium">{post.shares}</span>
         </button>
 
@@ -516,11 +518,11 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
 
         <button
           onClick={handleBookmark}
-          className={`p-1.5 rounded-lg transition-all duration-150 hover:bg-muted active:scale-95 cursor-pointer ${
+          className={`p-2 rounded-lg transition-all duration-150 hover:bg-muted active:scale-95 cursor-pointer ${
             isBookmarked ? 'text-accent' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+          {isBookmarked ? <BookmarkCheck className="w-[17px] h-[17px]" /> : <Bookmark className="w-[17px] h-[17px]" />}
         </button>
       </div>
 

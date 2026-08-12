@@ -19,13 +19,18 @@ interface RelativeTimeProps {
 const TICK_MS = 60000;
 
 export default function RelativeTime({ date, className }: RelativeTimeProps) {
-  const [label, setLabel] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setLabel(formatDistanceToNow(date));
-    const timer = setInterval(() => setLabel(formatDistanceToNow(date)), TICK_MS);
+    setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    const timer = setInterval(() => setTick((t) => t + 1), TICK_MS);
     return () => clearInterval(timer);
-  }, [date]);
+  }, []);
+
+  const label = mounted ? formatDistanceToNow(date) : null;
 
   return (
     <span className={className} suppressHydrationWarning>
