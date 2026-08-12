@@ -17,6 +17,8 @@ import type { Debate, DebateArgument, DebateSide } from '../../types/debate';
 
 interface DebateLiteProps {
   postId: string;
+  /** Called when the user opens the full debate. When absent, navigates to `/post/:id?tab=debate`. */
+  onOpenDebate?: () => void;
 }
 
 const SIDE_COLORS: Record<DebateSide, string> = {
@@ -24,7 +26,34 @@ const SIDE_COLORS: Record<DebateSide, string> = {
   AGAINST: 'text-red-500',
 };
 
-export default function DebateLite({ postId }: DebateLiteProps) {
+function DebateTrigger({
+  id,
+  href,
+  onOpenDebate,
+  className,
+  children,
+}: {
+  id?: string;
+  href: string;
+  onOpenDebate?: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (onOpenDebate) {
+    return (
+      <button type="button" id={id} onClick={onOpenDebate} className={className}>
+        {children}
+      </button>
+    );
+  }
+  return (
+    <Link id={id} href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+export default function DebateLite({ postId, onOpenDebate }: DebateLiteProps) {
   const [debate, setDebate] = useState<Debate | null>(null);
   const [previewArgs, setPreviewArgs] = useState<DebateArgument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,17 +100,18 @@ export default function DebateLite({ postId }: DebateLiteProps) {
 
   if (!debate) {
     return (
-      <Link
+      <DebateTrigger
         id="debate-lite"
         href={`/post/${postId}?tab=debate`}
-        className="flex items-center justify-between border border-dashed border-accent/30 rounded-xl p-3 text-sm text-muted-foreground hover:bg-accent/5"
+        onOpenDebate={onOpenDebate}
+        className="flex w-full items-center justify-between border border-dashed border-accent/30 rounded-xl p-3 text-sm text-muted-foreground hover:bg-accent/5"
       >
         <span className="flex items-center gap-2">
           <Swords className="w-4 h-4 text-accent" />
           Start or join a debate on this post
         </span>
         <ChevronRight className="w-4 h-4" />
-      </Link>
+      </DebateTrigger>
     );
   }
 
@@ -90,7 +120,11 @@ export default function DebateLite({ postId }: DebateLiteProps) {
 
   return (
     <div id="debate-lite" className="border border-border rounded-xl p-4 bg-card">
-      <Link href={`/post/${postId}?tab=debate`} className="block">
+      <DebateTrigger
+        href={`/post/${postId}?tab=debate`}
+        onOpenDebate={onOpenDebate}
+        className={onOpenDebate ? 'block w-full text-left' : 'block'}
+      >
         <div className="flex items-center gap-2 mb-1">
           <Swords className="w-4 h-4 text-accent shrink-0" />
           <h4 className="text-sm font-bold text-foreground leading-snug line-clamp-2">{debate.proposition}</h4>
@@ -117,7 +151,7 @@ export default function DebateLite({ postId }: DebateLiteProps) {
           </div>
           <span className="text-[9px] font-bold text-red-500 shrink-0">AGAINST {againstPct}%</span>
         </div>
-      </Link>
+      </DebateTrigger>
 
       {previewArgs.length > 0 && (
         <ul className="mt-3 space-y-1.5 border-t border-border pt-2">
@@ -135,12 +169,13 @@ export default function DebateLite({ postId }: DebateLiteProps) {
         </ul>
       )}
 
-      <Link
+      <DebateTrigger
         href={`/post/${postId}?tab=debate`}
-        className="mt-3 flex items-center justify-center gap-1 w-full py-2 text-xs font-bold text-accent border border-accent/30 rounded-lg hover:bg-accent/5"
+        onOpenDebate={onOpenDebate}
+        className="mt-3 flex w-full items-center justify-center gap-1 py-2 text-xs font-bold text-accent border border-accent/30 rounded-lg hover:bg-accent/5"
       >
         Make an argument <ChevronRight className="w-3.5 h-3.5" />
-      </Link>
+      </DebateTrigger>
     </div>
   );
 }

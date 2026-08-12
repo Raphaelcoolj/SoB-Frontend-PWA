@@ -36,6 +36,7 @@ export default function PostClient({ postId }: PostClientProps) {
 
   const [activeTab, setActiveTab] = useState<ArticleTab>('overview');
   const [initialArgumentId, setInitialArgumentId] = useState<string | undefined>(undefined);
+  const [showFullDebate, setShowFullDebate] = useState(false);
 
   const post = data?.post;
   const isArticle = post?.contentType === 'article';
@@ -81,12 +82,14 @@ export default function PostClient({ postId }: PostClientProps) {
     return () => window.clearTimeout(t);
   }, []);
 
-  // Short posts have no tab bar; a debate deep link just scrolls to DebateLite.
+  // Short posts have no tab bar; a debate deep link expands the full debate section
+  // inline (start/join + arguments) and scrolls it into view.
   useEffect(() => {
     if (post?.contentType !== 'post') return;
     const wantsDebate = new URLSearchParams(window.location.search).get('tab') === 'debate';
     if (!wantsDebate) return;
     const t = window.setTimeout(() => {
+      setShowFullDebate(true);
       document.getElementById('debate-lite')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 300);
     return () => window.clearTimeout(t);
@@ -171,7 +174,13 @@ export default function PostClient({ postId }: PostClientProps) {
             <CommentSection postId={post._id} contentType={post.contentType} />
           </div>
 
-          <DebateLite postId={post._id} />
+          {showFullDebate ? (
+            <div id="debate-lite">
+              <DebateSection postId={post._id} contentType="post" initialArgumentId={initialArgumentId} />
+            </div>
+          ) : (
+            <DebateLite postId={post._id} onOpenDebate={() => setShowFullDebate(true)} />
+          )}
         </>
       )}
     </div>
