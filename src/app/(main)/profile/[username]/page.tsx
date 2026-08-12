@@ -10,7 +10,7 @@
  * - Private account: shows lock wall for non-followers
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWRInfinite from 'swr/infinite';
@@ -80,11 +80,13 @@ export default function ProfilePage() {
   const stats = profileData?.stats;
 
   // Sync block state from profile data
-  useEffect(() => {
+  const [prevProfile, setPrevProfile] = useState<typeof profile>(undefined);
+  if (profile !== prevProfile) {
+    setPrevProfile(profile);
     if (profile) {
       setIsBlockedByViewer(profile.isBlocked || false);
     }
-  }, [profile]);
+  }
 
   // Infinite posts feed for this user - only when canViewContent
   const canViewContent = profile?.canViewContent ?? true;

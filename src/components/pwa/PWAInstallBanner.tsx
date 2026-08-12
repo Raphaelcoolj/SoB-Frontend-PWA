@@ -13,6 +13,12 @@
  *
  * Dismissing hides the banner for the current load only — nothing is
  * persisted, so a reload offers installation again.
+ *
+ * The banner is pinned to the top of the viewport (below the safe-area inset)
+ * at the same layer as the notification banner, so it can never be covered by
+ * the floating Create Post button / bottom nav — the close control stays
+ * reachable. The coordinator guarantees only one of the two banners is ever
+ * visible at once.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -66,7 +72,7 @@ export default function PWAInstallBanner({
 
   return (
     <>
-      <div className="fixed bottom-20 lg:bottom-0 left-0 right-0 z-40 p-3">
+      <div className="fixed top-0 left-0 right-0 z-[70] pt-[env(safe-area-inset-top)] px-3 pb-3">
         <div className="max-w-2xl mx-auto bg-card border border-border rounded-2xl shadow-xl flex items-center gap-3 px-4 py-3.5 animate-hero-in">
           <div className="flex-shrink-0">
             <img

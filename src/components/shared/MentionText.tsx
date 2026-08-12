@@ -44,12 +44,11 @@ const MentionText: React.FC<MentionTextProps> = ({
   const validSet = validMentions ? new Set(validMentions) : null;
 
   const parts: React.ReactNode[] = [];
+  const regex = new RegExp(COMBINED_REGEX.source, COMBINED_REGEX.flags);
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  COMBINED_REGEX.lastIndex = 0;
-
-  while ((match = COMBINED_REGEX.exec(text)) !== null) {
+  while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }

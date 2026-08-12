@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   dismiss: vi.fn(() => {
     mocks.status = 'dismissed';
   }),
+  // Whether the push-notification prompt is currently eligible.
+  notifEligible: false,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -20,6 +22,21 @@ vi.mock('../../hooks/usePwaInstall', () => ({
     status: mocks.status,
     install: mocks.install,
     dismiss: mocks.dismiss,
+  }),
+}));
+
+// The notification banner renders through the coordinator; expose a controllable
+// eligibility so the priority ordering can be tested in isolation.
+vi.mock('../shared/useNotificationBanner', () => ({
+  useNotificationBanner: () => ({
+    eligible: mocks.notifEligible,
+    shouldRender: mocks.notifEligible,
+    isDenied: false,
+    isError: false,
+    isBusy: false,
+    message: undefined,
+    handleDismiss: vi.fn(),
+    enable: mocks.install,
   }),
 }));
 
@@ -45,6 +62,7 @@ describe('OnboardingBannerCoordinator', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     mocks.status = 'checking';
+    mocks.notifEligible = false;
   });
 
   afterEach(() => {
@@ -56,7 +74,15 @@ describe('OnboardingBannerCoordinator', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the install banner when installable (and not the notification banner)', () => {
+  it('gives the notification prompt priority over the install banner when both are eligible', () => {
+    mocks.status = 'installable';
+    mocks.notifEligible = true;
+    render(<OnboardingBannerCoordinator />);
+    expect(screen.getByText('Get notified even when you are away')).toBeInTheDocument();
+    expect(screen.queryByText('Get the full SoB experience')).not.toBeInTheDocument();
+  });
+
+  it('shows the install banner when installable and the notification prompt is not eligible', () => {
     mocks.status = 'installable';
     const { container } = render(<OnboardingBannerCoordinator />);
     act(() => {

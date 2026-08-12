@@ -120,7 +120,7 @@ export default function AccountSettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 className="font-semibold text-lg text-foreground">Delete Account?</h3>
-            <p className="text-sm text-muted-foreground">All your posts, comments, and data will be permanently removed. There's no going back.</p>
+            <p className="text-sm text-muted-foreground">{"All your posts, comments, and data will be permanently removed. There's no going back."}</p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
               <Button variant="destructive" className="flex-1" loading={deleting} onClick={handleDeleteAccount}>

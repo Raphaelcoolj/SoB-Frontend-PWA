@@ -107,12 +107,28 @@ export default function PostClient({ postId }: PostClientProps) {
     );
   }
 
+  // Author-facing moderation state (backend authoritative). The author may see
+  // their own held/rejected content here, but it never surfaces publicly.
+  const MODERATION_BANNERS: Record<string, { label: string; className: string }> = {
+    review_required: { label: 'Under review — only you can see this post until it is approved.', className: 'bg-amber-500/10 border-amber-500/30 text-amber-600' },
+    rejected: { label: 'This post was rejected by moderation and is not publicly visible.', className: 'bg-red-500/10 border-red-500/30 text-red-600' },
+  };
+  const moderationBanner = post.moderationStatus
+    ? MODERATION_BANNERS[post.moderationStatus]
+    : null;
+
   return (
     <div className="space-y-6 pb-20 pt-4">
       <Link href="/home" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-semibold transition-colors">
         <ArrowLeft className="w-4 h-4" />
         Back to Feed
       </Link>
+
+      {moderationBanner && (
+        <div className={`flex items-start gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${moderationBanner.className}`} role="status">
+          <span>{moderationBanner.label}</span>
+        </div>
+      )}
 
       {isArticle ? (
         <>

@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 /**
  * @file page.tsx (terms-of-service)
  * @description Static Terms of Service page displaying the platform's Legal Terms.

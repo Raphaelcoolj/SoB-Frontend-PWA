@@ -42,11 +42,9 @@ export default function SearchPage() {
   }, []);
 
   // Exit field detail view when user starts typing
-  useEffect(() => {
-    if (isSearching && selectedField) {
-      setSelectedField(null);
-    }
-  }, [isSearching, selectedField]);
+  if (isSearching && selectedField) {
+    setSelectedField(null);
+  }
 
   return (
     <div className="min-h-screen pb-20 overflow-x-hidden">
