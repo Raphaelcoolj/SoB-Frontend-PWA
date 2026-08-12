@@ -30,6 +30,7 @@ export interface Post {
   comments: string[]; // Comment IDs
   isPublished: boolean;
   isSensitive?: boolean;
+  moderationStatus?: 'approved' | 'sensitive_allowed' | 'review_required' | 'rejected';
   muxAssetId?: string;
   muxPlaybackId?: string;
   impressions: number;

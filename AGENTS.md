@@ -13,6 +13,13 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Author-facing post moderation state (2026-08-12)
+
+- **`src/types/post.ts`** — `Post` gained `moderationStatus?: 'approved' | 'sensitive_allowed' | 'review_required' | 'rejected'` (mirrors the backend field).
+- **`src/app/(main)/post/[id]/PostClient.tsx`** — author-visible moderation banner above the post: amber "Under review — only you can see this post until it is approved." for `review_required`, red "This post was rejected by moderation and is not publicly visible." for `rejected`. The client never decides visibility — it only renders the backend's authoritative state. Public surfaces (feeds/search/homepage) receive no non-public posts from the backend.
+- Backend contract (same day, see `sob-backend/AGENTS.md`): two-stage moderation pipeline; `getPostById` returns `moderationStatus` to the author; held/rejected posts 404 for everyone else.
+- Verified: `npx tsc --noEmit` clean, `npx eslint` clean on touched files, `npx vitest run` **246/246** (27 files), `npm run build` passes.
+
 ## Comment notifications: "replied to your comment" for replies (2026-08-11)
 
 - **`src/components/notifications/NotificationItem.tsx`** — `comment` notifications now render **"replied to your comment"** when `notification.data.replyToComment` is set (the backend persists it for comments that reply to a comment); otherwise they keep "commented on your post".
