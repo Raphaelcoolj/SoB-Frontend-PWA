@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import DebateLite from './DebateLite';
 
 vi.mock('next/link', () => ({
@@ -103,5 +103,26 @@ describe('DebateLite', () => {
     render(<DebateLite postId="p1" />);
     const cta = await screen.findByRole('link', { name: /Start or join a debate/ });
     expect(cta).toHaveAttribute('href', '/post/p1?tab=debate');
+  });
+
+  it('calls onOpenDebate instead of linking when no debate exists', async () => {
+    getDebatesByContent.mockResolvedValue([]);
+    const onOpen = vi.fn();
+    render(<DebateLite postId="p1" onOpenDebate={onOpen} />);
+    const cta = await screen.findByRole('button', { name: /Start or join a debate/ });
+    expect(screen.queryByRole('link', { name: /Start or join a debate/ })).toBeNull();
+    fireEvent.click(cta);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onOpenDebate for the Make an argument CTA when provided', async () => {
+    getDebatesByContent.mockResolvedValue([openDebate]);
+    getArguments.mockResolvedValue({ arguments: [], pagination: { total: 0, page: 1, limit: 2, pages: 0 } });
+    const onOpen = vi.fn();
+    render(<DebateLite postId="p1" onOpenDebate={onOpen} />);
+    const cta = await screen.findByRole('button', { name: /Make an argument/ });
+    expect(screen.queryByRole('link', { name: /Make an argument/ })).toBeNull();
+    fireEvent.click(cta);
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 });

@@ -13,6 +13,13 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Short posts can now start a debate (2026-08-12)
+
+- **`src/components/debate/DebateLite.tsx`** — new optional `onOpenDebate?: () => void` prop (mirrors the native app). When provided, the empty-state card, the debate header card, and the "Make an argument" CTA render as `<button>`s that call it; when absent they keep the old `<Link href="/post/:id?tab=debate">` navigation. A small internal `DebateTrigger` renders either surface from one set of props.
+- **`src/app/(main)/post/[id]/PostClient.tsx`** — short posts were a dead end (DebateLite linked back to the same `?tab=debate` scroll target, so no start composer was ever reachable). Added `showFullDebate` state: DebateLite gets `onOpenDebate={() => setShowFullDebate(true)}`, and when expanded the post renders the full `<DebateSection contentType="post" initialArgumentId={...} />` inside a `id="debate-lite"` wrapper. The `?tab=debate` deep link on a short post now also expands the full debate section (so `debate_created` notifications land on a section with the start composer + arguments), matching native.
+- **Tests** — `DebateLite.test.tsx` +2: empty-state and "Make an argument" CTAs fire `onOpenDebate` (button, no `<a href>`) when provided. Existing no-prop tests still assert the link fallback.
+- Verified: `npx tsc --noEmit` clean, `npx eslint` clean on touched files, `npx vitest run` **249/249** (27 files), `npm run build` passes.
+
 ## Author-facing post moderation state (2026-08-12)
 
 - **`src/types/post.ts`** — `Post` gained `moderationStatus?: 'approved' | 'sensitive_allowed' | 'review_required' | 'rejected'` (mirrors the backend field).
