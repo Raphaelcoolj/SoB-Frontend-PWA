@@ -233,6 +233,13 @@ After every task, an agent MUST also:
 - Commit all changes with a structured commit message.
 - Never leave uncommitted work behind.
 
+## Git Workflow — working branches only, never `main`
+
+- **NEVER merge to, or push to, `main` on `origin`** — not `git push origin <branch>:main`, not `git merge origin/main`, not force-push to `main`.
+- All work is committed and pushed to the **working branch** `chukwuemeka` only (`git push origin chukwuemeka`).
+- `main` is updated exclusively through pull requests or by the org repo (`org`) — an agent never touches `main`.
+- If `origin/main` has moved ahead, merge it into the working branch for sync if needed — never update `main` itself.
+
 ## SEO metadata, robots & sitemap overhaul with consistent branding (2026-08-07)
 
 - Canonical brand strings used across all metadata/copy: **SoB** (platform name), **SphereBrilliq** (brand), **spherebrilliq.online** (domain). No `SOB`, `Sphere Brilliq`, `SphereBriliq`, `SphereBrilliq Social`, or legacy `.com/.net/...` domain variants anywhere in `src/`.
