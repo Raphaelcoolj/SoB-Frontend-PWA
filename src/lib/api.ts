@@ -85,9 +85,6 @@ export const fetchWithAuth = async (
     const newRefreshToken = data.data.refreshToken || refreshToken
 
     setTokens(newAccessToken, newRefreshToken)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sob-refresh-token', newRefreshToken)
-    }
     processQueue(null, newAccessToken)
 
     return makeRequest(newAccessToken)

@@ -62,7 +62,6 @@ function OAuthCallbackContent() {
 
         const { user, accessToken, refreshToken } = data.data;
         if (user && accessToken) {
-          if (refreshToken) localStorage.setItem('sob-refresh-token', refreshToken);
           setAuth(user, accessToken, refreshToken);
           connectSocket(accessToken);
           track({ event: 'login_completed', properties: { method: 'google' } });

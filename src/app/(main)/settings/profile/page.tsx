@@ -12,6 +12,7 @@ import * as z from 'zod';
 import { ArrowLeft, Camera, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '../../../../store/authStore';
+import { fetchWithAuth } from '../../../../lib/api';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Label } from '../../../../components/ui/Label';
@@ -63,9 +64,8 @@ export default function EditProfilePage() {
     }
 
     setProfileStatus(null);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+    const res = await fetchWithAuth('/api/users/me', {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(values),
     });
     const data = await res.json();
@@ -79,9 +79,8 @@ export default function EditProfilePage() {
     formData.append('avatar', file);
     try {
       setProfileStatus('Uploading...');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+      const res = await fetchWithAuth('/api/users/me', {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` },
         body: formData,
       });
       const data = await res.json();

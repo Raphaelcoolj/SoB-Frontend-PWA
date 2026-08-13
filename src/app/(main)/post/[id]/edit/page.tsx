@@ -15,6 +15,7 @@ import * as z from 'zod';
 import { FileText, MessageSquare, Image as ImageIcon, Video, ArrowLeft, Loader2, BarChart3 } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../../store/authStore';
+import { fetchWithAuth } from '../../../../../lib/api';
 import type { Field } from '../../../../../types/user';
 import { Button } from '../../../../../components/ui/Button';
 import { Input } from '../../../../../components/ui/Input';
@@ -28,7 +29,6 @@ import { SoBImageEditor } from '../../../../../components/editor/SoBImageEditor'
 import { inspectImageFile, releaseSource } from '../../../../../lib/editor/load';
 import type { EditorResult, EditorSource } from '../../../../../lib/editor/types';
 import { toast } from 'sonner';
-import { fetchWithAuth } from '../../../../../lib/api';
 import { stripHtml } from '../../../../../lib/utils';
 import {
   MediaItem,
@@ -333,9 +333,8 @@ export default function EditPostPage() {
         formData.append('removeMedia', JSON.stringify(removeMedia));
       }
 
-      const res = await fetch(`${BASE_URL}/api/posts/${id}`, {
+      const res = await fetchWithAuth(`/api/posts/${id}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` },
         body: formData,
       });
 

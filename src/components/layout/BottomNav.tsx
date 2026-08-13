@@ -32,7 +32,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-md border-t border-border flex items-center justify-around pb-safe-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background/80 backdrop-blur-md border-t border-border flex items-center justify-around pb-[env(safe-area-inset-bottom,0px)]">
       {navItems.map((item) => {
         const IconComponent = item.icon;
         // Determine active matching path

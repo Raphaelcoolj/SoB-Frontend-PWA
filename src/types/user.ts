@@ -26,6 +26,10 @@ export interface User {
   isVerified: boolean;
   isOnboarded: boolean;
   isPrivate: boolean;
+  // Relationship flags returned by profile endpoints (viewer-relative).
+  isFollowing?: boolean;
+  isFollowedBy?: boolean;
+  canViewContent?: boolean;
   blockedUsers: string[] | User[];
   agreedToTerms?: boolean;
   pushSubscription?: {

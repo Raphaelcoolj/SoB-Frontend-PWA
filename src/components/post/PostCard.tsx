@@ -25,6 +25,7 @@ import { formatDistanceToNow } from '../../lib/utils';
 import MentionText from '../shared/MentionText';
 import LinkPreviewCard from '../shared/LinkPreviewCard';
 import PollBlock from './PollBlock';
+import { safeHtml } from '../../lib/sanitize';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -414,7 +415,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
             </h2>
           )}
           {isArticle && /<[a-z][\s\S]*>/i.test(post.body) ? (
-            <div className="prose-article" dangerouslySetInnerHTML={{ __html: post.body?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') }} />
+            <div className="prose-article" dangerouslySetInnerHTML={{ __html: safeHtml(post.body) }} />
           ) : (
             <MentionText
               text={post.body}

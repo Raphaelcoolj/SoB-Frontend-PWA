@@ -13,6 +13,15 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Audit fixes: profile connection contract, zoomable viewport, security headers, debug logs (2026-08-13)
+
+- **`src/types/user.ts`** — `User` gained viewer-relative relationship flags `isFollowing?: boolean`, `isFollowedBy?: boolean`, `canViewContent?: boolean`. `src/app/(main)/profile/[username]/page.tsx` reads `profile.isFollowedBy` for the Message-button (connection) gate, which the backend never sent — the backend contract now returns it (see `sob-backend/AGENTS.md`). Grep for `isFollowedBy` before changing either side.
+- **`src/app/layout.tsx`** — viewport no longer exports `minimumScale: 1 / maximumScale: 1 / userScalable: false`, and the fallback `<meta name="viewport">` dropped `user-scalable=no, maximum-scale=1` — pinch-zoom was disabled (WCAG 1.4.4). New tag: `width=device-width, initial-scale=1, viewport-fit=cover`. Does NOT affect the dynamic theme-color meta (`Viewport.themeColor` + `ThemeColorSync` unchanged — still a single theme-color writer).
+- **`next.config.ts` + `netlify.toml`** — global security headers extended with `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (geolocation/payment/usb/serial/sensors/idle/screen-wake-lock/window-management blocked; camera/microphone/web-share intentionally left allowed), and prod-only `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` (Next-level, gated on `isProd`; Netlify edge sends it unconditionally — harmless on http pivot). Wrong-only CSP connect-src unchanged.
+- **Debug logs removed** — `console.log` deleted from `src/components/user/UserCard.tsx` and `src/components/search/SearchResults.tsx`.
+- **PWA/install prerequisites** — `public/manifest.json` already correct (`start_url: /home`, display standalone, icons), no change. Admin route protection is confirmed both client-side (`(admin)/layout.tsx` role gate) and backend-enforced — no further change.
+- Verified: `npx tsc --noEmit` clean; touched files eslint-clean; `npx vitest run` **249/249**; `npm run build` passes.
+
 ## Short posts can now start a debate (2026-08-12)
 
 - **`src/components/debate/DebateLite.tsx`** — new optional `onOpenDebate?: () => void` prop (mirrors the native app). When provided, the empty-state card, the debate header card, and the "Make an argument" CTA render as `<button>`s that call it; when absent they keep the old `<Link href="/post/:id?tab=debate">` navigation. A small internal `DebateTrigger` renders either surface from one set of props.
@@ -504,8 +513,9 @@ interface PostFeedProps {
 - Tag pills displayed on PostCard and ArticleCard between body and engagement row
 
 ### PWA / Viewport
-- Root `layout.tsx` exports a `Viewport` with `userScalable: false`, `maximumScale: 1` to prevent pinch-zoom on PWA
-- Also includes a `<meta>` tag fallback with `user-scalable=no, maximum-scale=1`
+- Root `layout.tsx` exports a `Viewport` = `{ width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#000000' }` — pinch-zoom is NOT disabled (was removed 2026-08-13, WCAG 1.4.4, see the audit-fixes entry)
+- A `<meta name="viewport">` fallback mirrors it: `width=device-width, initial-scale=1, viewport-fit=cover`
+- `meta[name="theme-color"]` is written ONLY by `ThemeColorSync`; do not add a second writer
 
 ### Polls on Posts & Articles (2026-08-04)
 

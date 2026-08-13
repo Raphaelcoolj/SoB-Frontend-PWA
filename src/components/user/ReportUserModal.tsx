@@ -102,7 +102,7 @@ export default function ReportUserModal({ userId, username, onClose }: ReportUse
             className="w-full rounded-xl border border-border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30"
           />
 
-          <div className="flex gap-3 pt-2 pb-safe">
+          <div className="flex gap-3 pt-2 pb-[env(safe-area-inset-bottom,0px)]">
             <button
               onClick={onClose}
               className="flex-1 h-11 md:h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors active:scale-[0.98]"

@@ -104,6 +104,27 @@
   input[type="search"]::-ms-clear {
     display: none;
   }
+  /* Native-app feel without sacrificing accessibility:
+     - Remove the gray tap-highlight flash on iOS.
+     - `touch-action: manipulation` removes the double-tap-zoom gesture on
+       interactive controls (kills the stale 300ms tap delay); page pinch-zoom
+       and panning are untouched globally, so zoom stays available.
+     - Keep a visible keyboard focus indicator (Safari drops it for `label`-less
+       elements), separate from the two rules above. */
+  button,
+  a,
+  [role="button"],
+  [tabindex]:not([tabindex="-1"]),
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  :where(a, button, [role="button"], [tabindex]):not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--accent, #3B82F6);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {

@@ -182,7 +182,6 @@ export default function OnboardingPage() {
         const { user: completedUser, accessToken: at, refreshToken: rt } = data.data;
         if (at && rt) {
           setAuth(completedUser, at, rt);
-          if (rt) localStorage.setItem('sob-refresh-token', rt);
         } else {
           setUser(completedUser);
         }

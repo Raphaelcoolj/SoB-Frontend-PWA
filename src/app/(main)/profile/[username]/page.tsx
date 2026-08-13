@@ -191,7 +191,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-4 pb-16 -mt-4 lg:-mt-6 overflow-x-hidden max-w-full">
       {/* Sticky Top Header Bar */}
-      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/40 py-2.5 px-4 flex items-center justify-between -mx-4">
+      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/40 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] pb-2.5 px-4 flex items-center justify-between -mx-4">
         <div className="flex items-center gap-3">
           <button
             onClick={handleBack}

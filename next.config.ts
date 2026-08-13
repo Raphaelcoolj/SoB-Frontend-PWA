@@ -24,6 +24,20 @@ const securityHeaders = [
   { key: "Content-Security-Policy", value: cspDirectives.join("; ") },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value:
+      "geolocation=(), payment=(), usb=(), serial=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), idle-detection=(), screen-wake-lock=(), window-management=()",
+  },
+  ...(isProd
+    ? [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=31536000; includeSubDomains; preload",
+        },
+      ]
+    : []),
 ];
 
 const privateCacheControl = { key: "Cache-Control", value: "private, no-store" };

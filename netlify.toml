@@ -17,6 +17,9 @@
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://*.mux.com platform-data:; font-src 'self' data:; connect-src 'self' blob: https://api.spherebrilliq.online wss://api.spherebrilliq.online https://sob-backend-api.onrender.com wss://sob-backend-api.onrender.com https://res.cloudinary.com https://*.mux.com; media-src 'self' blob: https://*.mux.com https://res.cloudinary.com platform-data:; worker-src 'self'; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), payment=(), usb=(), serial=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), idle-detection=(), screen-wake-lock=(), window-management=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
 [[headers]]
   for = "/home"

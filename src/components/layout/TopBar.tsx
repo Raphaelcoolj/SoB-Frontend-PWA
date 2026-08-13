@@ -26,7 +26,7 @@ export default function TopBar() {
   const showSettingsLink = pathname.startsWith('/search');
 
   return (
-    <header className="md:hidden sticky top-0 z-40 w-full h-14 px-4 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-md will-change-transform">
+    <header className="md:hidden sticky top-0 z-40 w-full h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] px-4 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-md will-change-transform">
       <Link
         href={user ? `/profile/${user.username}` : '/login'}
         className="flex items-center"

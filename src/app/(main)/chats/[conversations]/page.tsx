@@ -568,24 +568,30 @@ function ChatConversation() {
   const handleUploadMedia = async () => {
     if (!selectedFile || !conversationId) return;
     setUploadingMedia(true);
-    const sendText = text.trim();
-    setText('');
-    resetTextarea();
     try {
       const formData = new FormData();
       formData.append('media', selectedFile);
-      if (sendText) formData.append('text', sendText);
+      if (text.trim()) formData.append('text', text.trim());
       if (replyTo) formData.append('replyTo', JSON.stringify({ _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType }));
       const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, {
-        method: 'POST', body: formData, headers: {},
+        method: 'POST', body: formData,
       });
-      const json = await res.json();
-      if (json?.data?.message) {
-        mutateMessages(); setReplyTo(null);
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.data?.message) {
+        setText('');
+        resetTextarea();
+        setReplyTo(null);
+        setPreviewImage(null);
+        setSelectedFile(null);
+        mutateMessages();
         track({ event: 'message_sent', properties: { type: 'media' } });
+      } else {
+        toast.error(json?.message || 'Failed to send media. Please try again.');
       }
-    } catch { } finally {
-      setUploadingMedia(false); setPreviewImage(null); setSelectedFile(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send media. Please try again.');
+    } finally {
+      setUploadingMedia(false);
       textareaRef.current?.focus();
     }
   };

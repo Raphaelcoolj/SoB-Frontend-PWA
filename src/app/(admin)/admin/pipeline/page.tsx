@@ -8,6 +8,7 @@ import {
   Pencil, X
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
+import { fetchWithAuth } from '../../../../lib/api';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 import { Card } from '../../../../components/ui/Card';
 import { toast } from 'sonner';
@@ -88,9 +89,8 @@ export default function AdminPipelinePage() {
         fd.append('avatar', editForm.avatar);
       }
 
-      const res = await fetch(`${BASE}/api/admin/pipeline/accounts/${editingAccount._id}`, {
+      const res = await fetchWithAuth(`/api/admin/pipeline/accounts/${editingAccount._id}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` },
         body: fd,
       });
       const data = await res.json();
@@ -110,9 +110,8 @@ export default function AdminPipelinePage() {
 
   const handlePublishPost = async (id: string) => {
     try {
-      const res = await fetch(`${BASE}/api/admin/pipeline/posts/${id}/publish`, {
+      const res = await fetchWithAuth(`/api/admin/pipeline/posts/${id}/publish`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await res.json();
       if (data.success) {
@@ -130,9 +129,8 @@ export default function AdminPipelinePage() {
   const handleDeletePost = async (id: string) => {
     if (!confirm('Delete this scheduled post?')) return;
     try {
-      const res = await fetch(`${BASE}/api/admin/pipeline/posts/${id}`, {
+      const res = await fetchWithAuth(`/api/admin/pipeline/posts/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await res.json();
       if (data.success) {
@@ -149,9 +147,8 @@ export default function AdminPipelinePage() {
 
   const handleToggleAccount = async (id: string) => {
     try {
-      const res = await fetch(`${BASE}/api/admin/pipeline/accounts/${id}/toggle`, {
+      const res = await fetchWithAuth(`/api/admin/pipeline/accounts/${id}/toggle`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await res.json();
       if (data.success) {

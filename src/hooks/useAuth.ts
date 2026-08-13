@@ -22,7 +22,6 @@ export const useAuth = () => {
     storeLogout();
     disconnectSocket();
     localStorage.removeItem('sob-auth-storage');
-    localStorage.removeItem('sob-refresh-token');
     localStorage.removeItem('sob-theme-storage');
     localStorage.removeItem('sob-create-draft');
     router.push('/login');
@@ -41,8 +40,6 @@ export const useAuth = () => {
 
       const { user: userData, accessToken: token, refreshToken: rt } = data.data;
       setAuth(userData, token, rt);
-
-      if (rt) localStorage.setItem('sob-refresh-token', rt);
 
       connectSocket(token);
       return { success: true, user: userData };
@@ -93,7 +90,7 @@ export const useAuth = () => {
   }, []);
 
   const refreshAccessToken = useCallback(async () => {
-    const refreshToken = localStorage.getItem('sob-refresh-token');
+    const refreshToken = useAuthStore.getState().refreshToken;
     if (!refreshToken) {
       logout();
       return null;

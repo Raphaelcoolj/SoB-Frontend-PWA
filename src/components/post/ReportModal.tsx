@@ -104,7 +104,7 @@ export default function ReportModal({ postId, onClose }: ReportModalProps) {
         </div>
 
         {/* Action Buttons Footer - Isolated and Always Visible at Bottom */}
-        <div className="p-4 border-t border-border bg-background flex gap-3 pb-safe shrink-0 mt-auto">
+        <div className="p-4 border-t border-border bg-background flex gap-3 pb-[env(safe-area-inset-bottom,0px)] shrink-0 mt-auto">
           <button
             onClick={onClose}
             className="flex-1 h-11 md:h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors active:scale-[0.98]"

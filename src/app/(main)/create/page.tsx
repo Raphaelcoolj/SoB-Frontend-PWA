@@ -14,6 +14,7 @@ import * as z from 'zod';
 import { FileText, MessageSquare, Image as ImageIcon, Video, BarChart3 } from 'lucide-react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuthStore } from '../../../store/authStore';
+import { fetchWithAuth } from '../../../lib/api';
 import type { Field } from '../../../types/user';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -287,9 +288,8 @@ export default function CreatePage() {
       media.filter(i => !i.removed && i.kind === 'new' && i.file)
         .forEach(item => formData.append('media', item.file as File));
 
-      const res = await fetch(`${BASE_URL}/api/posts`, {
+      const res = await fetchWithAuth('/api/posts', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
         body: formData,
       });
 
