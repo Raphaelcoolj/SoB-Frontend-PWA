@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Mail, AlertTriangle, Bell, Loader2, RotateCcw, Sparkles, BookOpen, Heart, MessageCircle, AtSign } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { Button } from '../../../../components/ui/Button';
 import { Field } from '../../../../types/user';
@@ -20,6 +20,64 @@ import { toast } from 'sonner';
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
+
+const NOTIFICATION_PREF_DEFAULTS: Record<string, boolean> = {
+  feedReminders: true,
+  followerPosts: true,
+  likes: true,
+  comments: true,
+  mentions: true,
+};
+
+const PREF_ROWS: {
+  key: string;
+  icon: typeof Bell;
+  color: string;
+  checkedClass: string;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    key: 'feedReminders',
+    icon: Sparkles,
+    color: 'text-amber-500 bg-amber-500/10',
+    checkedClass: 'peer-checked:bg-amber-500',
+    label: 'Feed reminders',
+    desc: "A nudge when you've been away and fresh posts are waiting.",
+  },
+  {
+    key: 'followerPosts',
+    icon: BookOpen,
+    color: 'text-emerald-500 bg-emerald-500/10',
+    checkedClass: 'peer-checked:bg-emerald-500',
+    label: 'New posts from people you follow',
+    desc: 'When they publish a new post.',
+  },
+  {
+    key: 'likes',
+    icon: Heart,
+    color: 'text-red-500 bg-red-500/10',
+    checkedClass: 'peer-checked:bg-red-500',
+    label: 'Likes',
+    desc: 'When someone likes your posts.',
+  },
+  {
+    key: 'comments',
+    icon: MessageCircle,
+    color: 'text-blue-500 bg-blue-500/10',
+    checkedClass: 'peer-checked:bg-blue-500',
+    label: 'Comments',
+    desc: 'When someone comments on your posts.',
+  },
+  {
+    key: 'mentions',
+    icon: AtSign,
+    color: 'text-purple-500 bg-purple-500/10',
+    checkedClass: 'peer-checked:bg-purple-500',
+    label: 'Mentions',
+    desc: 'When someone mentions you.',
+  },
+];
 
 export default function NotificationSettingsPage() {
   const { user, accessToken, setUser } = useAuthStore();
@@ -41,6 +99,7 @@ export default function NotificationSettingsPage() {
   // Form state
   const [isEmailEnabled, setIsEmailEnabled] = useState(false);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>({...NOTIFICATION_PREF_DEFAULTS});
 
   // Fetch all available fields
   const { data: fieldsData } = useSWR(`${BASE}/api/fields`, fetcher, { revalidateOnFocus: false });
@@ -54,7 +113,11 @@ export default function NotificationSettingsPage() {
       setIsEmailEnabled(!!user.emailNotifications?.length);
       const userEmailFields = (user.emailNotifications || []).map(f => typeof f === 'string' ? f : f._id);
       setSelectedFields(userEmailFields);
-      setIsReEngageOptOut(!!(user as any)?.settings?.reEngagementOptOut);
+      setIsReEngageOptOut(!!user.settings?.reEngagementOptOut);
+      setNotificationPrefs({
+        ...NOTIFICATION_PREF_DEFAULTS,
+        ...user.settings?.notificationPreferences,
+      });
     }
   }
 
@@ -67,6 +130,10 @@ export default function NotificationSettingsPage() {
     setSelectedFields(prev =>
       prev.includes(fieldId) ? prev.filter(id => id !== fieldId) : [...prev, fieldId]
     );
+  };
+
+  const togglePref = (key: string) => {
+    setNotificationPrefs(prev => ({ ...prev, [key]: !(prev[key] ?? true) }));
   };
 
   const toggleReEngagement = async (optedOut: boolean) => {
@@ -97,6 +164,13 @@ export default function NotificationSettingsPage() {
       // the device and flips pushEnabled immediately), so "Save Preferences"
       // only persists email preferences — it never overwrites the push flag.
       const body: Record<string, unknown> = { emailNotifications: finalFields };
+      // Granular in-app/push category prefs (likes/comments/mentions/followers/
+      // feed reminders). Unknown keys are ignored server-side; missing prefs
+      // default to enabled, so always send the full toggle set.
+      body.notificationPreferences = {
+        ...NOTIFICATION_PREF_DEFAULTS,
+        ...notificationPrefs,
+      };
       const res = await fetchWithAuth('/api/users/me/notifications', { 
         method: 'PUT', 
         body: JSON.stringify(body) 
@@ -189,6 +263,39 @@ export default function NotificationSettingsPage() {
             <div className={`w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500 ${reattempting ? 'opacity-50' : ''}`}></div>
             {reattempting && <Loader2 className="w-4 h-4 animate-spin ml-2 text-orange-500" />}
           </label>
+        </div>
+
+        {/* Granular notification preferences (in-app + push categories) */}
+        <div className="pt-4 border-t border-border">
+          <p className="text-sm font-semibold text-foreground mb-3">What you want to hear about</p>
+          <div className="space-y-4">
+            {PREF_ROWS.map(row => {
+              const Icon = row.icon;
+              const checked = notificationPrefs[row.key] ?? true;
+              return (
+                <div key={row.key} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${row.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground text-sm">{row.label}</p>
+                      <p className="text-xs text-muted-foreground">{row.desc}</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={checked}
+                      onChange={() => togglePref(row.key)}
+                    />
+                    <div className={`w-11 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${row.checkedClass}`}></div>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Master email toggle */}

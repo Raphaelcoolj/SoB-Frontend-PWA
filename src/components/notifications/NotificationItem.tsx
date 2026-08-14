@@ -8,12 +8,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2, Swords } from 'lucide-react';
+import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2, Swords, Sparkles } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
 import { formatDistanceToNow } from '../../lib/utils';
 import { track } from '../../lib/analytics';
 import { isVideoUrl } from '../../lib/media';
-import { DEBATE_NOTIFICATION_TYPES, Notification, WeeklyDigestData } from '../../types/notification';
+import { DEBATE_NOTIFICATION_TYPES, FeedReminderData, Notification, WeeklyDigestData } from '../../types/notification';
 import { DebateNotificationData } from '../../types/debate';
 
 interface NotificationItemProps {
@@ -30,6 +30,7 @@ const NOTIFICATION_CONFIG: Record<string, { icon: React.ComponentType<{ classNam
   mention: { icon: AtSign, color: 'text-purple-500 bg-purple-500/10', label: 'mentioned you' },
   weekly_digest: { icon: Calendar, color: 'text-accent bg-accent/10', label: 'your weekly digest is ready' },
   poll_vote: { icon: BarChart2, color: 'text-indigo-500 bg-indigo-500/10', label: 'voted on your poll' },
+  feed_reminder: { icon: Sparkles, color: 'text-amber-500 bg-amber-500/10', label: 'your feed misses you' },
   debate_created: { icon: Swords, color: 'text-orange-500 bg-orange-500/10', label: 'started a debate on your post' },
   debate_rebuttal: { icon: Swords, color: 'text-purple-500 bg-purple-500/10', label: 'rebutted your argument' },
   debate_reply: { icon: Swords, color: 'text-blue-500 bg-blue-500/10', label: 'replied to your argument' },
@@ -69,16 +70,19 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
     if (debateData?.deepLinkPath) return debateData.deepLinkPath;
     if (notification.type === 'follow') return `/profile/${notification.sender?.username}`;
     if (notification.type === 'weekly_digest') return `/digest/${notification._id}`;
+    if (notification.type === 'feed_reminder') return '/home';
     if (notification.post) return `/post/${notification.post._id || notification.post}`;
     return '/';
   };
 
-  const senderName = notification.type === 'weekly_digest' ? 'SoB' : notification.sender?.name || 'SoB';
-  const senderAvatar = notification.type === 'weekly_digest' ? undefined : notification.sender?.avatar;
+  const isSystemNotification = notification.type === 'weekly_digest' || notification.type === 'feed_reminder';
+  const senderName = isSystemNotification ? 'SoB' : notification.sender?.name || 'SoB';
+  const senderAvatar = isSystemNotification ? undefined : notification.sender?.avatar;
 
   const digest = notification.type === 'weekly_digest' ? (notification.data as WeeklyDigestData | null) : null;
+  const feedReminder = notification.type === 'feed_reminder' ? (notification.data as FeedReminderData | null) : null;
   const debateData = getDebateData(notification);
-  const post = notification.type !== 'weekly_digest' ? notification.post : undefined;
+  const post = notification.type !== 'weekly_digest' && notification.type !== 'feed_reminder' ? notification.post : undefined;
   const mediaThumb = post ? getMediaThumb(post) : null;
 
   const aggregateOthers = notification.type === 'debate_support' && (debateData?.count ?? 0) > 1
@@ -143,6 +147,15 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
                 </p>
               ) : null;
             })()}
+          </div>
+        )}
+
+        {feedReminder && (
+          <div className="bg-muted/40 p-2 rounded-lg border border-border/50">
+            <p className="text-[11px] text-foreground">
+              <span className="font-medium">{feedReminder.postCount ?? 1}</span>{' '}
+              new post{(feedReminder.postCount ?? 1) === 1 ? '' : 's'} waiting in your feed
+            </p>
           </div>
         )}
 

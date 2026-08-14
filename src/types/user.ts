@@ -4,6 +4,20 @@ export interface Field {
   slug: string;
 }
 
+/** Per-category in-app/push notification toggles. Missing keys = enabled. */
+export interface NotificationPreferences {
+  feedReminders?: boolean;
+  followerPosts?: boolean;
+  likes?: boolean;
+  comments?: boolean;
+  mentions?: boolean;
+}
+
+export interface UserSettings {
+  reEngagementOptOut?: boolean;
+  notificationPreferences?: NotificationPreferences;
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -32,6 +46,7 @@ export interface User {
   canViewContent?: boolean;
   blockedUsers: string[] | User[];
   agreedToTerms?: boolean;
+  settings?: UserSettings;
   pushSubscription?: {
     tokenType: 'web' | 'expo';
     endpoint?: string | null;
