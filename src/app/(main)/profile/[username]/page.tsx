@@ -15,7 +15,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
-import { Settings2, Sparkles, Crown, Lock, EyeOff, Flag, ArrowLeft, Search, MoreVertical, Plus, MessageCircle, Flame } from 'lucide-react';
+import { Settings2, Sparkles, Crown, Lock, EyeOff, Flag, ArrowLeft, Search, MoreVertical, Plus, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import FollowButton from '../../../../components/user/FollowButton';
@@ -285,15 +285,6 @@ export default function ProfilePage() {
           <Link href={`/profile/${username}/followers`} className="hover:underline flex items-center">
             <span className="font-bold text-foreground mr-1">{displayFollowers}</span> Followers
           </Link>
-          {!isBlockedByViewer && typeof profile.currentStreak === 'number' && profile.currentStreak > 0 && (
-            <span
-              title={profile.longestStreak ? `Longest streak: ${profile.longestStreak} days` : 'Day streak'}
-              className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5"
-            >
-              <Flame className="w-3.5 h-3.5 text-orange-500" />
-              <span className="font-bold text-orange-500 text-xs">{profile.currentStreak}-day streak</span>
-            </span>
-          )}
         </div>
 
         {/* Action buttons (Share & Edit / Follow & Block) */}

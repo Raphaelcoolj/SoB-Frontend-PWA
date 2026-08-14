@@ -19,7 +19,7 @@ const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
 const isValidNotification = (n: any) => {
   if (n.type === 'follow') return !!n.sender?.username;
-  if (n.type === 'weekly_digest') return true;
+  if (n.type === 'weekly_digest' || n.type === 'feed_reminder') return true;
   return !!(n.post?._id || n.post);
 };
 

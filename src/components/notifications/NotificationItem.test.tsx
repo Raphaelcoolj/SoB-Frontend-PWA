@@ -78,6 +78,32 @@ describe('NotificationItem media previews', () => {
   });
 });
 
+describe('NotificationItem feed reminders', () => {
+  it('renders "your feed misses you" with the post count and links home', () => {
+    const notification = baseNotification({
+      type: 'feed_reminder',
+      post: undefined,
+      data: { postCount: 3 },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText('SoB')).toBeInTheDocument();
+    expect(screen.getByText('your feed misses you')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('new posts waiting in your feed')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/home');
+  });
+
+  it('uses singular copy for a single waiting post', () => {
+    const notification = baseNotification({
+      type: 'feed_reminder',
+      post: undefined,
+      data: { postCount: 1 },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText('new post waiting in your feed')).toBeInTheDocument();
+  });
+});
+
 describe('NotificationItem comment replies', () => {
   it('shows "replied to your comment" when the comment notification is a reply', () => {
     const notification = baseNotification({

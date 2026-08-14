@@ -13,6 +13,18 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Feed reminders + notification preferences + push self-heal (2026-08-14)
+
+Backend-first (see `sob-backend/AGENTS.md`, 2026-08-14): the reminder job + central dispatch now emit a `feed_reminder` in-app notification with `data.postCount` and push deep link `/home`; `PUT /api/users/me/notifications` merges `notificationPreferences` (merge-only; missing keys default enabled). Client wiring:
+
+- **`src/types/notification.ts`** — `NotificationType` gained `feed_reminder`; new `FeedReminderData { postCount?: number }` added to the `NotificationData` union.
+- **`src/components/notifications/NotificationItem.tsx`** — `feed_reminder` renders as a system notification (sender "SoB", Sparkles amber badge, no sender avatar) with a "N new post(s) waiting in your feed" box from `data.postCount`, linking to `/home`. `isSystemNotification` generalized to `weekly_digest || feed_reminder` (sender name/avatar).
+- **`src/app/(main)/notifications/page.tsx`** — `feed_reminder` now passes the validity filter (system notifications render without a post).
+- **`src/hooks/usePushEnable.ts`** — **self-heal**: `checkStatus` re-persists the browser's local `PushSubscription` when the backend reports THIS device unregistered but a subscription still exists (e.g. the server record was cleared after a stale-sub rejection), instead of silently showing the enable prompt. The subscription/key-rotation persist logic was extracted into a shared `persistSubscription` callback used by both `enable()` and `checkStatus()`. The existing backend-unreachable fallback (local sub → enabled) is unchanged.
+- **`src/types/user.ts`** — `User` gained typed `settings?: UserSettings` (`reEngagementOptOut?`, `notificationPreferences?: NotificationPreferences`), and `NotificationPreferences` (the five category keys). Replaces the `(user as any)?.settings` casts in the settings page.
+- **`src/app/(main)/settings/notifications/page.tsx`** — new **"What you want to hear about"** section with five toggles (Feed reminders / New posts from people you follow / Likes / Comments / Mentions) driven by `NOTIFICATION_PREF_DEFAULTS` + the user's saved prefs; "Save Preferences" sends `{ notificationPreferences: {...defaults, ...toggles} }`. The pre-existing Re-engagement nudges toggle (`reEngagementOptOut`) is unchanged — the backend ANDs both gates for reminders.
+- **Tests** — `NotificationItem.test.tsx` +2 (feed_reminder plural box + `/home` link, singular copy). Verified: `npx tsc --noEmit` clean; `npx eslint` on touched files 0 errors (5 pre-existing warnings only — notifications page `any` ×2, settings page `err: any` ×2, `no-img-element` in NotificationItem); `npx vitest run` **251/251** (27 files); `npm run build` passes (47 routes).
+
 ## Audit fixes: profile connection contract, zoomable viewport, security headers, debug logs (2026-08-13)
 
 - **`src/types/user.ts`** — `User` gained viewer-relative relationship flags `isFollowing?: boolean`, `isFollowedBy?: boolean`, `canViewContent?: boolean`. `src/app/(main)/profile/[username]/page.tsx` reads `profile.isFollowedBy` for the Message-button (connection) gate, which the backend never sent — the backend contract now returns it (see `sob-backend/AGENTS.md`). Grep for `isFollowedBy` before changing either side.

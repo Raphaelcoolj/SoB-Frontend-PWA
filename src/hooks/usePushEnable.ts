@@ -61,6 +61,49 @@ export const usePushEnable = () => {
     }
   }, [setUser]);
 
+  /** (Re)subscribe the browser to the current VAPID key and persist it for THIS device. */
+  const persistSubscription = useCallback(async () => {
+    const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) throw new Error('VAPID key not configured');
+    const applicationServerKey = urlBase64ToUint8Array(vapidKey);
+
+    // If the existing subscription is bound to a rotated VAPID key, the
+    // backend will reject it (400/403). Drop it and re-subscribe fresh.
+    let subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      const existingKey = subscription.options?.applicationServerKey;
+      const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
+      const keyMismatch = !existingBytes || !keysEqual(existingBytes, applicationServerKey);
+      if (keyMismatch) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+    }
+
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+    }
+
+    const res = await fetchWithAuth('/api/users/push-subscription', {
+      method: 'POST',
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        deviceId,
+        platform,
+      }),
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData?.message || 'Failed to save subscription');
+    }
+  }, [deviceId, platform]);
+
   /** Determine whether THIS device currently has push enabled. */
   const checkStatus = useCallback(async () => {
     if (!user || typeof window === 'undefined') return;
@@ -86,6 +129,24 @@ export const usePushEnable = () => {
       if (res.ok) {
         const data = await res.json();
         const registered = data?.data?.registered === true;
+        if (!registered) {
+          // Self-heal: the server has no record for this device but the browser
+          // still holds a valid subscription (e.g. the record was cleared after
+          // a stale-sub rejection). Re-persist it instead of silently showing
+          // the enable prompt again.
+          const reg = await navigator.serviceWorker.getRegistration();
+          const sub = await reg?.pushManager.getSubscription();
+          if (sub) {
+            try {
+              await persistSubscription();
+              await refreshUser();
+              setState({ status: 'enabled' });
+              return;
+            } catch {
+              // fall through to prompt
+            }
+          }
+        }
         setState(registered ? { status: 'enabled' } : { status: 'prompt' });
         return;
       }
@@ -96,7 +157,7 @@ export const usePushEnable = () => {
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = await reg?.pushManager.getSubscription();
     setState(sub ? { status: 'enabled' } : { status: 'prompt' });
-  }, [user, deviceId]);
+  }, [user, deviceId, persistSubscription, refreshUser]);
 
   useEffect(() => {
     if (!user) return;
@@ -123,45 +184,7 @@ export const usePushEnable = () => {
         track({ event: 'push_permission_granted' });
       }
 
-      const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });
-      await navigator.serviceWorker.ready;
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) throw new Error('VAPID key not configured');
-      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
-
-      // If the existing subscription is bound to a rotated VAPID key, the
-      // backend will reject it (400/403). Drop it and re-subscribe fresh.
-      let subscription = await registration.pushManager.getSubscription();
-      if (subscription) {
-        const existingKey = subscription.options?.applicationServerKey;
-        const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
-        const keyMismatch = !existingBytes || !keysEqual(existingBytes, applicationServerKey);
-        if (keyMismatch) {
-          await subscription.unsubscribe();
-          subscription = null;
-        }
-      }
-
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey,
-        });
-      }
-
-      const res = await fetchWithAuth('/api/users/push-subscription', {
-        method: 'POST',
-        body: JSON.stringify({
-          subscription: subscription.toJSON(),
-          deviceId,
-          platform,
-        }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData?.message || 'Failed to save subscription');
-      }
+      await persistSubscription();
 
       await fetchWithAuth('/api/users/me/notifications', {
         method: 'PUT',
@@ -174,7 +197,7 @@ export const usePushEnable = () => {
       const message = error instanceof Error ? error.message : String(error);
       setState({ status: 'error', message });
     }
-  }, [deviceId, platform, refreshUser]);
+  }, [persistSubscription, refreshUser]);
 
   /** Disable push for THIS device (keeps other devices enabled). */
   const disable = useCallback(async () => {

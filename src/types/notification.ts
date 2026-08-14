@@ -10,6 +10,7 @@ export type NotificationType =
   | 'mention'
   | 'weekly_digest'
   | 'poll_vote'
+  | 'feed_reminder'
   | 'debate_created'
   | 'debate_rebuttal'
   | 'debate_reply'
@@ -99,7 +100,13 @@ export interface CommentNotificationData {
   replyToComment?: boolean;
 }
 
-export type NotificationData = WeeklyDigestData | DebateNotificationData | CommentNotificationData;
+/** Payload for `feed_reminder` notifications ("your feed misses you"). */
+export interface FeedReminderData {
+  /** Number of relevant new posts waiting in the recipient's feed. */
+  postCount?: number;
+}
+
+export type NotificationData = WeeklyDigestData | DebateNotificationData | CommentNotificationData | FeedReminderData;
 
 export interface Notification {
   _id: string;
