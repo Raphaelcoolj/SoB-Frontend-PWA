@@ -13,6 +13,16 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Tablet layout: profile at top-left of the vertical nav (2026-08-15)
+
+PWA parity fix for tablets/iPads (md–lg viewports) where nav tabs are vertical. The profile avatar now appears at the top-left of the side-docked `TabletNav` rail (below the logo), linking to `/profile/{username}` with an accent ring when active — mirroring the mobile `TopBar` profile link.
+
+- **`src/components/layout/TabletNav.tsx`** — added the profile avatar link at the top of the rail (below the logo, `mb-3`, `w-12 h-12`, `rounded-full`, `overflow-hidden`; avatar image or `User` icon fallback; active `ring-2 ring-accent`). Nav rail classes changed from `` `hidden md:flex ${isChatRoute ? 'lg:flex' : 'lg:hidden'}` `` to a fixed `hidden md:flex lg:hidden` so the rail (and its profile link) only ever shows at md–lg; the chat-route `lg:flex` exception was removed. Removed the now-unused `isChatRoute` const.
+- **`src/app/(main)/layout.tsx`** — mounted `<TabletNav />` between `TopBar` and `Sidebar`; `<main>` padding widened to `pb-20 md:pl-20 lg:pb-0 lg:pl-64` (the `md:pl-20` clears the 80px rail on tablets).
+- **`src/components/layout/BottomNav.tsx`** — visibility tightened from `lg:hidden` to `md:hidden` so the bottom tab bar disappears on tablets (which now use the side rail) instead of overlapping it.
+- `Sidebar.tsx` intentionally unchanged (desktop lg+ only). No backend or native changes.
+- Verified: `npx tsc --noEmit` clean; `npx eslint` on the three touched files 0 errors; `npx vitest run` **251/251** pass (27 files).
+
 ## Feed reminders + notification preferences + push self-heal (2026-08-14)
 
 Backend-first (see `sob-backend/AGENTS.md`, 2026-08-14): the reminder job + central dispatch now emit a `feed_reminder` in-app notification with `data.postCount` and push deep link `/home`; `PUT /api/users/me/notifications` merges `notificationPreferences` (merge-only; missing keys default enabled). Client wiring:

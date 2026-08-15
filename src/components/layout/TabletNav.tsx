@@ -5,6 +5,7 @@
  * @description Tablet navigation panel.
  * Visible only between md (768px) and lg (1024px) viewports.
  * Displays side-docked navigation icons without text labels. Hovering over icons triggers styling tooltips.
+ * Shows the user's profile avatar at the top-left (mirroring the mobile TopBar) linking to their profile.
  */
 
 import React from 'react';
@@ -36,14 +37,30 @@ export default function TabletNav() {
 
   const isAdmin = user?.role === 'admin';
 
-  const isChatRoute = pathname.startsWith('/chats');
-
   return (
-    <aside className={`hidden md:flex ${isChatRoute ? 'lg:flex' : 'lg:hidden'} flex-col fixed top-0 left-0 bottom-0 w-20 border-r border-border bg-background text-foreground items-center py-6 z-30`}>
+    <aside className="hidden md:flex lg:hidden flex-col fixed top-0 left-0 bottom-0 w-20 border-r border-border bg-background text-foreground items-center py-6 z-30">
       {/* Brand logo (mobile/icon form) */}
-      <div className="mb-8">
+      <div className="mb-6">
         <Logo showText={false} />
       </div>
+
+      {/* Profile avatar at top-left — mirrors mobile TopBar */}
+      {user && (
+        <Link
+          href={`/profile/${user.username}`}
+          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 hover:bg-secondary active:scale-90 mb-3 overflow-hidden ${
+            pathname.startsWith(`/profile/${user.username}`) ? 'ring-2 ring-accent' : ''
+          }`}
+          aria-label="My profile"
+        >
+          {user.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-6 h-6 stroke-[2] text-accent" />
+          )}
+        </Link>
+      )}
 
       {/* Side icon list */}
       <nav className="flex-1 space-y-4 flex flex-col items-center w-full px-2">
