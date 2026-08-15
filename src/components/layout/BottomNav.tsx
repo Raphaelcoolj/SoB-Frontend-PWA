@@ -2,8 +2,9 @@
 
 /**
  * @file BottomNav.tsx
- * @description Mobile bottom tab navigation bar.
- * Visible only below md (768px).
+ * @description Mobile/tablet bottom tab navigation bar.
+ * Visible below lg (1024px) — tablet portrait uses the mobile layout; landscape/desktop (lg+)
+ * switches to the Sidebar.
  * Links to Home, Search, Create, Notifications, and the user's Profile.
  * Tracks and displays unread notification badges dynamically.
  */
@@ -32,7 +33,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background/80 backdrop-blur-md border-t border-border flex items-center justify-around pb-[env(safe-area-inset-bottom,0px)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background/80 backdrop-blur-md border-t border-border flex items-center justify-around pb-[env(safe-area-inset-bottom,0px)]">
       {navItems.map((item) => {
         const IconComponent = item.icon;
         // Determine active matching path

@@ -13,15 +13,17 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
-## Tablet layout: profile at top-left of the vertical nav (2026-08-15)
+## Tablet layout: mobile layout on tablets, PC layout only when wide (2026-08-15)
 
-PWA parity fix for tablets/iPads (md–lg viewports) where nav tabs are vertical. The profile avatar now appears at the top-left of the side-docked `TabletNav` rail (below the logo), linking to `/profile/{username}` with an accent ring when active — mirroring the mobile `TopBar` profile link.
+Tablets (md–lg, portrait) now use the **mobile layout**: the mobile `TopBar` (profile round button at top-left) + `BottomNav`, no side rail — replaces the earlier `TabletNav` vertical rail (deleted, `src/components/layout/TabletNav.tsx` removed). Rotated/wide (lg+, ≥1024px) switches to the desktop `Sidebar`.
 
-- **`src/components/layout/TabletNav.tsx`** — added the profile avatar link at the top of the rail (below the logo, `mb-3`, `w-12 h-12`, `rounded-full`, `overflow-hidden`; avatar image or `User` icon fallback; active `ring-2 ring-accent`). Nav rail classes changed from `` `hidden md:flex ${isChatRoute ? 'lg:flex' : 'lg:hidden'}` `` to a fixed `hidden md:flex lg:hidden` so the rail (and its profile link) only ever shows at md–lg; the chat-route `lg:flex` exception was removed. Removed the now-unused `isChatRoute` const.
-- **`src/app/(main)/layout.tsx`** — mounted `<TabletNav />` between `TopBar` and `Sidebar`; `<main>` padding widened to `pb-20 md:pl-20 lg:pb-0 lg:pl-64` (the `md:pl-20` clears the 80px rail on tablets).
-- **`src/components/layout/BottomNav.tsx`** — visibility tightened from `lg:hidden` to `md:hidden` so the bottom tab bar disappears on tablets (which now use the side rail) instead of overlapping it.
-- `Sidebar.tsx` intentionally unchanged (desktop lg+ only). No backend or native changes.
-- Verified: `npx tsc --noEmit` clean; `npx eslint` on the three touched files 0 errors; `npx vitest run` **251/251** pass (27 files).
+- **`src/components/layout/TopBar.tsx`** — full header bar now renders below `lg` (`lg:hidden`, was `md:hidden`) so tablets get the real mobile top bar; the floating tablet-only profile button is gone.
+- **`src/components/layout/BottomNav.tsx`** — unchanged, already `lg:hidden`.
+- **`src/components/layout/Sidebar.tsx`** — unchanged, `hidden lg:flex`.
+- **`src/app/(main)/layout.tsx`** — `<main>` padding `pb-20 lg:pb-0 lg:pl-64` (dropped the `md:pt-20` that leaked an 80px gap onto desktop); inner container top padding slimmed to `pt-1.5 lg:pt-3`.
+- **`src/app/(main)/home/page.tsx`** — the header avatar row is now `lg:hidden` (was `md:hidden`) so tablets see the profile button at top-left; wrapper `-mt-1.5 lg:-mt-3` matches the new main padding.
+- **`src/app/(main)/profile/[username]/page.tsx`** — same `-mt-1.5 lg:-mt-3` wrapper offset.
+- Verified: `npx tsc --noEmit` clean; `npx eslint` on touched files 0 errors (4 pre-existing warnings in the profile page — unused `Settings2`, `any`, unused `size`/`postsError`); `npx vitest run` **251/251** pass (27 files).
 
 ## Feed reminders + notification preferences + push self-heal (2026-08-14)
 

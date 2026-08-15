@@ -1,7 +1,7 @@
 /**
  * @file layout.tsx (main)
  * @description Layout wrapper for all authenticated main app pages.
- * Renders the responsive navigation shell (TopBar, BottomNav, Sidebar, TabletNav)
+ * Renders the responsive navigation shell (TopBar, BottomNav, Sidebar)
  * and initializes the Socket.io connection with the user's JWT token.
  * Redirects unauthenticated users to /login.
  */
@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import TopBar from '../../components/layout/TopBar';
 import BottomNav from '../../components/layout/BottomNav';
 import Sidebar from '../../components/layout/Sidebar';
-import TabletNav from '../../components/layout/TabletNav';
 import { useAuthStore } from '../../store/authStore';
 import { connectSocket } from '../../lib/socket';
 import { useThemeStore, ACCENT_MAP } from '../../store/themeStore';
@@ -71,23 +70,20 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile top bar */}
+      {/* Mobile/tablet top bar (profile at top-left) */}
       <TopBar />
 
-      {/* Tablet side-docked nav (md–lg) with profile at top-left */}
-      <TabletNav />
-
-      {/* Desktop sidebar (lg+) */}
+      {/* Desktop sidebar (lg+, i.e. landscape/PC) */}
       <Sidebar />
 
       {/* Main content area */}
-      <main className="pb-20 md:pl-20 lg:pb-0 lg:pl-64 min-h-screen min-w-0 overflow-x-hidden">
-        <div className="max-w-2xl mx-auto px-4 pt-4 lg:pt-6 w-full min-w-0">
+      <main className="pb-20 lg:pb-0 lg:pl-64 min-h-screen min-w-0 overflow-x-hidden">
+        <div className="max-w-2xl mx-auto px-4 pt-1.5 lg:pt-3 w-full min-w-0">
           {children}
         </div>
       </main>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile/tablet bottom tab bar */}
       <BottomNav />
 
       {/* Terms agreement modal overlay */}

@@ -63,11 +63,11 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'forYou' | 'following'>('forYou');
 
   return (
-    <div className="space-y-4 pb-20 -mt-4 lg:-mt-6">
+    <div className="space-y-4 pb-20 -mt-1.5 lg:-mt-3">
       {/* Sticky Home Top Header Bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md will-change-transform border-b border-border/40 -mx-4 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] pb-0">
-        {/* Avatar + Actions row — mobile only (sidebar shows logo on larger screens) */}
-        <div className="md:hidden px-4 flex items-center justify-between">
+        {/* Avatar + Actions row — phones and tablets (sidebar shows logo on larger screens) */}
+        <div className="lg:hidden px-4 flex items-center justify-between">
           <Link
             href={currentUser ? `/profile/${currentUser.username}` : '/login'}
             className="flex items-center"
