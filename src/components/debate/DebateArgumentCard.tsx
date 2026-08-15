@@ -179,7 +179,7 @@ export function DebateArgumentCard({ argument, depth = 0 }: DebateArgumentCardPr
     downvotesCount: argument.downvotesCount,
   });
   const [showRebuttalComposer, setShowRebuttalComposer] = useState(false);
-  const [showRebuttals, setShowRebuttals] = useState(false);
+  const [showRebuttals, setShowRebuttals] = useState(argument.rebuttalCount > 0);
   const [rebuttals, setRebuttals] = useState<DebateArgument[]>([]);
   const [rebuttalsTotal, setRebuttalsTotal] = useState(argument.rebuttalCount || 0);
   const [rebuttalsLoading, setRebuttalsLoading] = useState(false);
@@ -247,6 +247,14 @@ export function DebateArgumentCard({ argument, depth = 0 }: DebateArgumentCardPr
       setRebuttalsLoading(false);
     }
   }, [argument._id, rebuttals.length, rebuttalsLoading]);
+
+  React.useEffect(() => {
+    if (showRebuttals && argument.rebuttalCount > 0) {
+      const t = setTimeout(loadRebuttals, 0);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this argument?')) return;

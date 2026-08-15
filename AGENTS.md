@@ -13,6 +13,12 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Debate rebuttals auto-expand so nested threads are visible (2026-08-15)
+
+Parity with the native fix (native `DebateArgumentCard` same day): debate rebuttal threads were collapsed by default (`showRebuttals` initialized `false`), so nested and nested-nested arguments were hidden behind a toggle even when present. `src/components/debate/DebateArgumentCard.tsx` now initializes `showRebuttals` to `argument.rebuttalCount > 0` and auto-loads the rebuttals on mount via a deferred `useEffect` (`setTimeout(loadRebuttals, 0)` with `clearTimeout` cleanup, satisfying `react-hooks/set-state-in-effect`). Comments already rendered nested replies recursively (`src/components/comment/CommentCard.tsx` — lazy `replies?limit=50`, depth cap 3) — no comment change needed.
+
+- Verified: `npx tsc --noEmit` clean; `npx eslint` on touched file 0 errors; `npx vitest run` **251/251** pass (27 files).
+
 ## Tablet layout: mobile layout on tablets, PC layout only when wide (2026-08-15)
 
 Tablets (md–lg, portrait) now use the **mobile layout**: the mobile `TopBar` (profile round button at top-left) + `BottomNav`, no side rail — replaces the earlier `TabletNav` vertical rail (deleted, `src/components/layout/TabletNav.tsx` removed). Rotated/wide (lg+, ≥1024px) switches to the desktop `Sidebar`.
