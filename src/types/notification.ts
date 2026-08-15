@@ -120,6 +120,8 @@ export interface Notification {
     contentType?: 'post' | 'article';
     mediaUrls?: string[];
     muxPlaybackId?: string;
+    /** Poll question — used as the preview text for poll-only posts (no title/body). */
+    pollQuestion?: string;
   };
   data?: NotificationData | null;
   comment?: string;
