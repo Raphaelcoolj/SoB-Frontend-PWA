@@ -187,7 +187,7 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
               />
             )}
             <p className="text-[10px] text-muted-foreground line-clamp-1 italic min-w-0">
-              {post.title || post.body || 'View post'}
+              {post.title || post.body || post.pollQuestion || 'View post'}
             </p>
           </div>
         )}

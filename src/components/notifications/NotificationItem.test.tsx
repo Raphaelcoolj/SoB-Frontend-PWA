@@ -67,6 +67,15 @@ describe('NotificationItem media previews', () => {
     expect(document.querySelector('img[alt=""]')).toBeNull();
   });
 
+  it('renders the poll question as the preview text for a poll-only post', () => {
+    const notification = baseNotification({
+      post: { _id: 'p1', title: '', body: '', pollQuestion: 'Best framework?' },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText('Best framework?')).toBeInTheDocument();
+    expect(screen.queryByText('View post')).toBeNull();
+  });
+
   it('follow notifications link to the profile without a preview box', () => {
     const notification = baseNotification({
       type: 'follow',

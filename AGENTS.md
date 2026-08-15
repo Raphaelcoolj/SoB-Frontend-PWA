@@ -13,6 +13,14 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Poll notifications show the actual poll question (2026-08-15)
+
+- **`src/types/notification.ts`** — the notification `post` preview gained optional `pollQuestion?: string` (mirrors the backend `postPreview` payload; the backend strips the full `poll` subdocument, so only the question is available).
+- **`src/components/notifications/NotificationItem.tsx`** — the post preview box now renders `post.title || post.body || post.pollQuestion || 'View post'`, so like/comment/poll_vote notifications on poll-only posts show the real poll question instead of the generic "View post".
+- **Tests** — `NotificationItem.test.tsx` +1: a poll-only post preview renders the poll question and never "View post".
+- Backend contract (same day, see `sob-backend/AGENTS.md`): `new_notification` sockets and `GET /api/notifications` carry `post.pollQuestion` for poll posts.
+- Verified: `npx tsc --noEmit` clean; `npx eslint` on touched files 0 errors (only the pre-existing `no-img-element` warning in NotificationItem); `npx vitest run` **252/252** (27 files); `npm run build` passes.
+
 ## Debate rebuttals auto-expand so nested threads are visible (2026-08-15)
 
 Parity with the native fix (native `DebateArgumentCard` same day): debate rebuttal threads were collapsed by default (`showRebuttals` initialized `false`), so nested and nested-nested arguments were hidden behind a toggle even when present. `src/components/debate/DebateArgumentCard.tsx` now initializes `showRebuttals` to `argument.rebuttalCount > 0` and auto-loads the rebuttals on mount via a deferred `useEffect` (`setTimeout(loadRebuttals, 0)` with `clearTimeout` cleanup, satisfying `react-hooks/set-state-in-effect`). Comments already rendered nested replies recursively (`src/components/comment/CommentCard.tsx` — lazy `replies?limit=50`, depth cap 3) — no comment change needed.
