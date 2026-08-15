@@ -2,8 +2,9 @@
 
 /**
  * @file BottomNav.tsx
- * @description Mobile bottom tab navigation bar.
- * Visible only below 768px (md viewport).
+ * @description Mobile/tablet bottom tab navigation bar.
+ * Visible below lg (1024px) — tablet portrait uses the mobile layout; landscape/desktop (lg+)
+ * switches to the Sidebar.
  * Links to Home, Search, Create, Notifications, and the user's Profile.
  * Tracks and displays unread notification badges dynamically.
  */
