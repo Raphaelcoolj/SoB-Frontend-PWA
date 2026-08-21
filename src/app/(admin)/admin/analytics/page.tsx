@@ -28,10 +28,8 @@ import type { DailyMetric, DailyMetricsResponse } from '../../../../types/analyt
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const fetcher = (url: string, token: string) =>
-  fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-    .then((r) => r.json())
-    .then((d) => d.data as DailyMetricsResponse);
+const fetcher = (url: string) =>
+  fetchWithAuth(url).then((r) => r.json()).then((d) => d.data as DailyMetricsResponse);
 
 function utcDateStr(daysAgo: number) {
   const d = new Date(Date.now() - daysAgo * 86400000);
@@ -54,7 +52,7 @@ export default function AdminAnalyticsPage() {
 
   const { data, error, isLoading, mutate } = useSWR<DailyMetricsResponse>(
     swrKey,
-    ([url, token]: [string, string]) => fetcher(url, token),
+    fetcher,
     { keepPreviousData: true }
   );
 
