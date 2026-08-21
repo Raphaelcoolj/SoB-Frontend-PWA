@@ -36,10 +36,21 @@ function utcDateStr(daysAgo: number) {
   return d.toISOString().slice(0, 10);
 }
 
-const fmt = (n: number) => n.toLocaleString();
-const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
-const fmtMs = (n: number) => `${n.toLocaleString()}ms`;
-const fmtSignedPct = (n: number) => `${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`;
+const safe = (n: number | undefined | null): number => (Number.isFinite(n as number) ? (n as number) : 0);
+const fmt = (n: number | undefined | null) => safe(n).toLocaleString();
+const fmtPct = (n: number | undefined | null) => `${(safe(n) * 100).toFixed(1)}%`;
+const fmtMs = (n: number | undefined | null) => `${safe(n).toLocaleString()}ms`;
+const fmtSignedPct = (n: number | undefined | null) => {
+  const v = safe(n);
+  return `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`;
+};
+const fmtDuration = (n: number | undefined | null) => {
+  const sec = safe(n);
+  if (sec < 60) return `${sec.toFixed(1)}s`;
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+};
 
 export default function AdminAnalyticsPage() {
   const { accessToken } = useAuthStore();
@@ -60,7 +71,7 @@ export default function AdminAnalyticsPage() {
     if (!data?.days?.length) return null;
     const days = data.days;
     const count = days.length;
-    const sum = (fn: (d: DailyMetric) => number) => days.reduce((a, d) => a + fn(d), 0);
+    const sum = (fn: (d: DailyMetric) => number) => days.reduce((a, d) => a + safe(fn(d)), 0);
     const avg = (fn: (d: DailyMetric) => number) => sum(fn) / count;
     return {
       days: count,
@@ -336,13 +347,13 @@ export default function AdminAnalyticsPage() {
                     <Td>{fmtPct(d.dauMauRatio)}</Td>
                     <Td>{fmtPct(d.retentionRate)}</Td>
                     <Td>{fmtPct(d.churnRate)}</Td>
-                    <Td className={d.newUserGrowthRate > 0 ? 'text-emerald-500 font-medium' : d.newUserGrowthRate < 0 ? 'text-red-500 font-medium' : ''}>
-                      {d.newUserGrowthRate !== 0 ? fmtSignedPct(d.newUserGrowthRate) : '—'}
+                    <Td className={safe(d.newUserGrowthRate) > 0 ? 'text-emerald-500 font-medium' : safe(d.newUserGrowthRate) < 0 ? 'text-red-500 font-medium' : ''}>
+                      {safe(d.newUserGrowthRate) !== 0 ? fmtSignedPct(d.newUserGrowthRate) : '—'}
                     </Td>
-                    <Td className={d.dauGrowthRate > 0 ? 'text-emerald-500 font-medium' : d.dauGrowthRate < 0 ? 'text-red-500 font-medium' : ''}>
-                      {d.dauGrowthRate !== 0 ? fmtSignedPct(d.dauGrowthRate) : '—'}
+                    <Td className={safe(d.dauGrowthRate) > 0 ? 'text-emerald-500 font-medium' : safe(d.dauGrowthRate) < 0 ? 'text-red-500 font-medium' : ''}>
+                      {safe(d.dauGrowthRate) !== 0 ? fmtSignedPct(d.dauGrowthRate) : '—'}
                     </Td>
-                    <Td>{d.averageSessionDuration.toFixed(1)}s</Td>
+                    <Td>{fmtDuration(d.averageSessionDuration)}</Td>
                     <Td>{fmt(d.postsPublished)}</Td>
                     <Td>{fmt(d.postsViewed)}</Td>
                     <Td>{fmtPct(d.activationRate)}</Td>
