@@ -18,6 +18,9 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
+  Info,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
@@ -365,6 +368,9 @@ export default function AdminAnalyticsPage() {
           </div>
         </Card>
       )}
+
+      {/* Metric Glossary */}
+      <MetricGlossary />
     </div>
   );
 }
@@ -409,6 +415,109 @@ function SummaryCard({
         </span>
       </div>
       <p className="text-lg font-semibold text-foreground mt-2">{value}</p>
+    </Card>
+  );
+}
+
+const METRICS = [
+  {
+    category: 'Core Users',
+    items: [
+      { name: 'DAU (Daily Active Users)', formula: 'Distinct qualified users with any event that day', description: 'Users who performed a meaningful action (liked, commented, posted, shared, etc.) — session starts and page views alone do not count. This is the primary measure of daily engagement.' },
+      { name: 'WAU (Weekly Active Users)', formula: 'Distinct qualified users over trailing 7 UTC days', description: 'Rolling 7-day window of engaged users. Shows the size of your active user base on a weekly cadence. WAU growing while DAU is flat means you are reaching more unique users per week.' },
+      { name: 'MAU (Monthly Active Users)', formula: 'Distinct qualified users over trailing 30 UTC days', description: 'Rolling 30-day window. The denominator for stickiness. A healthy MAU should be significantly larger than DAU — if they are equal, users are only showing up once a month.' },
+      { name: 'New Users', formula: 'Distinct users who fired signup_completed that day', description: 'Brand-new accounts created on this day. Does not include users who signed up earlier but returned.' },
+    ],
+  },
+  {
+    category: 'Retention & Growth',
+    items: [
+      { name: 'DAU/MAU (Stickiness)', formula: 'DAU ÷ MAU', description: 'What fraction of your monthly active users come back on any given day. 20%+ is solid for social apps; 50%+ is exceptional. A low ratio means users visit occasionally rather than habitually.' },
+      { name: 'Retention Rate', formula: 'Today\'s DAU ÷ Yesterday\'s DAU', description: 'Day-over-day retention. If yesterday had 100 active users and today has 80, retention is 80%. This measures how many users return after a day. A value above 100% means you gained users (good).' },
+      { name: 'Churn Rate', formula: '1 − Retention Rate', description: 'The inverse of retention — what fraction of yesterday\'s users did NOT come back today. 20% churn means 1 in 5 users from yesterday did not return. Lower is better.' },
+      { name: 'New User Growth Rate', formula: '(Today\'s new users − Yesterday\'s) ÷ Yesterday\'s', description: 'Day-over-day percentage change in signups. Positive means more signups than yesterday. The first day of a date range has no previous day, so it shows —.' },
+      { name: 'DAU Growth Rate', formula: '(Today\'s DAU − Yesterday\'s) ÷ Yesterday\'s', description: 'Day-over-day percentage change in daily active users. Positive means engagement is growing.' },
+      { name: 'Activation Rate', formula: 'Users activated today ÷ New users today', description: 'What fraction of today\'s signups performed a qualifying action (posted, liked, commented, etc.) within the same day. A low rate means users sign up but do not engage immediately.' },
+    ],
+  },
+  {
+    category: 'Engagement',
+    items: [
+      { name: 'Sessions', formula: 'Distinct session_started events that day', description: 'Unique browser sessions (one per tab/reload group). A user refreshing the page reuses the same session ID, so this is not inflated by refreshes. Roughly equals "how many people opened the app" for the day.' },
+      { name: 'Avg Session Duration', formula: 'Total session_ended duration ÷ Distinct sessions', description: 'Average time a user spent in the app per session, in seconds. Longer sessions indicate deeper engagement. Displayed as Xm Xs for readability.' },
+      { name: 'Posts Created / Published', formula: 'Count of post_created / post_published events', description: 'Created includes drafts; published is content that went live. On most days these are equal.' },
+      { name: 'Posts Viewed', formula: 'Count of post_viewed events', description: 'Total post detail-page views. One user viewing the same post twice counts twice.' },
+      { name: 'Likes / Comments / Shares / Saves', formula: 'Count of respective engagement events', description: 'Raw engagement counters for the day. Comments are a stronger signal than likes; shares are the strongest organic distribution signal.' },
+      { name: 'Follows / Unfollows', formula: 'Count of follow_created / follow_removed events', description: 'Net follower movement. If follows > unfollows, the platform is growing its social graph.' },
+    ],
+  },
+  {
+    category: 'Messaging & Notifications',
+    items: [
+      { name: 'Active Chat Users', formula: 'Distinct users who sent or read a message', description: 'Users engaging in direct messaging that day. A subset of DAU.' },
+      { name: 'Messages Sent', formula: 'Count of message_sent events', description: 'Total messages sent across all conversations.' },
+      { name: 'Notifications Sent', formula: 'Count of notification_created events', description: 'In-app notifications created that day (likes, comments, follows, mentions, digests, streaks, etc.). Does not include push notifications — only the in-app notification row.' },
+      { name: 'Notifications Opened', formula: 'Count of notification_clicked events', description: 'Notifications the user engaged with — either by tapping a notification item or marking notifications as read. Tracked both client-side (tap) and server-side (mark as read).' },
+      { name: 'Notif Open Rate', formula: 'Notifications opened ÷ Notifications sent', description: 'What fraction of sent notifications were actually seen/engaged with. Low rates may mean notifications are not relevant or users do not check the notification tab.' },
+    ],
+  },
+  {
+    category: 'Reliability',
+    items: [
+      { name: 'API Errors', formula: 'Count of api_error events', description: 'Server-side errors (5xx) logged by the backend. A spike may indicate a broken endpoint or upstream service failure.' },
+      { name: 'Client Errors', formula: 'Count of client_error events', description: 'Uncaught errors captured by the frontend (React render errors, unhandled promise rejections). A spike may indicate a buggy deploy.' },
+      { name: 'Avg API Latency', formula: 'Average latencyMs from api_performance_recorded events', description: 'Mean response time across all tracked API calls, in milliseconds. High latency degrades user experience — aim for < 500ms on most endpoints.' },
+      { name: 'Events Processed', formula: 'Total raw analytics events ingested that day', description: 'All events written to the analytics_events collection. Useful for monitoring data volume and detecting ingestion spikes or drops.' },
+    ],
+  },
+];
+
+function MetricGlossary() {
+  const [open, setOpen] = useState(false);
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+
+  return (
+    <Card className="border-border/60 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full p-4 sm:p-6 flex items-center justify-between text-left hover:bg-muted/20 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Info className="w-4 h-4 text-accent" />
+          <h3 className="font-medium text-sm">Metric Definitions</h3>
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+      </button>
+      {open && (
+        <div className="border-t border-border/60 divide-y divide-border/40">
+          {METRICS.map((cat) => (
+            <div key={cat.category}>
+              <button
+                onClick={() => setExpandedCat(expandedCat === cat.category ? null : cat.category)}
+                className="w-full px-4 sm:px-6 py-3 flex items-center justify-between text-left hover:bg-muted/10 transition-colors"
+              >
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{cat.category}</span>
+                {expandedCat === cat.category
+                  ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                  : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+              </button>
+              {expandedCat === cat.category && (
+                <div className="px-4 sm:px-6 pb-4 space-y-3">
+                  {cat.items.map((m) => (
+                    <div key={m.name} className="space-y-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="text-sm font-medium text-foreground">{m.name}</span>
+                        <code className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded font-mono">{m.formula}</code>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{m.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
