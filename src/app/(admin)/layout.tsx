@@ -15,12 +15,14 @@ import {
   ShieldCheck,
   Menu,
   X,
-  Newspaper
+  Newspaper,
+  BarChart3
 } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
 
 const ADMIN_NAV = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/admin/users', icon: Users, label: 'Users' },
   { href: '/admin/posts', icon: FileText, label: 'Posts' },
   { href: '/admin/fields', icon: BookOpen, label: 'Fields' },
