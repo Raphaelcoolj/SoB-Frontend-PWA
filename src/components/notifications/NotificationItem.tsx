@@ -37,6 +37,7 @@ const NOTIFICATION_CONFIG: Record<string, { icon: React.ComponentType<{ classNam
   debate_support: { icon: Swords, color: 'text-emerald-500 bg-emerald-500/10', label: 'supported your argument' },
   debate_mention: { icon: Swords, color: 'text-purple-500 bg-purple-500/10', label: 'mentioned you in a debate' },
   debate_closed: { icon: Swords, color: 'text-muted-foreground bg-muted/40', label: 'closed a debate' },
+  argument_created: { icon: Swords, color: 'text-orange-500 bg-orange-500/10', label: 'made an argument on your debate' },
 };
 
 // NEW: Resolve a thumbnail for the post's media (Mux video thumb or first image URL).

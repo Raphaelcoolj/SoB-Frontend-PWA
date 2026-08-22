@@ -12,8 +12,14 @@ import type {
   DebateSide,
 } from '../types/debate';
 
-const unwrap = async <T>(r: Response | Promise<Response>): Promise<T> =>
-  (await r).json().then((d) => d.data as T);
+const unwrap = async <T>(r: Response | Promise<Response>): Promise<T> => {
+  const res = await r;
+  const json = await res.json();
+  if (!res.ok || json.success === false) {
+    throw new Error(json.message || `Request failed (${res.status})`);
+  }
+  return json.data as T;
+};
 
 export const createDebate = (body: {
   contentId: string;

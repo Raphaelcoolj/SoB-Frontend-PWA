@@ -16,7 +16,8 @@ export type NotificationType =
   | 'debate_reply'
   | 'debate_support'
   | 'debate_mention'
-  | 'debate_closed';
+  | 'debate_closed'
+  | 'argument_created';
 
 export const DEBATE_NOTIFICATION_TYPES: NotificationType[] = [
   'debate_created',
@@ -25,6 +26,7 @@ export const DEBATE_NOTIFICATION_TYPES: NotificationType[] = [
   'debate_support',
   'debate_mention',
   'debate_closed',
+  'argument_created',
 ];
 
 export interface DigestArticle {

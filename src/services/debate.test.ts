@@ -16,7 +16,7 @@ vi.mock('../lib/api', () => ({
 const mockFetchWithAuth = vi.mocked(fetchWithAuth);
 
 const jsonResponse = (data: unknown) =>
-  Promise.resolve({ json: () => Promise.resolve({ data }) }) as unknown as Response;
+  Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data }) }) as unknown as Response;
 
 const debate = {
   _id: 'd1',
