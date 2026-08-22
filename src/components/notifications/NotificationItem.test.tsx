@@ -196,4 +196,24 @@ describe('NotificationItem debate notifications', () => {
     expect(screen.getByText(/Actually, focus time drops 30% at home/)).toBeInTheDocument();
     expect(screen.getByText('rebutted your argument')).toBeInTheDocument();
   });
+
+  it('renders argument_created notification with summary', () => {
+    const notification = baseNotification({
+      type: 'argument_created',
+      post: { _id: 'p1' },
+      data: {
+        debateId: 'd1',
+        proposition: 'Universities should make AI literacy mandatory',
+        contentId: 'p1',
+        contentType: 'article',
+        argumentId: 'a3',
+        deepLinkPath: '/post/p1?tab=debate&argument=a3',
+        summary: 'AI literacy is a public good that benefits all students.',
+      },
+    });
+    render(<NotificationItem notification={notification} />);
+    expect(screen.getByText(/AI literacy is a public good/)).toBeInTheDocument();
+    expect(screen.getByText('made an argument on your debate')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/post/p1?tab=debate&argument=a3');
+  });
 });

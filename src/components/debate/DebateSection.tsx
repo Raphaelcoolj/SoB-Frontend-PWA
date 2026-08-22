@@ -10,6 +10,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   Swords,
   Loader2,
@@ -19,9 +20,10 @@ import {
   Plus,
 } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
+import MentionTextarea from '../shared/MentionTextarea';
 import { useAuth } from '../../hooks/useAuth';
 import { track } from '../../lib/analytics';
-import { formatDistanceToNow } from '../../lib/utils';
+import { formatDistanceToNow, formatDateShort } from '../../lib/utils';
 import { DebateArgumentCard } from './DebateArgumentCard';
 import {
   closeDebate,
@@ -109,7 +111,7 @@ function StartDebateComposer({
               onChange={(e) => setClosingDate(e.target.value)}
               className="text-xs bg-background border border-border rounded-lg px-2 py-1"
             />
-            <span className="hidden sm:inline">closes</span>
+            <span>closes</span>
           </label>
         </div>
         <button
@@ -221,9 +223,9 @@ function ArgumentComposer({
 
   return (
     <div className="border border-border rounded-xl p-4 bg-card">
-      <textarea
+      <MentionTextarea
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={setBody}
         disabled={status !== 'OPEN' || !user}
         placeholder={
           !user ? 'Login to argue' : status !== 'OPEN' ? 'This debate is not open for new arguments.' : `Make a ${side} argument...`
@@ -401,12 +403,12 @@ function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateV
 
         <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
           {creator && (
-            <span className="flex items-center gap-1">
+            <Link href={`/profile/${creator.username}`} className="flex items-center gap-1 hover:underline">
               <UserAvatar avatar={creator.avatar} name={creator.name} size="xs" />
               Started by {creator.name}
-            </span>
+            </Link>
           )}
-          {debate.closingDate && <span>· closes {formatDistanceToNow(debate.closingDate)}</span>}
+          {debate.closingDate && <span>· closes {formatDateShort(debate.closingDate)}</span>}
           <span>· {debate.argumentCount} arguments</span>
         </div>
 
@@ -456,8 +458,10 @@ function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateV
               ...d,
               argumentCount: d.argumentCount + 1,
               stats: {
-                ...d.stats,
-                ...(arg.side === 'FOR' ? { forCount: d.stats.forCount + 1 } : { againstCount: d.stats.againstCount + 1 }),
+                ...(d.stats ?? { forCount: 0, againstCount: 0, argumentCount: 0, forPct: 50, againstPct: 50 }),
+                ...(arg.side === 'FOR'
+                  ? { forCount: (d.stats?.forCount ?? 0) + 1 }
+                  : { againstCount: (d.stats?.againstCount ?? 0) + 1 }),
               },
             }));
           }}
@@ -478,7 +482,7 @@ function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateV
           </div>
         )}
         {args.map((arg) => (
-          <DebateArgumentCard key={arg._id} argument={arg} />
+          <DebateArgumentCard key={arg._id} argument={arg} debateId={debate._id} />
         ))}
         {!argsLoading && args.length < total && (
           <button

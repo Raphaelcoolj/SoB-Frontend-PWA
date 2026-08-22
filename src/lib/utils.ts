@@ -28,6 +28,17 @@ export function formatDistanceToNow(dateStr: string): string {
 }
 
 /**
+ * Formats an ISO date string to DD/MM/YY format.
+ */
+export function formatDateShort(dateStr: string): string {
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
+/**
  * Truncates a string to a max length with ellipsis.
  */
 export function truncate(str: string, maxLength: number): string {

@@ -10,6 +10,7 @@
  */
 
 import React, { useCallback, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowBigUp,
   ArrowBigDown,
@@ -22,6 +23,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
+import MentionText from '../shared/MentionText';
+import MentionTextarea from '../shared/MentionTextarea';
 import { useAuth } from '../../hooks/useAuth';
 import { track } from '../../lib/analytics';
 import { formatDistanceToNow } from '../../lib/utils';
@@ -43,10 +46,11 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : 'Something went
 interface RebuttalComposerProps {
   argument: DebateArgument;
   defaultSide: DebateSide;
+  debateId: string;
   onCreated: (arg: DebateArgument) => void;
 }
 
-function RebuttalComposer({ argument, defaultSide, onCreated }: RebuttalComposerProps) {
+function RebuttalComposer({ argument, defaultSide, debateId, onCreated }: RebuttalComposerProps) {
   const { user } = useAuth();
   const [side, setSide] = useState<DebateSide>(defaultSide);
   const [body, setBody] = useState('');
@@ -62,7 +66,7 @@ function RebuttalComposer({ argument, defaultSide, onCreated }: RebuttalComposer
     setBusy(true);
     setError(null);
     try {
-      const created = await createArgument(String(argument.debate), {
+      const created = await createArgument(debateId, {
         side,
         body: body.trim(),
         parentArgumentId: argument._id,
@@ -102,9 +106,9 @@ function RebuttalComposer({ argument, defaultSide, onCreated }: RebuttalComposer
           AGAINST
         </button>
       </div>
-      <textarea
+      <MentionTextarea
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={setBody}
         placeholder={`Write your ${side} rebuttal...`}
         maxLength={5000}
         rows={3}
@@ -168,9 +172,11 @@ function ReportMenu({ onReport }: ReportMenuProps) {
 interface DebateArgumentCardProps {
   argument: DebateArgument;
   depth?: number;
+  debateId?: string;
 }
 
-export function DebateArgumentCard({ argument, depth = 0 }: DebateArgumentCardProps) {
+export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp }: DebateArgumentCardProps) {
+  const resolvedDebateId = debateIdProp || argument.debate;
   const { user } = useAuth();
   const [voteState, setVoteState] = useState({
     isSupported: argument.isSupported,
@@ -292,18 +298,18 @@ export function DebateArgumentCard({ argument, depth = 0 }: DebateArgumentCardPr
       <div className="flex items-center gap-2 mb-2">
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sideClasses}`}>{argument.side}</span>
         {author && (
-          <div className="flex items-center gap-1.5 min-w-0">
+          <Link href={`/profile/${author.username}`} className="flex items-center gap-1.5 min-w-0 group">
             <UserAvatar avatar={author.avatar} name={author.name} size="sm" />
-            <span className="text-xs font-semibold text-foreground truncate">{author.name}</span>
-            <span className="text-[10px] text-muted-foreground">@{author.username}</span>
-          </div>
+            <span className="text-xs font-semibold text-foreground truncate group-hover:underline">{author.name}</span>
+            <span className="text-[10px] text-muted-foreground group-hover:text-accent">@{author.username}</span>
+          </Link>
         )}
         <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
           {formatDistanceToNow(argument.createdAt)}
         </span>
       </div>
 
-      <p className="text-sm text-foreground whitespace-pre-wrap">{argument.body}</p>
+      <MentionText text={argument.body} className="text-sm text-foreground whitespace-pre-wrap" />
 
       {argument.evidence?.url && (
         <a
@@ -390,10 +396,11 @@ export function DebateArgumentCard({ argument, depth = 0 }: DebateArgumentCardPr
 
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
-      {showRebuttalComposer && (
+      {showRebuttalComposer && resolvedDebateId && (
         <RebuttalComposer
           argument={argument}
           defaultSide={argument.side === 'FOR' ? 'AGAINST' : 'FOR'}
+          debateId={resolvedDebateId}
           onCreated={(reb) => {
             setRebuttals((prev) => [...prev, reb]);
             setRebuttalsTotal((t) => t + 1);
@@ -413,7 +420,7 @@ export function DebateArgumentCard({ argument, depth = 0 }: DebateArgumentCardPr
             <p className="text-xs text-muted-foreground py-1">No rebuttals yet.</p>
           )}
           {rebuttals.map((reb) => (
-            <DebateArgumentCard key={reb._id} argument={reb} depth={Math.min(depth + 1, MAX_DEPTH)} />
+            <DebateArgumentCard key={reb._id} argument={reb} depth={Math.min(depth + 1, MAX_DEPTH)} debateId={resolvedDebateId} />
           ))}
           {rebuttals.length > 0 && rebuttals.length < rebuttalsTotal && (
             <button
