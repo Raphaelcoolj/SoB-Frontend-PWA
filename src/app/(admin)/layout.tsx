@@ -16,7 +16,9 @@ import {
   Menu,
   X,
   Newspaper,
-  BarChart3
+  BarChart3,
+  Flag,
+  ChevronDown
 } from 'lucide-react';
 import { Logo } from '../../components/shared/Logo';
 
@@ -29,6 +31,12 @@ const ADMIN_NAV = [
   { href: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
   { href: '/admin/broadcast', icon: Radio, label: 'Broadcast' },
   { href: '/admin/pipeline', icon: Newspaper, label: 'Pipeline' },
+];
+
+const REPORTS_SUBNAV = [
+  { href: '/admin/reports', label: 'Post Reports' },
+  { href: '/admin/reports/users', label: 'User Reports' },
+  { href: '/admin/reports/debates', label: 'Debate Reports' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -93,6 +101,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 }
 
 function NavLinks({ onNavClick }: { onNavClick: () => void }) {
+  const [reportsOpen, setReportsOpen] = useState(false);
+
   return (
     <>
       <nav className="flex-1 p-4 space-y-1">
@@ -107,6 +117,31 @@ function NavLinks({ onNavClick }: { onNavClick: () => void }) {
             {item.label}
           </Link>
         ))}
+
+        <button
+          onClick={() => setReportsOpen(!reportsOpen)}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted group"
+        >
+          <span className="flex items-center gap-3">
+            <Flag className="w-5 h-5 group-hover:text-accent transition-colors" />
+            Reports
+          </span>
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {reportsOpen && (
+          <div className="pl-10 space-y-0.5">
+            {REPORTS_SUBNAV.map((sub) => (
+              <Link
+                key={sub.href}
+                href={sub.href}
+                onClick={onNavClick}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                {sub.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
 
       <div className="p-4 border-t border-border">
