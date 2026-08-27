@@ -1,0 +1,26 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.sob.app",
+        "paths": [
+          "/post/*",
+          "/profile/*",
+          "/digest/*",
+          "/chats",
+          "/chats/*",
+          "/home",
+          "/search",
+          "/create",
+          "/bookmarks",
+          "/notifications",
+          "/oauth-callback"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": []
+  }
+}

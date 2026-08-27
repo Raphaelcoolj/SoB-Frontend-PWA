@@ -14,7 +14,7 @@ import { connectSocket, disconnectSocket } from '../lib/socket';
 
 export const useAuth = () => {
   const router = useRouter();
-  const { user, accessToken, setAuth, logout: storeLogout, setUser, setLoading, setAccessToken } = useAuthStore();
+  const { user, accessToken, setAuth, logout: storeLogout, setUser, setLoading, setTokens } = useAuthStore();
   const [loading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,8 +104,10 @@ export const useAuth = () => {
       const data = await res.json();
       
       if (res.ok) {
-        setAccessToken(data.data.accessToken);
-        return data.data.accessToken;
+        const newAccessToken = data.data.accessToken;
+        const newRefreshToken = data.data.refreshToken || refreshToken;
+        setTokens(newAccessToken, newRefreshToken);
+        return newAccessToken;
       } else {
         throw new Error('Refresh failed');
       }
@@ -114,7 +116,7 @@ export const useAuth = () => {
       logout();
       return null;
     }
-  }, [logout, setAccessToken]);
+  }, [logout, setTokens]);
 
   const checkSession = useCallback(async () => {
     if (!accessToken) {

@@ -8,7 +8,7 @@
  * redirects to the appropriate page depending on the outcome.
  */
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
@@ -20,10 +20,15 @@ function OAuthCallbackContent() {
   const searchParams = useSearchParams();
   const { setAuth } = useAuth();
   const setPending = useAuthStore((s) => s.setPending);
+  const exchangeInProgress = useRef(false);
 
   useEffect(() => {
+    if (exchangeInProgress.current) return;
+    exchangeInProgress.current = true;
+
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const controller = new AbortController();
 
     const handleAuth = async () => {
       if (error) {
@@ -41,6 +46,7 @@ function OAuthCallbackContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code }),
+          signal: controller.signal,
         });
         const data = await res.json();
 
@@ -75,13 +81,18 @@ function OAuthCallbackContent() {
         }
 
         router.push('/login?error=oauth_failed');
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
         console.error('OAuth exchange error:', err);
         router.push('/login?error=oauth_failed');
       }
     };
 
     handleAuth();
+
+    return () => {
+      controller.abort();
+    };
   }, [searchParams, router, setAuth, setPending]);
 
   return <div className="flex justify-center items-center h-screen">Authenticating...</div>;
