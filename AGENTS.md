@@ -232,6 +232,13 @@ Backend-first (see `sob-backend/AGENTS.md`, 2026-08-14): the reminder job + cent
 - `src/app/page.tsx` — removed the legacy `?token&refreshToken` handler from the root landing page (the backend never produces those URLs anymore; removed the unused `redirect` import)
 - `npm test` (73 tests) passes; `npm run build` previously passing unchanged. Requires backend `POST /api/auth/oauth/exchange`
 
+## OAuth callback bug fixes: dedup guard + rotated refresh token (2026-08-08)
+
+- **`src/app/oauth-callback/page.tsx`** — fixed BUG #1 (double-fire race condition): added `useRef` dedup guard (`exchangeInProgress`) so only one exchange request runs per page load; added `AbortController` with signal passed to fetch + cleanup on unmount to abort in-flight requests; `AbortError` caught and ignored (intentional abort, not a real error)
+- **`src/hooks/useAuth.ts`** — fixed BUG #2 (refresh token discarded): `refreshAccessToken` now calls `setTokens(newAccessToken, newRefreshToken)` instead of `setAccessToken(data.data.accessToken)`, preserving the rotated refresh token. Dependency array updated to include `setTokens`. Pattern matches `src/lib/api.ts:84-87`
+- **BUG #3 (localStorage persist race)** — confirmed NOT applicable to Zustand v5.0.14 (persist writes are synchronous, no debounce in v5). No fix needed
+- Verified: `npx tsc --noEmit` clean; `npx eslint` on touched files 0 errors (pre-existing warnings only); `npx vitest run` **253/253** (27 files); `npm run build` passes
+
 ## Production SEO + favicon audit (2026-08-08)
 
 - **Favicon fixed**: production `/favicon.ico` and `/favicon.png` were 404 while `<head>` referenced them — the direct cause of the missing Google Search logo. Added to `public/`:
