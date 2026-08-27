@@ -159,3 +159,10 @@
   for = "/.well-known/*"
   [headers.values]
     Cache-Control = "public, max-age=3600, must-revalidate"
+
+# iOS requires Content-Type: application/json for the AASA file.
+# The file has no extension so Netlify cannot infer the MIME type.
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"
