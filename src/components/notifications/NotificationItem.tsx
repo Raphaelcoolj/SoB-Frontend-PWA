@@ -137,7 +137,7 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
             )}
             {digest.readingActivity && digest.readingActivity.totalArticlesRead > 0 && (
               <p className="text-[11px] text-foreground">
-                <span className="font-medium">{digest.readingActivity.totalArticlesRead}</span> article{digest.readingActivity.totalArticlesRead === 1 ? '' : 's'} read this week
+                <span className="font-medium">{digest.readingActivity.totalArticlesRead}</span> article{digest.readingActivity.totalArticlesRead === 1 ? '/post' : 's/posts'} read this week
               </p>
             )}
             {(() => {

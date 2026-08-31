@@ -11,18 +11,18 @@
 import React, { useRef, useEffect, useState } from 'react';
 
 interface VideoPlayerProps {
-  playbackId: string;
+  playbackId?: string;
+  url?: string;
   className?: string;
 }
 
-export default function VideoPlayer({ playbackId, className = '' }: VideoPlayerProps) {
+export default function VideoPlayer({ playbackId, url, className = '' }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mux stream URL format
-  const streamUrl = `https://stream.mux.com/${playbackId}.m3u8`;
+  const streamUrl = url || `https://stream.mux.com/${playbackId}.m3u8`;
 
   // Observe when this component enters viewport
   useEffect(() => {

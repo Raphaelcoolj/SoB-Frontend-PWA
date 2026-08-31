@@ -13,6 +13,7 @@ import UserAvatar from '../../../../components/user/UserAvatar';
 import ConversationsSidebar from '../../../../components/layout/ConversationsSidebar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
+import VideoPlayer from '../../../../components/post/VideoPlayer';
 import ReplyPreview from '../../../../components/chat/ReplyPreview';
 import LinkPreviewCard from '../../../../components/shared/LinkPreviewCard';
 import MentionText from '../../../../components/shared/MentionText';
@@ -1006,11 +1007,9 @@ function ChatConversation() {
 
                         {mediaItem?.type === 'video' && (
                           <div className="relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-                            <video
-                              src={mediaItem.url}
-                              className="w-full max-h-[350px] object-cover opacity-80"
-                              controls
-                              preload="metadata"
+                            <VideoPlayer
+                              url={mediaItem.url}
+                              className="max-h-[350px]"
                             />
                             {!isTemp && !mine && (
                               <button

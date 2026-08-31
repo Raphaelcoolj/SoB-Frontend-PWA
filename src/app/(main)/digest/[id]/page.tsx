@@ -308,7 +308,7 @@ export default function DigestPage({ params }: { params: Promise<{ id: string }>
             <span className="font-bold">
               {readingActivity.totalArticlesRead.toLocaleString()}
             </span>{' '}
-            article{readingActivity.totalArticlesRead === 1 ? '' : 's'} read this week
+            article{readingActivity.totalArticlesRead === 1 ? '/post' : 's/posts'} read this week
           </p>
 
           {readingActivity.topFields.length > 0 && (
