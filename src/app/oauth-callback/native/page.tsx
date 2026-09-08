@@ -9,6 +9,9 @@ function NativeCallbackContent() {
   useEffect(() => {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const native = searchParams.get('native');
+
+    if (native) return;
 
     if (error) {
       window.location.href = `sob://oauth-callback?error=${encodeURIComponent(error)}`;
@@ -20,11 +23,17 @@ function NativeCallbackContent() {
     }
   }, [searchParams]);
 
+  const native = searchParams.get('native');
+
   return (
     <div className="flex flex-col justify-center items-center h-screen bg-black text-white px-4">
-      <h1 className="text-xl font-bold mb-2">Redirecting to SoB App...</h1>
+      <h1 className="text-xl font-bold mb-2">
+        {native ? 'Connecting to SoB...' : 'Redirecting to SoB App...'}
+      </h1>
       <p className="text-gray-400 text-sm text-center">
-        {"If the app doesn't open automatically, you can close this window."}
+        {native
+          ? 'Please wait while we complete sign-in.'
+          : "If the app doesn't open automatically, you can close this window."}
       </p>
     </div>
   );
