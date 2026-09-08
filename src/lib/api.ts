@@ -24,39 +24,55 @@ const forceLogout = () => {
   }
 }
 
+const PUBLIC_AUTH_ENDPOINTS = [
+  '/api/auth/register',
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/oauth/exchange',
+  '/api/auth/refresh',
+  '/api/homepage',
+]
+
 export const fetchWithAuth = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> => {
   const { accessToken, refreshToken, setTokens } = useAuthStore.getState()
+  const isPublicEndpoint = PUBLIC_AUTH_ENDPOINTS.some((p) => endpoint.includes(p))
 
   const makeRequest = (token: string | null) => {
     const isFormData = options.body instanceof FormData
     const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL || ''}${endpoint}`
+    const customHeaders = (options.headers as Record<string, string>) || {}
+    const hasCustomAuth = Boolean(customHeaders['Authorization'] || customHeaders['authorization'])
+
     return fetch(url, {
       ...options,
       headers: {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-        ...(options.headers as Record<string, string> || {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...customHeaders,
+        ...(!hasCustomAuth && !isPublicEndpoint && token ? { Authorization: `Bearer ${token}` } : {}),
       },
     })
   }
 
   const response = await makeRequest(accessToken)
 
-  // If not 401, return immediately — no refresh needed
-  if (response.status !== 401) {
+  // If not 401, or if this is a public auth endpoint, return immediately — no refresh needed
+  if (response.status !== 401 || isPublicEndpoint) {
     return response
   }
 
-  // 401 received — check for USER_DELETED first
+  // 401 received on an authenticated endpoint — check for USER_DELETED first
   const cloned = response.clone()
   const errorData = await cloned.json().catch(() => null)
 
   if (errorData?.error === 'USER_DELETED' || !refreshToken) {
-    forceLogout()
-    throw new Error(errorData?.message || 'Session expired')
+    if (accessToken || refreshToken) {
+      forceLogout()
+    }
+    return response
   }
 
   // If already refreshing, queue this request
@@ -77,7 +93,8 @@ export const fetchWithAuth = async (
     })
 
     if (!refreshResponse.ok) {
-      throw new Error('Refresh token expired or invalid')
+      forceLogout()
+      return response
     }
 
     const data = await refreshResponse.json()
@@ -88,6 +105,9 @@ export const fetchWithAuth = async (
     processQueue(null, newAccessToken)
 
     return makeRequest(newAccessToken)
+  } catch {
+    forceLogout()
+    return response
   } finally {
     isRefreshing = false
   }
