@@ -2,7 +2,7 @@
 
 /**
  * @file page.tsx (settings/fields)
- * @description Priority fields management. Users must maintain exactly 5 priority fields.
+ * @description Priority fields management. Users must maintain between 2 and 10 priority fields.
  */
 
 import React, { useState } from 'react';

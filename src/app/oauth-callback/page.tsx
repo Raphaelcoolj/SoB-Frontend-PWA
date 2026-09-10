@@ -14,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
 import { connectSocket } from '../../lib/socket';
 import { track } from '../../lib/analytics';
+import { fetchWithAuth } from '../../lib/api';
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -28,8 +29,6 @@ function OAuthCallbackContent() {
 
     const code = searchParams.get('code');
     const error = searchParams.get('error');
-    const controller = new AbortController();
-
     const handleAuth = async () => {
       if (error) {
         router.push('/login?error=oauth_failed');
@@ -41,12 +40,9 @@ function OAuthCallbackContent() {
       }
 
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiBase}/api/auth/oauth/exchange`, {
+        const res = await fetchWithAuth('/api/auth/oauth/exchange', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code }),
-          signal: controller.signal,
         });
         const data = await res.json();
 
@@ -81,18 +77,13 @@ function OAuthCallbackContent() {
         }
 
         router.push('/login?error=oauth_failed');
-      } catch (err: any) {
-        if (err?.name === 'AbortError') return;
+      } catch (err) {
         console.error('OAuth exchange error:', err);
         router.push('/login?error=oauth_failed');
       }
     };
 
     handleAuth();
-
-    return () => {
-      controller.abort();
-    };
   }, [searchParams, router, setAuth, setPending]);
 
   return <div className="flex justify-center items-center h-screen">Authenticating...</div>;

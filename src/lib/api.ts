@@ -49,6 +49,7 @@ export const fetchWithAuth = async (
 
     return fetch(url, {
       ...options,
+      credentials: 'same-origin',
       headers: {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...customHeaders,
