@@ -22,6 +22,23 @@ const clearLegacyAuthCookie = () => {
   }
 };
 
+/**
+ * Clears cached API responses from the service worker's cross-origin cache
+ * so a subsequent user on the same device never sees stale data from a
+ * previous session. Only the runtime API caches are cleared — the precache
+ * (static assets) is untouched.
+ */
+const clearServiceWorkerCache = () => {
+  if (typeof window === 'undefined' || !('caches' in window)) return;
+  caches.keys().then((names) => {
+    for (const name of names) {
+      if (name === 'cross-origin' || name === 'apis') {
+        caches.delete(name);
+      }
+    }
+  });
+};
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
@@ -73,10 +90,12 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => {
         set({ user: null, accessToken: null, refreshToken: null, pendingToken: null, pendingProfile: null, isLoading: false });
         clearLegacyAuthCookie();
+        clearServiceWorkerCache();
       },
       logout: () => {
         set({ user: null, accessToken: null, refreshToken: null, pendingToken: null, pendingProfile: null, isLoading: false });
         clearLegacyAuthCookie();
+        clearServiceWorkerCache();
       },
       setLoading: (loading) => set({ isLoading: loading }),
       checkOnboardingStatus: (error: { response?: { data?: { errorData?: { isOnboarded?: boolean } } } }) => {

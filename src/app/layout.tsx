@@ -13,6 +13,7 @@ import { ThemeInitializer } from '../components/shared/ThemeInitializer';
 import ThemeColorSync from '../components/shared/ThemeColorSync';
 import PwaProvider from '../components/shared/PwaProvider';
 import AnalyticsProvider from '../components/shared/AnalyticsProvider';
+import Polyfills from '../components/shared/Polyfills';
 import { SITE_DESCRIPTION, HOMEPAGE_OG_TITLE, SITE_URL } from '../lib/site';
 import './globals.css';
 
@@ -107,6 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className="bg-background text-foreground font-sans">
+        <Polyfills />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
