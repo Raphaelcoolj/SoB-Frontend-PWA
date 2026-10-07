@@ -35,7 +35,7 @@ describe('ThemeColorSync', () => {
 
     mocks.resolvedTheme = 'light';
     rerender(<ThemeColorSync />);
-    expect(getMetaThemeColor()).toBe('#ffffff');
+    expect(getMetaThemeColor()).toBe('#F3F5F8');
   });
 
   it('reuses an existing meta tag instead of duplicating it', () => {

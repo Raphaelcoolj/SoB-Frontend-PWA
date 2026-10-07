@@ -4,7 +4,7 @@
  * @file useThemeColor.ts
  * @description Keeps the PWA's <meta name="theme-color"> in sync with the
  * active theme so the native mobile status bar color matches the app's
- * current background (pure black in dark mode, pure white in light mode).
+ * current background (pure black in dark mode, cool gray #F3F5F8 in light mode).
  * Driven by next-themes' `resolvedTheme`, so system-theme follow and manual
  * toggles both update the meta tag without reading fragile CSS variables.
  */
@@ -13,7 +13,7 @@ import { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
 export const DARK_THEME_COLOR = '#000000';
-export const LIGHT_THEME_COLOR = '#ffffff';
+export const LIGHT_THEME_COLOR = '#F3F5F8';
 
 export const THEME_COLORS: Record<'dark' | 'light', string> = {
   dark: DARK_THEME_COLOR,
