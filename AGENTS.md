@@ -13,6 +13,13 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Cool light theme palette (2026-10-07)
+
+- **`src/app/globals.css`** — `.light` overrides retuned to the cool gray palette: background `#F3F5F8`, foreground `#0F172A`, card/popover `#FFFFFF`, border/input `#E2E6EC`, muted (chips/inactive pills) `#E8ECF1`, muted-foreground `#64748B`. Dark theme unchanged.
+- **`src/hooks/useThemeColor.ts`** — `LIGHT_THEME_COLOR` → `#F3F5F8` so the native status bar matches the new page background.
+- **Tests** — `ThemeColorSync.test.tsx` expects `#F3F5F8`.
+- Verified: `npx tsc --noEmit` clean; touched files eslint-clean; `npx vitest run` **258/258** (28 files).
+
 ## Poll notifications show the actual poll question (2026-08-15)
 
 - **`src/types/notification.ts`** — the notification `post` preview gained optional `pollQuestion?: string` (mirrors the backend `postPreview` payload; the backend strips the full `poll` subdocument, so only the question is available).

@@ -17,6 +17,7 @@
   --color-input: #27272A;
   --color-accent: var(--accent);
   --color-muted: #27272A;
+  --color-muted-foreground: #A1A1AA;
   --color-destructive: #EF4444;
 }
 
@@ -58,14 +59,15 @@
 
 /* Light mode overrides */
 .light {
-  --color-background: #FFFFFF;
-  --color-foreground: #09090B;
-  --color-card: #F4F4F5;
-  --color-popover: #F4F4F5;
-  --color-popover-foreground: #09090B;
-  --color-border: #E4E4E7;
-  --color-input: #E4E4E7;
-  --color-muted: #F4F4F5;
+  --color-background: #F3F5F8;
+  --color-foreground: #0F172A;
+  --color-card: #FFFFFF;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0F172A;
+  --color-border: #E2E6EC;
+  --color-input: #E2E6EC;
+  --color-muted: #E8ECF1;
+  --color-muted-foreground: #64748B;
 }
 
 @layer base {
