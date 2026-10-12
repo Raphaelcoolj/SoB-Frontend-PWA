@@ -17,6 +17,8 @@ import VideoPlayer from '../../../../components/post/VideoPlayer';
 import ReplyPreview from '../../../../components/chat/ReplyPreview';
 import LinkPreviewCard from '../../../../components/shared/LinkPreviewCard';
 import MentionText from '../../../../components/shared/MentionText';
+import GifPicker from '../../../../components/shared/GifPicker';
+import { fetchGifFile, isGifUrl, type GifResult } from '../../../../lib/gif';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { formatFileSize } from '../../../../lib/utils';
@@ -179,6 +181,7 @@ function ChatConversation() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; messageIds: string[] }>({ open: false, messageIds: [] });
@@ -564,6 +567,20 @@ function ChatConversation() {
     const reader = new FileReader();
     reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
     reader.readAsDataURL(croppedFile);
+  };
+
+  // GIF pick → download to a File and stage it in the existing media preview,
+  // so sending rides the normal multipart upload (backend accepts image/gif).
+  const handleGifSelect = async (gif: GifResult) => {
+    setShowGifPicker(false);
+    if (!conversationId) return;
+    try {
+      const file = await fetchGifFile(gif.url, gif.id);
+      setSelectedFile(file);
+      setPreviewImage(gif.url);
+    } catch {
+      toast.error('Could not add GIF. Please try again.');
+    }
   };
 
   const handleUploadMedia = async () => {
@@ -976,6 +993,11 @@ function ChatConversation() {
                               className="w-full max-h-[350px] object-cover cursor-pointer rounded-xl"
                               onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
                             />
+                            {isGifUrl(mediaItem.url) && (
+                              <span className="absolute top-1.5 left-1.5 bg-black/65 text-white text-[9px] font-extrabold tracking-wide px-1.5 py-0.5 rounded pointer-events-none">
+                                GIF
+                              </span>
+                            )}
                             <div className={`absolute bottom-1.5 right-1.5 bg-black/50 px-1.5 py-0.5 rounded-md flex items-center gap-1 ${msg.text || msg.replyTo ? 'opacity-90' : ''}`}>
                               <span className="text-white/90 text-[10px] leading-none">{isTemp ? '···' : formatTime(msg.createdAt)}</span>
                               {mine && !isTemp && (
@@ -1382,6 +1404,20 @@ function ChatConversation() {
                   <p className="text-[11px] text-muted-foreground/70">PDF, Word, etc.</p>
                 </div>
               </button>
+              {/* GIF */}
+              <button
+                onClick={() => { setShowAttachMenu(false); setShowGifPicker(true); }}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-muted hover:bg-orange-500/10 border border-border/40 transition-all active:scale-95 cursor-pointer group"
+                data-testid="attach-gif"
+              >
+                <div className="w-12 h-12 rounded-xl bg-orange-500/15 flex items-center justify-center group-hover:bg-orange-500/25 transition-colors">
+                  <span className="text-sm font-black tracking-wide text-orange-500">GIF</span>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-foreground">GIF</p>
+                  <p className="text-[11px] text-muted-foreground/70">Search trending</p>
+                </div>
+              </button>
             </div>
             <button
               onClick={() => setShowAttachMenu(false)}
@@ -1392,6 +1428,12 @@ function ChatConversation() {
           </div>
         </div>
       )}
+
+      <GifPicker
+        open={showGifPicker}
+        onClose={() => setShowGifPicker(false)}
+        onSelect={handleGifSelect}
+      />
 
       {/* Image preview modal */}
       {previewImage && previewImage !== 'document' && (

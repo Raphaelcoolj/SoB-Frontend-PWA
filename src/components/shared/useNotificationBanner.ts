@@ -62,6 +62,19 @@ export const dismissNotificationBanner = () => {
   setDismissed(true);
 };
 
+/**
+ * Clear the shared dismissal (storage + module state) and notify subscribers.
+ * Test-only helper so each banner test starts from a clean, non-dismissed state —
+ * the dismissal lives at module scope by design (banner + coordinator agree).
+ */
+export const resetNotificationBannerDismissal = () => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(NOTIFICATION_DISMISS_KEY);
+  }
+  dismissedInitialized = false;
+  setDismissed(false);
+};
+
 export function useNotificationBanner() {
   syncDismissedFromStorage();
   const dismissed = useSyncExternalStore(subscribeDismissed, getDismissed, getDismissed);
@@ -76,8 +89,11 @@ export function useNotificationBanner() {
   const platformBlocked = getPushPlatform() === 'ios' && !isStandalonePwa;
 
   const showPrompt = !!user && !platformBlocked && !dismissed && state.status === 'prompt';
-  const showDenied = !!user && state.status === 'denied';
-  const showError = !!user && state.status === 'error';
+  // Denied/error also honour the dismissal: once the user hits X (or "Not now"),
+  // the blocked banner stays away for the same 7-day re-ask window instead of
+  // reappearing on every navigation.
+  const showDenied = !!user && !dismissed && state.status === 'denied';
+  const showError = !!user && !dismissed && state.status === 'error';
   const showLoading = !!user && state.status === 'loading';
 
   // Eligible = would render once the reveal delay elapses. The coordinator uses

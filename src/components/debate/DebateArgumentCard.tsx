@@ -21,10 +21,14 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  Share2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { UserAvatar } from '../user/UserAvatar';
 import MentionText from '../shared/MentionText';
 import MentionTextarea from '../shared/MentionTextarea';
+import GifPicker, { GifButton, appendGifUrl } from '../shared/GifPicker';
+import { extractGifUrls, stripGifUrls, isGifUrl } from '../../lib/gif';
 import { useAuth } from '../../hooks/useAuth';
 import { track } from '../../lib/analytics';
 import { formatDistanceToNow } from '../../lib/utils';
@@ -56,6 +60,7 @@ function RebuttalComposer({ argument, defaultSide, debateId, onCreated }: Rebutt
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
 
   const submit = async () => {
     if (!body.trim() || busy) return;
@@ -115,7 +120,12 @@ function RebuttalComposer({ argument, defaultSide, debateId, onCreated }: Rebutt
         className="w-full text-sm bg-background border border-border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-accent"
       />
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      <div className="flex justify-end mt-2">
+      <div className="flex items-center justify-between mt-2">
+        <GifButton
+          onClick={() => setGifPickerOpen(true)}
+          disabled={busy}
+          testId="rebuttal-gif-button"
+        />
         <button
           type="button"
           onClick={submit}
@@ -126,6 +136,11 @@ function RebuttalComposer({ argument, defaultSide, debateId, onCreated }: Rebutt
           Post rebuttal
         </button>
       </div>
+      <GifPicker
+        open={gifPickerOpen}
+        onClose={() => setGifPickerOpen(false)}
+        onSelect={(gif) => setBody((prev) => appendGifUrl(prev, gif.url))}
+      />
     </div>
   );
 }
@@ -173,9 +188,11 @@ interface DebateArgumentCardProps {
   argument: DebateArgument;
   depth?: number;
   debateId?: string;
+  /** Owning post id — needed to build argument share links. */
+  postId?: string;
 }
 
-export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp }: DebateArgumentCardProps) {
+export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp, postId }: DebateArgumentCardProps) {
   const resolvedDebateId = debateIdProp || argument.debate;
   const { user } = useAuth();
   const [voteState, setVoteState] = useState({
@@ -290,6 +307,28 @@ export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp
       ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
       : 'bg-red-500/10 text-red-500 border-red-500/30';
 
+  const gifUrls = extractGifUrls(argument.body);
+  const bodyText = stripGifUrls(argument.body) || argument.body;
+
+  const handleShare = async () => {
+    if (!postId) return;
+    const shareUrl = `${window.location.origin}/post/${postId}?tab=debate&argument=${argument._id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Debate argument on SoB',
+          text: (bodyText || argument.body).slice(0, 100),
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch {
+      // User dismissed the share sheet.
+    }
+  };
+
   return (
     <article
       id={`argument-${argument._id}`}
@@ -309,9 +348,35 @@ export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp
         </span>
       </div>
 
-      <MentionText text={argument.body} className="text-sm text-foreground whitespace-pre-wrap" />
+      {(bodyText.length > 0 || gifUrls.length === 0) && (
+        <MentionText
+          text={bodyText.length > 0 ? bodyText : argument.body}
+          className="text-sm text-foreground whitespace-pre-wrap"
+        />
+      )}
+      {gifUrls.map((gifUrl) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={gifUrl}
+          src={gifUrl}
+          alt="GIF"
+          className="mt-2 max-h-60 w-auto max-w-full rounded-lg object-contain"
+          loading="lazy"
+          data-testid={`argument-gif-${argument._id}`}
+        />
+      ))}
 
-      {argument.evidence?.url && (
+      {argument.evidence?.url && isGifUrl(argument.evidence.url) && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={argument.evidence.url}
+          alt="Evidence GIF"
+          className="mt-2 max-h-60 w-auto max-w-full rounded-lg object-contain"
+          loading="lazy"
+          data-testid={`evidence-gif-${argument._id}`}
+        />
+      )}
+      {argument.evidence?.url && !isGifUrl(argument.evidence.url) && (
         <a
           href={argument.evidence.url}
           target="_blank"
@@ -380,6 +445,18 @@ export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp
         </button>
 
         <div className="ml-auto flex items-center gap-1">
+          {postId && (
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Share argument"
+              title="Share argument"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-accent hover:bg-accent/10"
+              data-testid={`share-argument-${argument._id}`}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {(isOwn || isAdmin) && (
             <button
               type="button"
@@ -420,7 +497,7 @@ export function DebateArgumentCard({ argument, depth = 0, debateId: debateIdProp
             <p className="text-xs text-muted-foreground py-1">No rebuttals yet.</p>
           )}
           {rebuttals.map((reb) => (
-            <DebateArgumentCard key={reb._id} argument={reb} depth={Math.min(depth + 1, MAX_DEPTH)} debateId={resolvedDebateId} />
+            <DebateArgumentCard key={reb._id} argument={reb} depth={Math.min(depth + 1, MAX_DEPTH)} debateId={resolvedDebateId} postId={postId} />
           ))}
           {rebuttals.length > 0 && rebuttals.length < rebuttalsTotal && (
             <button

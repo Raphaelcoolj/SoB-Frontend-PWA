@@ -18,9 +18,12 @@ import {
   CheckCircle2,
   Flag,
   Plus,
+  Share2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { UserAvatar } from '../user/UserAvatar';
 import MentionTextarea from '../shared/MentionTextarea';
+import GifPicker, { GifButton } from '../shared/GifPicker';
 import { useAuth } from '../../hooks/useAuth';
 import { track } from '../../lib/analytics';
 import { formatDistanceToNow, formatDateShort } from '../../lib/utils';
@@ -195,6 +198,7 @@ function ArgumentComposer({
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
 
   const submit = async () => {
     if (!body.trim() || busy) return;
@@ -244,6 +248,11 @@ function ArgumentComposer({
           placeholder="Evidence URL (optional)"
           className="flex-1 text-xs bg-background border border-border rounded-lg px-2 py-1.5 focus:outline-none"
         />
+        <GifButton
+          onClick={() => setGifPickerOpen(true)}
+          disabled={status !== 'OPEN' || !user}
+          testId="argument-gif-button"
+        />
         <button
           type="button"
           onClick={submit}
@@ -254,6 +263,11 @@ function ArgumentComposer({
         </button>
       </div>
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      <GifPicker
+        open={gifPickerOpen}
+        onClose={() => setGifPickerOpen(false)}
+        onSelect={(gif) => setEvidenceUrl(gif.url)}
+      />
     </div>
   );
 }
@@ -295,11 +309,12 @@ function ReportMenu({ onReport }: { onReport: (reason: string) => void }) {
 
 interface DebateViewProps {
   debate: Debate;
+  postId: string;
   currentUserId?: string;
   onDebateChanged: (d: Debate) => void;
 }
 
-function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateViewProps) {
+function DebateView({ debate: initial, postId, currentUserId, onDebateChanged }: DebateViewProps) {
   const [debate, setDebate] = useState<Debate>(initial);
   const [side, setSide] = useState<DebateSide>('FOR');
   const [args, setArgs] = useState<DebateArgument[]>([]);
@@ -361,6 +376,24 @@ function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateV
     }
   };
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/post/${postId}?tab=debate`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Debate on SoB',
+          text: debate.proposition.slice(0, 100),
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch {
+      // User dismissed the share sheet.
+    }
+  };
+
   const forPct = debate.stats?.forPct ?? 50;
   const againstPct = debate.stats?.againstPct ?? 50;
 
@@ -383,6 +416,16 @@ function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateV
             {debate.status}
           </span>
           <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleShare}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-accent hover:bg-accent/10"
+              aria-label="Share debate"
+              title="Share debate"
+              data-testid="share-debate"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
             {isCreator && isOpen && (
               <button
                 type="button"
@@ -482,7 +525,7 @@ function DebateView({ debate: initial, currentUserId, onDebateChanged }: DebateV
           </div>
         )}
         {args.map((arg) => (
-          <DebateArgumentCard key={arg._id} argument={arg} debateId={debate._id} />
+          <DebateArgumentCard key={arg._id} argument={arg} debateId={debate._id} postId={postId} />
         ))}
         {!argsLoading && args.length < total && (
           <button
@@ -613,6 +656,7 @@ export default function DebateSection({ postId, contentType, initialArgumentId }
         <DebateView
           key={activeDebate._id}
           debate={activeDebate}
+          postId={postId}
           currentUserId={user?._id}
           onDebateChanged={(updated) => {
             setDebates((prev) => prev?.map((d) => (d._id === updated._id ? updated : d)) ?? null);
