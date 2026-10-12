@@ -170,6 +170,7 @@ function ChatConversation() {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [isVideoTrimmerOpen, setIsVideoTrimmerOpen] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [preparingGif, setPreparingGif] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTick, setRecordingTick] = useState(0);
@@ -576,20 +577,37 @@ function ChatConversation() {
     setShowGifPicker(false);
     if (!conversationId) return;
     setPreviewImage(gif.url);
+    setSelectedFile(null);
+    setPreparingGif(true);
     try {
       const file = await fetchGifFile(gif.url, gif.id);
       setSelectedFile(file);
     } catch {
       toast.error('Could not prepare GIF. Press send to retry.');
+    } finally {
+      setPreparingGif(false);
     }
   };
 
   const handleUploadMedia = async () => {
-    if (!selectedFile || !conversationId) return;
+    if (!conversationId) return;
+    let fileToUpload = selectedFile;
+    if (!fileToUpload && previewImage && isGifUrl(previewImage)) {
+      setUploadingMedia(true);
+      try {
+        fileToUpload = await fetchGifFile(previewImage);
+        setSelectedFile(fileToUpload);
+      } catch {
+        toast.error('Could not prepare GIF. Please try again.');
+        setUploadingMedia(false);
+        return;
+      }
+    }
+    if (!fileToUpload) return;
     setUploadingMedia(true);
     try {
       const formData = new FormData();
-      formData.append('media', selectedFile);
+      formData.append('media', fileToUpload);
       if (text.trim()) formData.append('text', text.trim());
       if (replyTo) formData.append('replyTo', JSON.stringify({ _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType }));
       const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, {
@@ -1220,12 +1238,25 @@ function ChatConversation() {
         <div className="flex items-end gap-2">
           {/* Attach button — hidden during recording/voice preview */}
           {!isRecording && !recordedAudioUrl && (
-            <button
-              onClick={() => setShowAttachMenu(true)}
-              className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer border border-border/50"
-            >
-              <Plus className="w-5 h-5 text-foreground" />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAttachMenu(true)}
+                className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer border border-border/50"
+                aria-label="Add attachment"
+              >
+                <Plus className="w-5 h-5 text-foreground" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGifPicker(true)}
+                className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer border border-border/50 text-xs font-black text-muted-foreground hover:text-foreground"
+                aria-label="Send GIF"
+                data-testid="chat-direct-gif-button"
+              >
+                GIF
+              </button>
+            </>
           )}
           <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
           <input ref={docInputRef} type="file" accept="*/*" className="hidden" onChange={handleDocumentSelect} />
@@ -1458,11 +1489,16 @@ function ChatConversation() {
               </button>
               <button
                 onClick={handleUploadMedia}
-                disabled={uploadingMedia}
+                disabled={uploadingMedia || preparingGif}
                 className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
-                {uploadingMedia ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {uploadingMedia || preparingGif ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>{preparingGif ? 'Preparing GIF...' : 'Sending...'}</span>
+                  </>
+                ) : isGifUrl(previewImage) ? (
+                  <>Send GIF</>
                 ) : (
                   <><ImageIcon className="w-4 h-4" /> Send Image</>
                 )}
