@@ -4,10 +4,10 @@
   "private": true,
   "browserslist": {
     "production": [
-      ">0.2%",
-      "not dead",
-      "iOS >= 12",
-      "Chrome >= 49"
+      "chrome 111",
+      "edge 111",
+      "firefox 111",
+      "safari 16.4"
     ],
     "development": [
       "last 1 chrome version",
