@@ -13,6 +13,23 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Testing policy — local MongoDB only, never download
+
+Backend tests (in `sob-backend`) require `MONGODB_SYSTEM_BINARY` to point at a local `mongod` before `npm test` — on this machine `export MONGODB_SYSTEM_BINARY="$HOME/.local/bin/mongod"` (v8.2.6). Binary downloads are forbidden (`mongodb-memory-server` must never fetch); `tests/helpers/db.js` fails fast when the var is unset. This repo's own vitest suite does not use MongoDB. Never hardcode another machine's path into shared config.
+
+## GIFs in chat/comments/debates, shareable comments/debates, notifications-banner X (2026-10-09)
+
+PWA parity with the native GIF+share batch (see `sob-native-app/AGENTS.md`, same day). Backend pieces (Giphy proxy `GET /api/giphy/search`, GIF magic bytes) live in `sob-backend/AGENTS.md`. Pure client work.
+
+- **`src/lib/gif.ts`** (new) — `GifResult` type, `isGifUrl`, `extractGifUrls`, `stripGifUrls` (newline-aware: `"first\n<url>\nsecond"` → `"first\nsecond"`; no GIF URL → text returned untouched), `fetchGifFile(url)` → CORS-fetches the GIF into a `File` for the existing multipart upload path (mock fetch as `{ok, status, blob}` in tests — jsdom `Response` lacks `.stream()`). Tests: `src/lib/gif.test.ts` (10).
+- **`src/components/shared/GifPicker.tsx`** (new) — full-screen picker modal: trending default, 350ms debounced live search, generation-counter request cancellation, infinite scroll pagination, error/retry, `data-testid`s (`gif-picker-close`, `gif-search-input`, `gif-result-<id>`, `gif-retry`). Reset/load on open is deferred via `window.setTimeout(..., 0)` (react-hooks/set-state-in-effect). Also exports `GifButton` (pill "GIF"), `appendGifUrl`, `gifPickFailed` (sonner toast). Raw `<img>` carries the repo-conventional `eslint-disable-next-line @next/next/no-img-element`.
+- **Notifications banner X** — `useNotificationBanner.ts`: `showDenied`/`showError` now gate on `!dismissed` (the X actually dismisses the error variant too); new `resetNotificationBannerDismissal()` test helper (module state + localStorage). `NotificationEnableBanner.tsx`: X button in denied branch (`Dismiss notification banner`) and error branch. Tests updated/added.
+- **Comment GIFs + share + highlight** — `CommentSection.tsx`: `highlightCommentId` prop with a 400ms `scrollIntoView` effect (after SWR data load), GIF button row (`comment-gif-button`) + mounted `GifPicker` appending the URL, highlight passed to `CommentCard`. `CommentCard.tsx`: `highlight` accent ring, root `id="comment-<id>"`, body split via `stripGifUrls`/`extractGifUrls` with inline `<img>`s (`comment-gif-<id>`), Share button (`share-comment-<id>` → `?tab=comments&comment=<id>` via navigator.share → clipboard + toast fallback).
+- **Deep link** — `PostClient.tsx`: `initialCommentId` state; effect reads `?tab=comments`, defers `setActiveTab('comments')` via `setTimeout(..., 0)` and sets the id; both `<CommentSection>` usages receive `highlightCommentId`.
+- **Debate GIFs + share** — `DebateSection.tsx`: `ArgumentComposer` GIF button (`argument-gif-button`) sets `evidenceUrl`; `DebateView` gains `postId` prop + `handleShare` (`share-debate` → `?tab=debate&argument=`); `postId` threaded into every `DebateArgumentCard`. `DebateArgumentCard.tsx`: `postId` prop, share button (`share-argument-<id>`, before delete/report), body GIF split + inline `<img>`s, GIF evidence renders an `<img>` (`evidence-gif-<id>`) instead of a link chip, `RebuttalComposer` GIF button (`rebuttal-gif-button`) + mounted `GifPicker`, nested renders pass `postId`.
+- **Chat GIFs** — `chats/[conversations]/page.tsx`: GIF attach tile (`attach-gif`) → `fetchGifFile` → `setSelectedFile` + `setPreviewImage(gif.url)` → rides the existing `handleUploadMedia` FormData path as `image/gif`; GIF badge pill on image bubbles; `GifPicker` mounted below the attach sheet.
+- Verified: `npx tsc --noEmit` clean; `npm run lint` 0 errors / 139 warnings (exact baseline — no new warnings); `npm test` **270 tests pass (29 suites)**.
+
 ## Cool light theme palette (2026-10-07)
 
 - **`src/app/globals.css`** — `.light` overrides retuned to the cool gray palette: background `#F3F5F8`, foreground `#0F172A`, card/popover `#FFFFFF`, border/input `#E2E6EC`, muted (chips/inactive pills) `#E8ECF1`, muted-foreground `#64748B`. Dark theme unchanged.

@@ -9,13 +9,15 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Reply, MoreHorizontal, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, Reply, MoreHorizontal, Trash2, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import useSWR from 'swr';
+import { toast } from 'sonner';
 import { useAuthStore } from '../../store/authStore';
 import { UserAvatar } from '../user/UserAvatar';
 import MentionText from '../shared/MentionText';
 import { fetchWithAuth } from '../../lib/api';
 import { formatDistanceToNow } from '../../lib/utils';
+import { extractGifUrls, stripGifUrls } from '../../lib/gif';
 import { Comment } from '../../types/comment';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -25,6 +27,8 @@ interface CommentCardProps {
   onReply?: (commentId: string, username: string) => void;
   onDelete?: (commentId: string) => void;
   depth?: number;
+  /** Deep-linked comment — ring-tinted so it stands out after scrolling. */
+  highlight?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
@@ -34,7 +38,8 @@ export default function CommentCard({
   postId, 
   onReply, 
   onDelete,
-  depth = 0
+  depth = 0,
+  highlight = false
 }: CommentCardProps) {
   const { user, accessToken } = useAuthStore();
   const [isLiked, setIsLiked] = useState(comment.likes?.includes(user?._id || ''));
@@ -67,9 +72,32 @@ export default function CommentCard({
 
   const isOwnComment = user?._id === comment.author?._id;
   const hasReplies = (comment.repliesCount || 0) > 0;
+  const gifUrls = extractGifUrls(comment.body);
+  const textBody = stripGifUrls(comment.body);
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/post/${postId}?tab=comments&comment=${comment._id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${comment.author?.name} on SoB`,
+          text: (textBody || comment.body).slice(0, 100),
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch {
+      // User dismissed the share sheet.
+    }
+  };
 
   return (
-    <div className={`flex flex-col gap-1 group relative ${depth > 0 ? 'mt-2' : ''}`}>
+    <div
+      id={`comment-${comment._id}`}
+      className={`flex flex-col gap-1 group relative ${depth > 0 ? 'mt-2' : ''}`}
+    >
       <div className="flex gap-3 relative">
         {/* Thread line for nested comments */}
         {hasReplies && showReplies && (
@@ -81,17 +109,30 @@ export default function CommentCard({
         </Link>
         
         <div className="flex-1 space-y-1.5">
-          <div className="bg-card p-3 rounded-2xl rounded-tl-none border border-border group-hover:border-border/80 transition-colors">
+          <div className={`bg-card p-3 rounded-2xl rounded-tl-none border transition-colors ${highlight ? 'border-accent ring-2 ring-accent/40' : 'border-border group-hover:border-border/80'}`}>
             <div className="flex items-center justify-between mb-1">
               <Link href={`/profile/${comment.author?.username}`} className="text-xs font-semibold text-foreground hover:text-accent transition-colors">
                 {comment.author?.name}
               </Link>
               <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(comment.createdAt)}</span>
             </div>
-            <MentionText
-              text={comment.body}
-              className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed"
-            />
+            {(textBody.length > 0 || gifUrls.length === 0) && (
+              <MentionText
+                text={textBody.length > 0 ? textBody : comment.body}
+                className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed"
+              />
+            )}
+            {gifUrls.map((gifUrl) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={gifUrl}
+                src={gifUrl}
+                alt="GIF"
+                className="mt-1.5 max-h-60 w-auto max-w-full rounded-lg object-contain"
+                loading="lazy"
+                data-testid={`comment-gif-${comment._id}`}
+              />
+            ))}
           </div>
 
           <div className="flex items-center gap-4 pl-1">
@@ -109,6 +150,16 @@ export default function CommentCard({
             >
               <Reply className="w-3 h-3" />
               <span>Reply</span>
+            </button>
+
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all active:scale-90"
+              data-testid={`share-comment-${comment._id}`}
+              aria-label="Share comment"
+            >
+              <Share2 className="w-3 h-3" />
+              <span>Share</span>
             </button>
 
             {isOwnComment && (

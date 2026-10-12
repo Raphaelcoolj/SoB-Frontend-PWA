@@ -36,6 +36,7 @@ export default function PostClient({ postId }: PostClientProps) {
 
   const [activeTab, setActiveTab] = useState<ArticleTab>('overview');
   const [initialArgumentId, setInitialArgumentId] = useState<string | undefined>(undefined);
+  const [initialCommentId, setInitialCommentId] = useState<string | undefined>(undefined);
   const [showFullDebate, setShowFullDebate] = useState(false);
 
   const post = data?.post;
@@ -94,6 +95,21 @@ export default function PostClient({ postId }: PostClientProps) {
     }, 300);
     return () => window.clearTimeout(t);
   }, [post?.contentType]);
+
+  // Deep link: /post/:id?tab=comments&comment=:commentId. Switches articles to
+  // the Comments tab and hands the id to CommentSection, which tints + scrolls
+  // to the comment once the list loads (short posts always render comments, so
+  // the scroll happens there regardless of tab state).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') !== 'comments') return;
+    const commentId = params.get('comment') ?? undefined;
+    const t = window.setTimeout(() => {
+      if (commentId) setInitialCommentId(commentId);
+      setActiveTab('comments');
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
 
   if (isLoading) {
     return (
@@ -158,7 +174,7 @@ export default function PostClient({ postId }: PostClientProps) {
 
           {activeTab === 'comments' && (
             <div className="bg-card border border-border rounded-xl">
-              <CommentSection postId={post._id} contentType={post.contentType} />
+              <CommentSection postId={post._id} contentType={post.contentType} highlightCommentId={initialCommentId} />
             </div>
           )}
 
@@ -171,7 +187,7 @@ export default function PostClient({ postId }: PostClientProps) {
           <PostCard post={post} fullView={true} />
 
           <div className="bg-card border border-border rounded-xl">
-            <CommentSection postId={post._id} contentType={post.contentType} />
+            <CommentSection postId={post._id} contentType={post.contentType} highlightCommentId={initialCommentId} />
           </div>
 
           {showFullDebate ? (

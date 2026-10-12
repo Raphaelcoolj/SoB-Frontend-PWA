@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import NotificationEnableBanner from './NotificationEnableBanner';
+import { resetNotificationBannerDismissal } from './useNotificationBanner';
 import type { PushEnableState } from '../../hooks/usePushEnable';
 
 const mocks = vi.hoisted(() => ({
@@ -55,6 +56,9 @@ describe('NotificationEnableBanner', () => {
     mocks.hookState = { status: 'checking' };
     mocks.platform = 'web';
     window.localStorage.clear();
+    // The dismissal is module-scope shared state — reset so a dismiss test
+    // never hides the banner for the tests that run after it.
+    resetNotificationBannerDismissal();
   });
 
   afterEach(() => {
@@ -125,11 +129,35 @@ describe('NotificationEnableBanner', () => {
     expect(mocks.push).toHaveBeenCalledWith('/settings/notifications');
   });
 
+  it('dismisses the blocked variant so it stays away for the re-ask window', () => {
+    mocks.hookState = { status: 'denied' };
+    const { rerender } = render(<NotificationEnableBanner />);
+    expect(screen.getByText('Notifications are blocked for this browser.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification banner' }));
+    expect(screen.queryByText('Notifications are blocked for this browser.')).not.toBeInTheDocument();
+
+    // Re-render shortly after: still hidden.
+    rerender(<NotificationEnableBanner />);
+    expect(screen.queryByText('Notifications are blocked for this browser.')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('sob-push-prompt-dismissed')).toBeTruthy();
+  });
+
   it('shows the error variant with a retry action', () => {
     mocks.hookState = { status: 'error', message: 'VAPID key not configured' };
     render(<NotificationEnableBanner />);
     expect(screen.getByText('VAPID key not configured')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it('offers a dismiss control on the error variant too', () => {
+    mocks.hookState = { status: 'error', message: 'VAPID key not configured' };
+    const { rerender } = render(<NotificationEnableBanner />);
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification prompt' }));
+    expect(screen.queryByText('VAPID key not configured')).not.toBeInTheDocument();
+
+    rerender(<NotificationEnableBanner />);
+    expect(screen.queryByText('VAPID key not configured')).not.toBeInTheDocument();
   });
 
   it('hides on iOS Safari unless the PWA is installed', () => {

@@ -52,14 +52,23 @@ export default function NotificationEnableBanner() {
         </div>
 
         {isDenied ? (
-          <Button
-            size="sm"
-            className="shrink-0 text-xs h-8 px-3"
-            onClick={() => router.push('/settings/notifications')}
-          >
-            <Settings className="w-3.5 h-3.5 mr-1.5" />
-            Settings
-          </Button>
+          <>
+            <Button
+              size="sm"
+              className="shrink-0 text-xs h-8 px-3"
+              onClick={() => router.push('/settings/notifications')}
+            >
+              <Settings className="w-3.5 h-3.5 mr-1.5" />
+              Settings
+            </Button>
+            <button
+              onClick={handleDismiss}
+              className="shrink-0 p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss notification banner"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </>
         ) : (
           <>
             <Button
@@ -70,16 +79,14 @@ export default function NotificationEnableBanner() {
             >
               {isError ? 'Retry' : 'Enable'}
             </Button>
-            {!isError && (
-              <button
-                onClick={handleDismiss}
-                disabled={isBusy}
-                className="shrink-0 p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
-                aria-label="Dismiss notification prompt"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              onClick={handleDismiss}
+              disabled={isBusy}
+              className="shrink-0 p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+              aria-label="Dismiss notification prompt"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </>
         )}
       </div>

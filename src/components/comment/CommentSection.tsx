@@ -5,7 +5,7 @@
  * @description Manages the comment list for a post with infinite loading.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useSWRInfinite from 'swr/infinite';
 import { Send, X, MessageCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -16,23 +16,27 @@ import CommentCard from './CommentCard';
 import { Button } from '../ui/Button';
 import MentionTextarea from '../shared/MentionTextarea';
 import { Skeleton } from '../ui/Skeleton';
+import GifPicker, { GifButton, appendGifUrl } from '../shared/GifPicker';
 import { Comment } from '../../types/comment';
 
 interface CommentSectionProps {
   postId: string;
   contentType?: 'post' | 'article';
+  /** Deep-linked comment id (?comment=<id>) — tinted + scrolled into view. */
+  highlightCommentId?: string;
 }
 
 const PAGE_SIZE = 10;
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
 
-export default function CommentSection({ postId, contentType }: CommentSectionProps) {
+export default function CommentSection({ postId, contentType, highlightCommentId }: CommentSectionProps) {
   const { user, accessToken } = useAuthStore();
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
   const [commentType, setCommentType] = useState<'comment' | 'debate'>('comment');
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
 
   const getKey = (pageIndex: number, previousPageData: any) => {
     if (previousPageData && !previousPageData.comments.length) return null;
@@ -40,6 +44,18 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
   };
 
   const { data, mutate, error, size, setSize, isValidating } = useSWRInfinite(getKey, fetcher);
+
+  // Deep link (?tab=comments&comment=<id>): once the list has loaded, scroll
+  // the tinted comment into view.
+  useEffect(() => {
+    if (!highlightCommentId || !data) return;
+    const t = window.setTimeout(() => {
+      document
+        .getElementById(`comment-${highlightCommentId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [highlightCommentId, data]);
 
   const comments: Comment[] = data ? data.map(page => page.comments).flat() : [];
   const isLoadingInitialData = !data && !error;
@@ -145,6 +161,7 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
                   postId={postId} 
                   onReply={handleReply}
                   onDelete={handleDelete}
+                  highlight={comment._id === highlightCommentId}
                 />
               ))}
             </div>
@@ -208,6 +225,15 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
                 rows={3}
                 className="w-full h-20 p-4 text-sm rounded-2xl border border-border bg-background focus:ring-2 focus:ring-accent/20 focus:border-accent focus:outline-none transition-all resize-none"
               />
+              {accessToken && (
+                <div className="flex mt-1.5">
+                  <GifButton
+                    onClick={() => setGifPickerOpen(true)}
+                    disabled={isSubmitting}
+                    testId="comment-gif-button"
+                  />
+                </div>
+              )}
             </div>
             <Button 
               type="submit" 
@@ -219,6 +245,12 @@ export default function CommentSection({ postId, contentType }: CommentSectionPr
             </Button>
           </div>
         </form>
+
+        <GifPicker
+          open={gifPickerOpen}
+          onClose={() => setGifPickerOpen(false)}
+          onSelect={(gif) => setCommentText((prev) => appendGifUrl(prev, gif.url))}
+        />
       </div>
     </div>
   );
