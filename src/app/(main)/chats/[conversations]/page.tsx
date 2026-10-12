@@ -598,16 +598,20 @@ function ChatConversation() {
         fileToUpload = await fetchGifFile(previewImage);
         setSelectedFile(fileToUpload);
       } catch {
-        toast.error('Could not prepare GIF. Please try again.');
-        setUploadingMedia(false);
-        return;
+        // Fallback: send as direct mediaUrl so user is never blocked
+        fileToUpload = null;
       }
     }
-    if (!fileToUpload) return;
+    if (!fileToUpload && !previewImage) return;
     setUploadingMedia(true);
     try {
       const formData = new FormData();
-      formData.append('media', fileToUpload);
+      if (fileToUpload) {
+        formData.append('media', fileToUpload);
+      } else if (previewImage) {
+        formData.append('mediaUrl', previewImage);
+        formData.append('mediaType', 'image');
+      }
       if (text.trim()) formData.append('text', text.trim());
       if (replyTo) formData.append('replyTo', JSON.stringify({ _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType }));
       const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, {
@@ -1472,7 +1476,7 @@ function ChatConversation() {
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6">
           <div className="bg-card border border-border rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl">
             <div className="relative">
-              <img src={previewImage} alt="Preview" className="w-full max-h-80 object-contain bg-black/50" />
+              <img src={previewImage} alt="Preview" referrerPolicy="no-referrer" crossOrigin="anonymous" className="w-full max-h-80 object-contain bg-black/50" />
               <button
                 onClick={() => { setPreviewImage(null); setSelectedFile(null); }}
                 className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"

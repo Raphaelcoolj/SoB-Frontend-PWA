@@ -29,7 +29,7 @@ const GIF_URL_REGEX = /https?:\/\/[^\s<>"'()\]]+?\.gif(\?[^\s<>"'()\]]*)?(#[^\s<
 export function isGifUrl(url?: string | null): boolean {
   if (!url || typeof url !== 'string') return false;
   const clean = url.split(/[?#]/)[0].toLowerCase();
-  return clean.endsWith('.gif');
+  return clean.endsWith('.gif') || clean.includes('giphy.com') || clean.includes('/gif');
 }
 
 /** All GIF URLs found in a text body, in order of appearance. */
@@ -66,7 +66,7 @@ export function stripGifUrls(text: string): string {
  * works from the browser.
  */
 export async function fetchGifFile(url: string, idHint = 'gif'): Promise<File> {
-  const res = await fetch(url);
+  const res = await fetch(url, { referrerPolicy: 'no-referrer', mode: 'cors' });
   if (!res.ok) throw new Error(`GIF download failed (HTTP ${res.status})`);
   const blob = await res.blob();
   const safeHint = idHint.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) || 'gif';
