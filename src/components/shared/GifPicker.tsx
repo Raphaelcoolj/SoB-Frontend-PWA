@@ -210,7 +210,7 @@ export default function GifPicker({ open, onClose, onSelect }: GifPickerProps) {
                       src={gif.previewUrl}
                       alt={gif.title || 'GIF'}
                       loading="lazy"
-                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer" crossOrigin="anonymous" className="w-full h-full object-cover"
                     />
                   </button>
                 ))}
