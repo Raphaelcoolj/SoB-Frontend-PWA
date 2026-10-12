@@ -569,17 +569,18 @@ function ChatConversation() {
     reader.readAsDataURL(croppedFile);
   };
 
-  // GIF pick → download to a File and stage it in the existing media preview,
-  // so sending rides the normal multipart upload (backend accepts image/gif).
+  // GIF pick → show the preview immediately from the Giphy URL, then fetch
+  // the bytes in the background into a File for the multipart upload.
+  // If the fetch fails the preview stays so the user can retry the send.
   const handleGifSelect = async (gif: GifResult) => {
     setShowGifPicker(false);
     if (!conversationId) return;
+    setPreviewImage(gif.url);
     try {
       const file = await fetchGifFile(gif.url, gif.id);
       setSelectedFile(file);
-      setPreviewImage(gif.url);
     } catch {
-      toast.error('Could not add GIF. Please try again.');
+      toast.error('Could not prepare GIF. Press send to retry.');
     }
   };
 
