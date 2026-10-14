@@ -566,9 +566,20 @@ function ChatConversation() {
   const handleCropComplete = (croppedFile: File) => {
     setIsCropperOpen(false);
     setSelectedFile(croppedFile);
+    if (croppedFile.type.startsWith('video/')) {
+      setPreviewImage(URL.createObjectURL(croppedFile));
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
     reader.readAsDataURL(croppedFile);
+  };
+
+  // Close the media preview and release any object URL created for it.
+  const clearMediaPreview = () => {
+    if (previewImage?.startsWith('blob:')) URL.revokeObjectURL(previewImage);
+    setPreviewImage(null);
+    setSelectedFile(null);
   };
 
   // GIF pick → show the preview immediately from the Giphy URL, then fetch
@@ -623,8 +634,7 @@ function ChatConversation() {
         setText('');
         resetTextarea();
         setReplyTo(null);
-        setPreviewImage(null);
-        setSelectedFile(null);
+        clearMediaPreview();
         mutateMessages();
         track({ event: 'message_sent', properties: { type: 'media' } });
       } else {
@@ -1257,15 +1267,6 @@ function ChatConversation() {
               >
                 <Plus className="w-5 h-5 text-foreground" />
               </button>
-              <button
-                type="button"
-                onClick={() => setShowGifPicker(true)}
-                className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer border border-border/50 text-xs font-black text-muted-foreground hover:text-foreground"
-                aria-label="Send GIF"
-                data-testid="chat-direct-gif-button"
-              >
-                GIF
-              </button>
             </>
           )}
           <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
@@ -1477,14 +1478,19 @@ function ChatConversation() {
         onSelect={handleGifSelect}
       />
 
-      {/* Image preview modal */}
+      {/* Image/video preview modal — media + caption are one message */}
       {previewImage && previewImage !== 'document' && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl">
-            <div className="relative">
-              <img src={previewImage} alt="Preview" referrerPolicy="no-referrer" crossOrigin="anonymous" className="w-full max-h-80 object-contain bg-black/50" />
+          <div className="bg-card border border-border rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl max-h-[90dvh] flex flex-col">
+            <div className="relative flex-shrink-0">
+              {selectedFile?.type.startsWith('video/') ? (
+                <video src={previewImage} controls playsInline className="w-full max-h-[45dvh] bg-black" />
+              ) : (
+                <img src={previewImage} alt="Preview" referrerPolicy="no-referrer" crossOrigin="anonymous" className="w-full max-h-[45dvh] object-contain bg-black/50" />
+              )}
               <button
-                onClick={() => { setPreviewImage(null); setSelectedFile(null); }}
+                onClick={clearMediaPreview}
+                aria-label="Discard media"
                 className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -1496,14 +1502,14 @@ function ChatConversation() {
               placeholder="Add a caption..."
               rows={2}
               maxLength={1000}
-              aria-label="Image caption"
+              aria-label="Media caption"
               disabled={uploadingMedia || preparingGif}
-              className="w-full resize-none bg-transparent border-b border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-0 disabled:opacity-50"
+              className="w-full flex-shrink-0 resize-none bg-transparent border-b border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-0 disabled:opacity-50"
               style={{ maxHeight: 96 }}
             />
-            <div className="flex gap-2 p-3">
+            <div className="flex gap-2 p-3 flex-shrink-0">
               <button
-                onClick={() => { setPreviewImage(null); setSelectedFile(null); }}
+                onClick={clearMediaPreview}
                 className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-all cursor-pointer"
               >
                 Cancel
@@ -1518,6 +1524,8 @@ function ChatConversation() {
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>{preparingGif ? 'Preparing GIF...' : 'Sending...'}</span>
                   </>
+                ) : selectedFile?.type.startsWith('video/') ? (
+                  <><ImageIcon className="w-4 h-4" /> Send Video</>
                 ) : isGifUrl(previewImage) ? (
                   <>Send GIF</>
                 ) : (
