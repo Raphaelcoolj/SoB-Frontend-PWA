@@ -13,6 +13,16 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Comment permalink / thread view — /post/:id/comment/:cid (2026-10-13)
+
+Tapping a comment bubble anywhere in the PWA now opens a full **comment thread view** at `/post/[id]/comment/[commentId]` (industry-standard permalink; native parity same day, see `sob-native-app/AGENTS.md`). Backend contract: `GET /api/comments/:id/context` (see `sob-backend/AGENTS.md`). Old `?tab=comments&comment=<id>` links still work (scroll+tint on the post page) — nothing broke.
+
+- **`src/app/(main)/post/[id]/comment/[commentId]/page.tsx`** (new) — server component route; `generateMetadata` fetches the context endpoint (3s timeout, revalidate 60) for title/description (`"<author> commented on SoB"` + body excerpt); renders `<CommentThread postId commentId>`.
+- **`src/components/comment/CommentThread.tsx`** (new) — client component: fetches the context endpoint; compact post header (Link → `/post/:postId`, `data-testid="thread-post-header"`); ancestor chain rendered newest-closest-first via recursive `AncestorBlock` (compact read-only, avatar sm=w-7, `MentionText` + inline GIF imgs) each with a horizontal connector stub (`absolute -left-5 top-6 w-5 h-px bg-border`) and a vertical gutter line (`absolute left-3 top-2 bottom-2 w-px bg-border`) linking them; the focused comment rendered as a full `CommentCard` with `highlight initialShowReplies`; "View all comments on the post" footer link; loading/error states.
+- **`src/components/comment/CommentCard.tsx`** — the comment body area is now a `TouchableOpacity` (`data-testid={comment-bubble-${id}}`) that `router.push`es to the permalink; author `<Link>` stops propagation so profile still works; new `initialShowReplies` prop initializes `showReplies` so the permalink screen's focused comment auto-loads its replies; `handleShare` now shares the canonical permalink URL (was `?tab=comments&comment=`).
+- Verified: `npx tsc --noEmit` clean; eslint on touched files 0 errors (1 unused-var fixed); `npx vitest run` **270/270 (29 suites)**; `npx next build` clean (`/post/[id]/comment/[commentId]` registered as dynamic route).
+- Note: `(main)` layout still requires auth — unauthenticated shared links hit /login (same as `/post/[id]`; pre-existing, unchanged).
+
 ## Testing policy — local MongoDB only, never download
 
 Backend tests (in `sob-backend`) require `MONGODB_SYSTEM_BINARY` to point at a local `mongod` before `npm test` — on this machine `export MONGODB_SYSTEM_BINARY="$HOME/.local/bin/mongod"` (v8.2.6). Binary downloads are forbidden (`mongodb-memory-server` must never fetch); `tests/helpers/db.js` fails fast when the var is unset. This repo's own vitest suite does not use MongoDB. Never hardcode another machine's path into shared config.

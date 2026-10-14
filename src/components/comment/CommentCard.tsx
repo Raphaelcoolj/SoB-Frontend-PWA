@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Heart, Reply, MoreHorizontal, Trash2, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -29,6 +30,8 @@ interface CommentCardProps {
   depth?: number;
   /** Deep-linked comment — ring-tinted so it stands out after scrolling. */
   highlight?: boolean;
+  /** Permalink pages open the focused comment's replies immediately. */
+  initialShowReplies?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.data);
@@ -39,13 +42,15 @@ export default function CommentCard({
   onReply, 
   onDelete,
   depth = 0,
-  highlight = false
+  highlight = false,
+  initialShowReplies = false
 }: CommentCardProps) {
   const { user, accessToken } = useAuthStore();
+  const router = useRouter();
   const [isLiked, setIsLiked] = useState(comment.likes?.includes(user?._id || ''));
   const [likeCount, setLikeCount] = useState(comment.likes?.length || 0);
   const [showActions, setShowActions] = useState(false);
-  const [showReplies, setShowReplies] = useState(false);
+  const [showReplies, setShowReplies] = useState(initialShowReplies);
 
   // Lazy load replies
   const { data: repliesData, isLoading: isRepliesLoading } = useSWR(
@@ -76,7 +81,8 @@ export default function CommentCard({
   const textBody = stripGifUrls(comment.body);
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/post/${postId}?tab=comments&comment=${comment._id}`;
+    // Canonical permalink — opens the focused comment thread view.
+    const shareUrl = `${window.location.origin}/post/${postId}/comment/${comment._id}`;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -109,9 +115,17 @@ export default function CommentCard({
         </Link>
         
         <div className="flex-1 space-y-1.5">
-          <div className={`bg-card p-3 rounded-2xl rounded-tl-none border transition-colors ${highlight ? 'border-accent ring-2 ring-accent/40' : 'border-border group-hover:border-border/80'}`}>
+          <div
+            onClick={() => router.push(`/post/${postId}/comment/${comment._id}`)}
+            className={`bg-card p-3 rounded-2xl rounded-tl-none border transition-colors cursor-pointer ${highlight ? 'border-accent ring-2 ring-accent/40' : 'border-border group-hover:border-border/80 hover:border-accent/40'}`}
+            data-testid={`comment-bubble-${comment._id}`}
+          >
             <div className="flex items-center justify-between mb-1">
-              <Link href={`/profile/${comment.author?.username}`} className="text-xs font-semibold text-foreground hover:text-accent transition-colors">
+              <Link
+                href={`/profile/${comment.author?.username}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs font-semibold text-foreground hover:text-accent transition-colors"
+              >
                 {comment.author?.name}
               </Link>
               <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(comment.createdAt)}</span>
