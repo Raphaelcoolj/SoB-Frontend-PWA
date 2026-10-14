@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, Reply, MoreHorizontal, Trash2, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
+import VerificationBadge from '../shared/VerificationBadge';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store/authStore';
@@ -121,13 +122,16 @@ export default function CommentCard({
             data-testid={`comment-bubble-${comment._id}`}
           >
             <div className="flex items-center justify-between mb-1">
-              <Link
-                href={`/profile/${comment.author?.username}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs font-semibold text-foreground hover:text-accent transition-colors"
-              >
-                {comment.author?.name}
-              </Link>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Link
+                  href={`/profile/${comment.author?.username}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs font-semibold text-foreground hover:text-accent transition-colors truncate"
+                >
+                  {comment.author?.name}
+                </Link>
+                <VerificationBadge type={comment.author?.verificationBadge ?? 'none'} size={12} />
+              </div>
               <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(comment.createdAt)}</span>
             </div>
             {(textBody.length > 0 || gifUrls.length === 0) && (

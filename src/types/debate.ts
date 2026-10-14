@@ -28,6 +28,7 @@ export interface DebateCreator {
   name: string;
   username: string;
   avatar?: string;
+  verificationBadge?: 'none' | 'blue' | 'gold' | 'silver';
 }
 
 export interface Debate {

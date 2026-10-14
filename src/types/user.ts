@@ -40,6 +40,8 @@ export interface User {
   isVerified: boolean;
   isOnboarded: boolean;
   isPrivate: boolean;
+  /** Server-authoritative verification badge: 'none' | 'blue' | 'gold' | 'silver'. */
+  verificationBadge?: 'none' | 'blue' | 'gold' | 'silver';
   // Relationship flags returned by profile endpoints (viewer-relative).
   isFollowing?: boolean;
   isFollowedBy?: boolean;

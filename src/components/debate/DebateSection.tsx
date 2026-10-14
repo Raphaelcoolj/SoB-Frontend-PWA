@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '../user/UserAvatar';
+import VerificationBadge from '../shared/VerificationBadge';
 import MentionTextarea from '../shared/MentionTextarea';
 import GifPicker, { GifButton } from '../shared/GifPicker';
 import { useAuth } from '../../hooks/useAuth';
@@ -449,6 +450,7 @@ function DebateView({ debate: initial, postId, currentUserId, onDebateChanged }:
             <Link href={`/profile/${creator.username}`} className="flex items-center gap-1 hover:underline">
               <UserAvatar avatar={creator.avatar} name={creator.name} size="xs" />
               Started by {creator.name}
+              <VerificationBadge type={creator.verificationBadge ?? 'none'} size={11} />
             </Link>
           )}
           {debate.closingDate && <span>· closes {formatDateShort(debate.closingDate)}</span>}

@@ -13,6 +13,15 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Verification badges — starburst blue/gold/silver (2026-10-14)
+
+One server-authorized badge per account replaces the old early-adopter/founder chips: **blue = accounts 1–500 (early adopters), gold = founding-team, silver = built but granted to nobody yet.** Backend contract: `User.verificationBadge` (`'none' | 'blue' | 'gold' | 'silver'`, default `'none'`) on every author payload — see `sob-backend/AGENTS.md`. Native parity same day (see `sob-native-app/AGENTS.md`).
+
+- **`src/components/shared/VerificationBadge.tsx`** (new, default export + `VerificationType` named type) — inline `<svg>`: **12-point starburst (scalloped seal)** path with a white checkmark on top (`M8 12.5l2.8 2.8L16.4 9`, strokeWidth 2.4). Colors: blue `#1D9BF0`, gold `#E8A33D`, silver `#9CA3AF`. `type === 'none'` → renders nothing. Props `{ type, size = 14, className? }`; `role="img"` + aria-label ("Verified account" / "Gold verified account" / "Silver verified account"); `flexShrink: 0`.
+- **Types** — `src/types/user.ts` `User.verificationBadge?`, `src/types/debate.ts` `DebateCreator.verificationBadge?`.
+- **Integration sites (badge next to display name)** — `profile/[username]/page.tsx` (old `Sparkles`/`Crown` chips removed, imports dropped), `profile/.../followers/page.tsx`, `profile/.../following/page.tsx`, `UserCard.tsx`, `UserSuggestions.tsx`, `PostCard.tsx` (2 variants), `ArticleCard.tsx` (2 variants), `CommentCard.tsx`, `ConversationsSidebar.tsx`, `chats/[conversations]/page.tsx` (header + type), `NotificationItem.tsx` (skipped for system notifications), `DebateSection.tsx` (Started-by creator).
+- Verified: `npx tsc --noEmit` clean; eslint touched files 0 errors (warnings pre-existing); `npx vitest run` **270/270 (29 suites)**; `npx next build` clean.
+
 ## Comment permalink / thread view — /post/:id/comment/:cid (2026-10-13)
 
 Tapping a comment bubble anywhere in the PWA now opens a full **comment thread view** at `/post/[id]/comment/[commentId]` (industry-standard permalink; native parity same day, see `sob-native-app/AGENTS.md`). Backend contract: `GET /api/comments/:id/context` (see `sob-backend/AGENTS.md`). Old `?tab=comments&comment=<id>` links still work (scroll+tint on the post page) — nothing broke.

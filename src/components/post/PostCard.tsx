@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
+import VerificationBadge from '../shared/VerificationBadge';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
@@ -193,6 +194,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
                 >
                   {post.author.name}
                 </Link>
+                <VerificationBadge type={post.author.verificationBadge ?? 'none'} size={13} />
                 <span className="text-muted-foreground text-xs truncate min-w-0 flex-1 ml-0.5">@{post.author.username}</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(post.createdAt)}</span>
@@ -347,12 +349,15 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
             <div className="flex flex-col min-w-0">
-              <Link
-                href={`/profile/${post.author.username}`}
-                className="font-medium text-sm text-foreground hover:text-accent transition-colors truncate"
-              >
-                {post.author.name}
-              </Link>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Link
+                  href={`/profile/${post.author.username}`}
+                  className="font-medium text-sm text-foreground hover:text-accent transition-colors truncate"
+                >
+                  {post.author.name}
+                </Link>
+                <VerificationBadge type={post.author.verificationBadge ?? 'none'} size={13} />
+              </div>
               <span className="text-muted-foreground text-[11px] leading-none truncate mt-0.5">@{post.author.username}</span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-2">

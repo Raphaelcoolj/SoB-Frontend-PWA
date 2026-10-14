@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import UserAvatar from './UserAvatar';
+import VerificationBadge from '../shared/VerificationBadge';
 import FollowButton from './FollowButton';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -26,6 +27,7 @@ type SuggestionUser = {
   bio?: string;
   followersCount?: number;
   inEngagedField?: boolean;
+  verificationBadge?: 'none' | 'blue' | 'gold' | 'silver';
 };
 
 export default function UserSuggestions({ limit = 8 }: { limit?: number }) {
@@ -72,7 +74,10 @@ export default function UserSuggestions({ limit = 8 }: { limit?: number }) {
                 <UserAvatar avatar={u.avatar} name={u.name} size="md" />
               </div>
               <div className="text-center min-w-0">
-                <p className="text-xs font-semibold text-foreground truncate">{u.name}</p>
+                <div className="flex items-center justify-center gap-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{u.name}</p>
+                  <VerificationBadge type={u.verificationBadge ?? 'none'} size={11} />
+                </div>
                 <p className="text-[10px] text-muted-foreground truncate">@{u.username}</p>
               </div>
             </Link>
