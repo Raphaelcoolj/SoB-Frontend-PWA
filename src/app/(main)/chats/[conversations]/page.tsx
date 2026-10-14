@@ -591,7 +591,7 @@ function ChatConversation() {
   };
 
   const handleUploadMedia = async () => {
-    if (!conversationId) return;
+    if (!conversationId || uploadingMedia || preparingGif) return;
     let fileToUpload = selectedFile;
     if (!fileToUpload && previewImage && isGifUrl(previewImage)) {
       setUploadingMedia(true);
@@ -1025,12 +1025,14 @@ function ChatConversation() {
                                 GIF
                               </span>
                             )}
-                            <div className={`absolute bottom-1.5 right-1.5 bg-black/50 px-1.5 py-0.5 rounded-md flex items-center gap-1 ${msg.text || msg.replyTo ? 'opacity-90' : ''}`}>
-                              <span className="text-white/90 text-[10px] leading-none">{isTemp ? '···' : formatTime(msg.createdAt)}</span>
-                              {mine && !isTemp && (
-                                <CheckCheck className={`w-2.5 h-2.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
-                              )}
-                            </div>
+                            {!msg.text && (
+                              <div className="absolute bottom-1.5 right-1.5 bg-black/50 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                <span className="text-white/90 text-[10px] leading-none">{isTemp ? '···' : formatTime(msg.createdAt)}</span>
+                                {mine && !isTemp && (
+                                  <CheckCheck className={`w-2.5 h-2.5 ${msg.readAt ? 'text-blue-300' : 'text-white/50'}`} />
+                                )}
+                              </div>
+                            )}
                             {!isTemp && !mine && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDownloadMedia(mediaItem, msg._id); }}
@@ -1167,10 +1169,10 @@ function ChatConversation() {
                                   text={msg.text}
                                   linksOnly
                                   linkClassName={`underline underline-offset-2 hover:opacity-90 font-medium break-all ${mine ? 'text-white' : 'text-accent'}`}
-                                  className={`text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] block w-full ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '' : 'pb-3'} ${mine ? 'text-white' : 'text-foreground'}`}
+                                  className={`text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] block w-full pb-3 ${mine ? 'text-white' : 'text-foreground'}`}
                                 />
                               )}
-                              {(mediaItem?.type !== 'image' && mediaItem?.type !== 'video') && (
+                              {((mediaItem?.type !== 'image' && mediaItem?.type !== 'video') || !!msg.text) && (
                                 <div className="absolute bottom-1.5 right-3 flex items-center gap-1">
                                   <span className={`text-[10px] leading-none ${mine ? 'text-white/60' : 'text-muted-foreground/70'}`}>
                                     {isTemp ? '···' : formatTime(msg.createdAt)}
@@ -1488,6 +1490,17 @@ function ChatConversation() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Add a caption..."
+              rows={2}
+              maxLength={1000}
+              aria-label="Image caption"
+              disabled={uploadingMedia || preparingGif}
+              className="w-full resize-none bg-transparent border-b border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-0 disabled:opacity-50"
+              style={{ maxHeight: 96 }}
+            />
             <div className="flex gap-2 p-3">
               <button
                 onClick={() => { setPreviewImage(null); setSelectedFile(null); }}

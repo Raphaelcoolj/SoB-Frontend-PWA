@@ -13,6 +13,16 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## WhatsApp-style chat image captions (2026-10-14)
+
+Caption input added to the shared image-preview modal in `src/app/(main)/chats/[conversations]/page.tsx`; image+caption send as **one message** (backend `Message.text` + `media` already supported both — no API change). JS-only → **OTA-safe** (native parity same day, see `sob-native-app/AGENTS.md`).
+
+- **Caption input** — `<textarea>` (rows 2, maxLength 1000, `maxHeight: 96`) sits between the preview image and the Cancel/Send row, **bound to the existing `text` composer state** so `handleUploadMedia` (which already appends `text` to the FormData, and `mediaUrl` for GIF-URL fallbacks) sends it unchanged. Applies to the shared preview modal, which also serves the **GIF flow** (`handleGifSelect` → same modal) — GIFs get captions too. Disabled while `uploadingMedia || preparingGif`.
+- **Duplicate-send guard** — `handleUploadMedia` now bails when `uploadingMedia || preparingGif` (Send button was already disabled; now the handler itself is too).
+- **Timestamp placement for captioned images** — when `msg.text` exists the image-overlay timestamp pill is hidden and the timestamp + `CheckCheck` render at the bubble's **bottom-right inside the caption block** (condition now `((mediaItem?.type !== 'image' && mediaItem?.type !== 'video') || !!msg.text)`); caption text gets `pb-3` so it never overlaps. Captionless images keep the overlay pill. Incoming + outgoing identical.
+- **Unchanged**: one bubble for media+caption (existing render already handled `text` under the image), optimistic UI, retry, link previews, reply previews, message IDs.
+- Verified: `npx tsc --noEmit` clean; eslint chats dir 0 errors (10 warnings pre-existing on HEAD); `npx vitest run` **270/270**; `npm run build` clean.
+
 ## Verification badges — starburst blue/gold/silver (2026-10-14)
 
 One server-authorized badge per account replaces the old early-adopter/founder chips: **blue = accounts 1–500 (early adopters), gold = founding-team, silver = built but granted to nobody yet.** Backend contract: `User.verificationBadge` (`'none' | 'blue' | 'gold' | 'silver'`, default `'none'`) on every author payload — see `sob-backend/AGENTS.md`. Native parity same day (see `sob-native-app/AGENTS.md`).
