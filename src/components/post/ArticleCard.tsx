@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
+import VerificationBadge from '../shared/VerificationBadge';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
@@ -172,6 +173,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                 >
                   {article.author.name}
                 </Link>
+                <VerificationBadge type={article.author.verificationBadge ?? 'none'} size={13} />
                 <span className="text-muted-foreground text-xs truncate min-w-0 flex-1 ml-0.5">@{article.author.username}</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">·</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">{formatDistanceToNow(article.createdAt)}</span>
@@ -365,9 +367,12 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
             <Link href={`/profile/${article.author.username}`} className="flex items-center gap-2.5 group/author">
               <UserAvatar avatar={article.author.avatar} name={article.author.name} size="sm" />
               <div className="flex flex-col">
-                <span className="text-xs font-medium text-foreground group-hover/author:text-accent transition-colors">
-                  {article.author.name}
-                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs font-medium text-foreground group-hover/author:text-accent transition-colors truncate">
+                    {article.author.name}
+                  </span>
+                  <VerificationBadge type={article.author.verificationBadge ?? 'none'} size={12} />
+                </div>
                 <span className="text-[10px] text-muted-foreground">
                   {formatDistanceToNow(article.createdAt)}
                 </span>

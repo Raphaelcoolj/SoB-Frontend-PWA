@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Search, X, Sparkles, Crown, MessageSquare, MoreHorizontal, Shield, Flag, Trash2, Clock, Settings, SquarePen } from 'lucide-react';
+import { MessageCircle, Search, X, MessageSquare, MoreHorizontal, Shield, Flag, Trash2, Clock, Settings, SquarePen } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { socket, connectSocket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
+import VerificationBadge from '../shared/VerificationBadge';
 import { toast } from 'sonner';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -24,7 +25,7 @@ const fetcher = async (url: string) => {
 
 interface Conversation {
   _id: string;
-  otherUser: { _id: string; name: string; username: string; avatar?: string; earlyAdopter?: boolean; founderBadge?: boolean };
+  otherUser: { _id: string; name: string; username: string; avatar?: string; verificationBadge?: 'none' | 'blue' | 'gold' | 'silver' };
   lastMessage: { text: string; sender: string; createdAt: string; media?: { type: string }[] } | null;
   unreadCount: number;
   updatedAt: string;
@@ -688,12 +689,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                               <span className="text-sm font-semibold text-foreground truncate">
                                 {conv.otherUser.name}
                               </span>
-                              {conv.otherUser.earlyAdopter && (
-                                <Sparkles className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                              )}
-                              {conv.otherUser.founderBadge && (
-                                <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
-                              )}
+                              <VerificationBadge type={conv.otherUser.verificationBadge ?? 'none'} size={13} />
                             </div>
                             {conv.lastMessage?.createdAt && (
                               <span className="text-[11px] text-muted-foreground/70 flex-shrink-0 ml-2">

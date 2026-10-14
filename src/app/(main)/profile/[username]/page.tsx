@@ -15,7 +15,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
-import { Settings2, Sparkles, Crown, Lock, EyeOff, Flag, ArrowLeft, Search, MoreVertical, Plus, MessageCircle } from 'lucide-react';
+import { Settings2, Lock, EyeOff, Flag, ArrowLeft, Search, MoreVertical, Plus, MessageCircle } from 'lucide-react';
+import VerificationBadge from '../../../../components/shared/VerificationBadge';
 import { useAuthStore } from '../../../../store/authStore';
 import UserAvatar from '../../../../components/user/UserAvatar';
 import FollowButton from '../../../../components/user/FollowButton';
@@ -230,23 +231,7 @@ export default function ProfilePage() {
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5 flex-wrap">
             <h1 className="text-xl font-extrabold text-foreground tracking-tight leading-tight">{profile.name}</h1>
-            {/* Badges */}
-            {profile.earlyAdopter && (
-              <span
-                title="Early Adopter"
-                className="inline-flex items-center justify-center w-4.5 h-4.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm"
-              >
-                <Sparkles className="w-2.5 h-2.5" />
-              </span>
-            )}
-            {profile.founderBadge && (
-              <span
-                title="Founding Member"
-                className="inline-flex items-center justify-center w-4.5 h-4.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-sm"
-              >
-                <Crown className="w-2.5 h-2.5" />
-              </span>
-            )}
+            <VerificationBadge type={profile.verificationBadge ?? 'none'} size={16} />
             {/* Private indicator */}
             {profile.isPrivate && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-muted text-muted-foreground border border-border">

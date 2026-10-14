@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useAuthStore } from '../../../../../store/authStore';
 import { UserAvatar } from '../../../../../components/user/UserAvatar';
 import { FollowButton } from '../../../../../components/user/FollowButton';
+import VerificationBadge from '../../../../../components/shared/VerificationBadge';
 import { Skeleton } from '../../../../../components/ui/Skeleton';
 import { useInView } from 'react-intersection-observer';
 
@@ -79,7 +80,10 @@ export default function FollowersListPage() {
               <Link href={`/profile/${u.username}`} className="flex items-center gap-3">
                 <UserAvatar avatar={u.avatar} name={u.name} size="sm" />
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-foreground">{u.name}</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium text-foreground truncate">{u.name}</span>
+                    <VerificationBadge type={u.verificationBadge ?? 'none'} size={13} />
+                  </div>
                   <span className="text-xs text-muted-foreground">@{u.username}</span>
                 </div>
               </Link>

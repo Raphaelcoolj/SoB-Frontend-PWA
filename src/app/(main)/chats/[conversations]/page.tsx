@@ -10,6 +10,7 @@ import { fetchWithAuth } from '../../../../lib/api';
 import { track } from '../../../../lib/analytics';
 import { socket, connectSocket } from '../../../../lib/socket';
 import UserAvatar from '../../../../components/user/UserAvatar';
+import VerificationBadge from '../../../../components/shared/VerificationBadge';
 import ConversationsSidebar from '../../../../components/layout/ConversationsSidebar';
 import ImageCropperModal from '../../../../components/post/ImageCropperModal';
 import VideoTrimmerModal from '../../../../components/post/VideoTrimmerModal';
@@ -86,7 +87,7 @@ type MediaItem = {
 interface ConversationData {
   conversation: {
     _id: string;
-    otherUser: { _id: string; name: string; username: string; avatar?: string };
+    otherUser: { _id: string; name: string; username: string; avatar?: string; verificationBadge?: 'none' | 'blue' | 'gold' | 'silver' };
     unreadCount: number;
     isBlocked?: boolean;
     neverDeleteMessages?: boolean;
@@ -793,7 +794,10 @@ function ChatConversation() {
               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background hidden lg:block" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate leading-tight">{otherUser.name}</p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate leading-tight">{otherUser.name}</p>
+                <VerificationBadge type={otherUser.verificationBadge ?? 'none'} size={13} />
+              </div>
               <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                 <p className="text-[11px] text-muted-foreground/70 truncate">@{otherUser.username}</p>
                 {convData?.conversation?.isBlocked && (

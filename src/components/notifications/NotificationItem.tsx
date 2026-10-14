@@ -10,6 +10,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, UserPlus, Flame, BookOpen, AtSign, Calendar, BarChart2, Swords, Sparkles } from 'lucide-react';
 import { UserAvatar } from '../user/UserAvatar';
+import VerificationBadge from '../shared/VerificationBadge';
 import { formatDistanceToNow } from '../../lib/utils';
 import { track } from '../../lib/analytics';
 import { isVideoUrl } from '../../lib/media';
@@ -111,7 +112,10 @@ export default function NotificationItem({ notification, onMarkAsRead }: Notific
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-foreground leading-snug">
-            <span className="font-medium">{senderName}</span>{' '}
+            <span className="font-medium">{senderName}</span>
+            {!isSystemNotification && (
+              <VerificationBadge type={notification.sender?.verificationBadge ?? 'none'} size={11} className="ml-1" />
+            )}{' '}
             <span className="text-muted-foreground">
               {label}
               {aggregateOthers > 0 && ` (and ${aggregateOthers} other${aggregateOthers === 1 ? '' : 's'})`}
