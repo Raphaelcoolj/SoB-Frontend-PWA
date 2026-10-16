@@ -13,6 +13,17 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Challenge-accepted push tap handling (2026-10-16)
+
+Backend sends a **device-only** push to the original challenger on accept (`url: /games/play/<gameId>`, nested `data: { type: 'challenge_accepted', challengeId, gameId, gameType }` — see `sob-backend/AGENTS.md`). No in-app Notification row exists for this event.
+
+- **Service worker (`src/sw.ts`, live at `/serwist/sw.js`; `public/sw.js` orphaned-but-synced)** —
+  - `push` now stores `data: { url, ...payload.data }` on the notification so nested fields (`type`/`gameId`/`challengeId`/`gameType`) survive for click handlers (previously only `url` was kept).
+  - `notificationclick` prefers focusing an already-open same-origin window (Chromium `client.navigate` when available; else focus + open only if path differs) instead of always spawning a new tab. Falls back to `clients.openWindow(url)`.
+- **Routes already exist** — `/games`, `/games/play/[gameId]`, `/games/invite/[id]/{accept,decline,cancel}`. No page changes needed.
+- **No in-app `challenge_accepted` type** — correct; backend never persists a Notification for this event.
+- Verified: `tsc --noEmit` clean; eslint on `src/sw.ts` clean; `vitest run` green; build clean.
+
 ## Chess & Checkers — real-time play + invitations + shareable links (2026-10-16)
 
 Full chess/checkers UI integrated with chat. Backend contract: `sob-backend/AGENTS.md` "Chess & Checkers". Mobile parity: `sob-mobile/AGENTS.md`.
