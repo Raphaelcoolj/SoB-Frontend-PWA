@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2, MoreVertical, Clock } from 'lucide-react';
+import { ArrowLeft, Send, CheckCheck, Plus, Mic, X, ImageIcon, FileText, Play, Pause, StopCircle, Reply, CornerUpLeft, Crop, File, Download, Trash2, MoreVertical, Clock, Gamepad2 } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../../../store/authStore';
 import { fetchWithAuth } from '../../../../lib/api';
@@ -20,6 +20,7 @@ import LinkPreviewCard from '../../../../components/shared/LinkPreviewCard';
 import MentionText from '../../../../components/shared/MentionText';
 import GifPicker from '../../../../components/shared/GifPicker';
 import GameBubble from '../../../../components/games/GameBubble';
+import InviteModal from '../../../../components/games/InviteModal';
 import { fetchGifFile, isGifUrl, type GifResult } from '../../../../lib/gif';
 import type { GameBubbleData } from '../../../../types/game';
 import dynamic from 'next/dynamic';
@@ -187,6 +188,7 @@ function ChatConversation() {
   const [lightboxUrl, setLightboxUrl] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; messageIds: string[] }>({ open: false, messageIds: [] });
@@ -1497,6 +1499,20 @@ function ChatConversation() {
                   <p className="text-[11px] text-muted-foreground/70">Search trending</p>
                 </div>
               </button>
+              {/* Games */}
+              <button
+                onClick={() => { setShowAttachMenu(false); setShowInviteModal(true); }}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-muted hover:bg-emerald-500/10 border border-border/40 transition-all active:scale-95 cursor-pointer group"
+                data-testid="attach-games"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center group-hover:bg-emerald-500/25 transition-colors">
+                  <Gamepad2 className="w-6 h-6 text-emerald-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-foreground">Games</p>
+                  <p className="text-[11px] text-muted-foreground/70">Chess &amp; checkers</p>
+                </div>
+              </button>
             </div>
             <button
               onClick={() => setShowAttachMenu(false)}
@@ -1512,6 +1528,13 @@ function ChatConversation() {
         open={showGifPicker}
         onClose={() => setShowGifPicker(false)}
         onSelect={handleGifSelect}
+      />
+
+      <InviteModal
+        open={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onSent={() => mutateMessages()}
+        conversationId={conversationId}
       />
 
       {/* Image/video preview modal — media + caption are one message */}
