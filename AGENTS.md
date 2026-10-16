@@ -13,6 +13,19 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Chess & Checkers — real-time play + invitations + shareable links (2026-10-16)
+
+Full chess/checkers UI integrated with chat. Backend contract: `sob-backend/AGENTS.md` "Chess & Checkers". Mobile parity: `sob-mobile/AGENTS.md`.
+
+- **Types/service** — `src/types/game.ts` (`Game`, `GameInvitation`, `GameBubbleData`, `Move`, `TimeControl`, …), `src/services/game.ts` (`createGame`, `getMineGames`, `getGameById`, `makeMove`, `resignGame`, `offerDraw`, `declineDraw`, `createInvitation`, `acceptInvitation`, `declineInvitation`, `cancelInvitation` — all go through `fetchWithAuth` + local `unwrap<T>`).
+- **Board rendering** — `src/lib/chessBoard.ts` (FEN parse → 8×8 grid, legal-move highlights), `src/lib/checkersBoard.ts` (`board|turn|noCapturePlies` parse, capture-required indicators). Components: `src/components/games/ChessBoard.tsx`, `CheckersBoard.tsx` (tap-to-select + destination highlights, promotion picker), `ClockDisplay.tsx`, `MoveList.tsx`, `GameBubble.tsx`.
+- **Chat bubble** — `src/components/games/GameBubble.tsx` (`GameBubbleData` card): pending invitation (Accept/Decline for recipient; Cancel for sender; Share-link button), active (Watch/Play), result (View game). Accepts `data`, `mine`, `onInvitationHandled` (optimistic SWR mutate). Uses `useAuthStore` for `user._id` visibility gates. PWA Accept/Decline/Cancel are `<Link>`s to `/games/invite/[id]/{accept,decline,cancel}`; Share uses `navigator.share` → clipboard + sonner toast fallback (`data-testid="game-invite-share"`).
+- **Routes** — `src/app/(main)/games/page.tsx` (hub: invitations / active / leaderboard), `src/app/(main)/games/play/[gameId]/page.tsx` (live board + sockets), `src/app/(main)/games/invite/[id]/{accept,decline,cancel}/page.tsx` (link-based invitation landing pages — auto-fire accept/decline/cancel on mount, redirect to play on accept).
+- **Chat integration** — `src/app/(main)/chats/[conversations]/page.tsx` renders `GameBubble` per `message.game`; socket `chat:message-updated` upserts `game`/`text` by `_id`; `onInvitationHandled={() => mutateMessages()}` revalidates SWR. `ConversationsSidebar.tsx` + mobile dropdown add a "New message" / Games hub entry.
+- **Socket** — `src/lib/socket.ts` (`getSocket()`), listen for `game:move` / `game:completed` etc. on the play page; `chat:message` / `chat:message-updated` handled in the chat page (upsert by `_id`, not prepend).
+- **Conventions** — SWR keys = absolute URL strings; relative import depth from `games/invite/[id]/accept/` is **6 `../`**; eslint gotchas: no ref-writes during render, no sync setState in effect body (defer via `setTimeout(..., 0)`).
+- Verified: `tsc --noEmit` clean; eslint 0 errors; `vitest run` **270/270**; `npm run build` clean with routes `/games`, `/games/play/[gameId]`, `/games/invite/[id]/{accept,decline,cancel}`.
+
 ## WhatsApp-style chat image captions (2026-10-14)
 
 Caption input added to the shared image-preview modal in `src/app/(main)/chats/[conversations]/page.tsx`; image+caption send as **one message** (backend `Message.text` + `media` already supported both — no API change). JS-only → **OTA-safe** (native parity same day, see `sob-native-app/AGENTS.md`).

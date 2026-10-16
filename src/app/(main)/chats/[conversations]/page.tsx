@@ -19,7 +19,9 @@ import ReplyPreview from '../../../../components/chat/ReplyPreview';
 import LinkPreviewCard from '../../../../components/shared/LinkPreviewCard';
 import MentionText from '../../../../components/shared/MentionText';
 import GifPicker from '../../../../components/shared/GifPicker';
+import GameBubble from '../../../../components/games/GameBubble';
 import { fetchGifFile, isGifUrl, type GifResult } from '../../../../lib/gif';
+import type { GameBubbleData } from '../../../../types/game';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { formatFileSize } from '../../../../lib/utils';
@@ -73,6 +75,7 @@ interface Message {
   isEdited?: boolean;
   deleted?: boolean;
   deletedFor?: string[];
+  game?: GameBubbleData;
 }
 
 type MediaItem = {
@@ -278,16 +281,33 @@ function ChatConversation() {
       setLocalMessages((prev) => prev.map((m) => (m.sender._id === currentUser?._id && !m.readAt ? { ...m, readAt } : m)));
       mutateMessages();
     };
+    const onMessageUpdated = (data: {
+      conversationId: string;
+      messageId: string;
+      game?: GameBubbleData;
+      text?: string;
+    }) => {
+      if (data.conversationId !== conversationId) return;
+      setLocalMessages((prev) =>
+        prev.map((m) => {
+          if (m._id !== data.messageId) return m;
+          return { ...m, ...(data.game !== undefined ? { game: data.game } : {}), ...(data.text !== undefined ? { text: data.text } : {}) };
+        })
+      );
+      mutateMessages();
+    };
     socket.on('chat:message', onMessage);
     socket.on('chat:message-deleted', onMessageDeleted);
     socket.on('chat:conversation-deleted', onConversationDeleted);
     socket.on('chat:read', onRead);
+    socket.on('chat:message-updated', onMessageUpdated);
     return () => {
       socket.emit('chat:leave', conversationId);
       socket.off('chat:message', onMessage);
       socket.off('chat:message-deleted', onMessageDeleted);
       socket.off('chat:conversation-deleted', onConversationDeleted);
       socket.off('chat:read', onRead);
+      socket.off('chat:message-updated', onMessageUpdated);
     };
   }, [conversationId, accessToken, isOwnMessage, mutateMessages, currentUser?._id, router]);
 
@@ -1007,7 +1027,9 @@ function ChatConversation() {
 
                       <div
                         className={`max-w-[80%] min-w-0 w-fit relative ${
-                          (mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text
+                          msg.game
+                            ? ''
+                            : (mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text
                             ? ''
                             : mediaItem?.type === 'document'
                             ? ''
@@ -1016,13 +1038,27 @@ function ChatConversation() {
                                 : 'bg-muted text-foreground rounded-bl-[4px]')
                         } ${isTemp ? 'opacity-60' : ''}`}
                       >
-                        {mediaItem?.type === 'voice' && (
+                        {msg.game && (
+                          <>
+                            <GameBubble data={msg.game} mine={mine} onInvitationHandled={() => mutateMessages()} />
+                            <div className="flex items-center justify-end gap-1 px-3 pb-1.5 -mt-1">
+                              <span className={`text-[10px] leading-none ${mine ? 'text-white/60' : 'text-muted-foreground/70'}`}>
+                                {isTemp ? '···' : formatTime(msg.createdAt)}
+                              </span>
+                              {mine && !isTemp && (
+                                <CheckCheck className={`w-3 h-3 ${msg.readAt ? 'text-blue-300' : 'text-white/40'}`} />
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {!msg.game && mediaItem?.type === 'voice' && (
                           <div className="px-3 py-2">
                             <VoiceBubble url={mediaItem.url} duration={mediaItem.duration} isMine={mine} />
                           </div>
                         )}
 
-                        {mediaItem?.type === 'image' && (
+                        {!msg.game && mediaItem?.type === 'image' && (
                           <div className={`${mine ? 'bg-accent/20' : 'bg-muted'} rounded-2xl overflow-hidden p-0.5 relative ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
                             <img
                               src={mediaItem.url}
@@ -1066,7 +1102,7 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {mediaItem?.type === 'video' && (
+                        {!msg.game && mediaItem?.type === 'video' && (
                           <div className="relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
                             <VideoPlayer
                               url={mediaItem.url}
@@ -1095,7 +1131,7 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {mediaItem?.type === 'document' && (
+                        {!msg.game && mediaItem?.type === 'document' && (
                           <div className="border border-accent/40 rounded-2xl overflow-hidden w-full max-w-[280px] flex flex-col shadow-sm">
                             {/* PDF first-page preview (when available) */}
                             {isPdf(mediaItem) && (() => {
@@ -1160,7 +1196,7 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {(msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && mediaItem?.type !== 'document' && (
+                        {!msg.game && (msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && mediaItem?.type !== 'document' && (
                           <div>
                             {isRealReply && msg.replyTo && (
                               <ReplyPreview
@@ -1196,13 +1232,13 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {msg.text && (
+                        {!msg.game && msg.text && (
                           <div className="px-2.5 pb-2 -mt-0.5">
                             <LinkPreviewCard text={msg.text} mine={mine} />
                           </div>
                         )}
 
-                         {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                         {!msg.game && msg.reactions && Object.keys(msg.reactions).length > 0 && (
                           <div className={`flex flex-wrap gap-0.5 ${mine ? 'justify-end' : 'justify-start'} relative ${mediaItem?.type === 'image' || mediaItem?.type === 'video' ? '-mt-2 mr-2 ml-2 mb-1' : 'mr-2 ml-2 mb-0.5'}`}>
                             {Object.entries(
                               Object.entries(msg.reactions).reduce((acc, [, emoji]) => {

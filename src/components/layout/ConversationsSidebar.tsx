@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Search, X, MessageSquare, MoreHorizontal, Shield, Flag, Trash2, Clock, Settings, SquarePen } from 'lucide-react';
+import { MessageCircle, Search, X, MessageSquare, MoreHorizontal, Shield, Flag, Trash2, Clock, Settings, SquarePen, Swords } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { socket, connectSocket } from '../../lib/socket';
 import UserAvatar from '../user/UserAvatar';
 import VerificationBadge from '../shared/VerificationBadge';
+import InviteModal from '../games/InviteModal';
 import { toast } from 'sonner';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -54,6 +55,9 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
   const [openMenuConvId, setOpenMenuConvId] = useState<string | null>(null);
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   const [newMessageQuery, setNewMessageQuery] = useState('');
+  const [composeMenuOpen, setComposeMenuOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const composeMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -143,6 +147,18 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenuConvId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (composeMenuRef.current && !composeMenuRef.current.contains(e.target as Node)) {
+        setComposeMenuOpen(false);
+      }
+    };
+    if (composeMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [composeMenuOpen]);
 
   const handleBlock = async (userId: string, userName: string) => {
     setOpenMenuConvId(null);
@@ -268,13 +284,44 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-border/30">
           <h2 className="text-[15px] font-bold text-foreground tracking-tight">Messages</h2>
-          <button
-            onClick={() => { setNewMessageOpen(true); setNewMessageQuery(''); }}
-            className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title="New message"
-          >
-            <SquarePen className="w-4 h-4" />
-          </button>
+          <div className="relative" ref={composeMenuRef}>
+            <button
+              onClick={() => setComposeMenuOpen((o) => !o)}
+              className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="New"
+              aria-label="New"
+            >
+              <SquarePen className="w-4 h-4" />
+            </button>
+            {composeMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 z-50 w-44 rounded-xl border border-border/60 shadow-2xl overflow-hidden"
+                style={{ backgroundColor: 'var(--color-popover, #18181B)' }}
+              >
+                <button
+                  onClick={() => {
+                    setComposeMenuOpen(false);
+                    setNewMessageOpen(true);
+                    setNewMessageQuery('');
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors cursor-pointer text-left"
+                >
+                  <SquarePen className="w-4 h-4 text-muted-foreground" />
+                  New message
+                </button>
+                <button
+                  onClick={() => {
+                    setComposeMenuOpen(false);
+                    setInviteModalOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors cursor-pointer text-left"
+                >
+                  <Swords className="w-4 h-4 text-muted-foreground" />
+                  Games
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -515,6 +562,16 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
             </div>
           </div>
         )}
+
+        {/* Game Invite Modal */}
+        <InviteModal
+          open={inviteModalOpen}
+          onClose={() => setInviteModalOpen(false)}
+          onSent={() => {
+            setInviteModalOpen(false);
+            router.push('/games');
+          }}
+        />
       </div>
     );
   }
@@ -644,10 +701,50 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
             </div>
           ) : (
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <MessageSquare className="w-3 h-3" />
-                Messages
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageSquare className="w-3 h-3" />
+                  Messages
+                </p>
+                <div className="relative" ref={composeMenuRef}>
+                  <button
+                    onClick={() => setComposeMenuOpen((o) => !o)}
+                    className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="New"
+                    aria-label="New"
+                  >
+                    <SquarePen className="w-4 h-4" />
+                  </button>
+                  {composeMenuOpen && (
+                    <div
+                      className="absolute right-0 top-full mt-1 z-50 w-44 rounded-xl border border-border/60 shadow-2xl overflow-hidden"
+                      style={{ backgroundColor: 'var(--color-popover, #18181B)' }}
+                    >
+                      <button
+                        onClick={() => {
+                          setComposeMenuOpen(false);
+                          setNewMessageOpen(true);
+                          setNewMessageQuery('');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors cursor-pointer text-left"
+                      >
+                        <SquarePen className="w-4 h-4 text-muted-foreground" />
+                        New message
+                      </button>
+                      <button
+                        onClick={() => {
+                          setComposeMenuOpen(false);
+                          setInviteModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors cursor-pointer text-left"
+                      >
+                        <Swords className="w-4 h-4 text-muted-foreground" />
+                        Games
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="space-y-2 -mx-4">
                 {conversations.map((conv, i) => {
                   const isUserOnline = onlineIds.has(conv.otherUser._id);
@@ -765,6 +862,76 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
           )}
         </>
       )}
+
+      {/* New Message Modal (mobile) */}
+      {newMessageOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setNewMessageOpen(false)}>
+          <div
+            className="bg-card border border-border/60 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-[fadeIn_0.15s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/40">
+              <h3 className="text-sm font-bold text-foreground">New message</h3>
+              <button
+                onClick={() => setNewMessageOpen(false)}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-4 py-3 border-b border-border/40">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                <input
+                  type="text"
+                  value={newMessageQuery}
+                  onChange={(e) => setNewMessageQuery(e.target.value)}
+                  placeholder="Search people"
+                  autoFocus
+                  className="w-full bg-muted/50 text-foreground placeholder:text-muted-foreground/50 rounded-lg pl-8 pr-3 py-2 text-xs outline-none border border-border/40 focus:border-accent/40 transition-all duration-200"
+                />
+              </div>
+            </div>
+            <div className="max-h-[45vh] overflow-y-auto p-2">
+              {newMessageFiltered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center px-6">
+                  <MessageSquare className="w-6 h-6 text-muted-foreground/25 mb-2" />
+                  <p className="text-xs font-medium text-muted-foreground/60">No people found</p>
+                  <p className="text-[10px] text-muted-foreground/40 mt-0.5">Search by name or @username</p>
+                </div>
+              ) : (
+                newMessageFiltered.map((conn) => (
+                  <button
+                    key={conn._id}
+                    onClick={() => {
+                      setNewMessageOpen(false);
+                      setNewMessageQuery('');
+                      router.push(`/chats/${conn._id}`);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 text-left transition-all duration-150"
+                  >
+                    <UserAvatar avatar={conn.avatar} name={conn.name} size="sm" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-foreground truncate">{conn.name}</p>
+                      <p className="text-[10px] text-muted-foreground/60">@{conn.username}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Invite Modal (mobile) */}
+      <InviteModal
+        open={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        onSent={() => {
+          setInviteModalOpen(false);
+          router.push('/games');
+        }}
+      />
 
       <style jsx global>{`
         @keyframes fadeIn {
