@@ -1,11 +1,18 @@
 // Shared game types mirroring the backend payload contracts
 // (SoB-Backend-API src/services/game.service.js buildGamePayload / invitations).
 
-export type GameType = 'chess' | 'checkers';
+export type GameType = 'chess' | 'checkers' | 'tic_tac_toe';
 export type GameColor = 'white' | 'black';
 export type GameStatus = 'active' | 'completed';
 export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 export type GameResult = 'white' | 'black' | 'draw';
+
+/** Display mark for a color — white plays X, black plays O. */
+export const markForColor = (color: GameColor): 'X' | 'O' => (color === 'white' ? 'X' : 'O');
+
+/** Display label for a game type id. */
+export const gameTypeLabel = (t: GameType): string =>
+  t === 'tic_tac_toe' ? 'tic-tac-toe' : t;
 
 export interface GameUser {
   _id: string;
@@ -48,8 +55,9 @@ export interface GameMoveEntry {
 
 /** A legal move as returned by the server (authoritative). */
 export interface LegalMove {
-  from: string;
+  from?: string | null;
   to: string;
+  cell?: number;
   promotion?: string;
   capture?: boolean;
   captures?: string[];
@@ -141,7 +149,14 @@ export interface LeaderboardRow {
 export interface RatingsSummary {
   chess: { rating: number; stats: { played: number; wins: number; losses: number; draws: number } };
   checkers: { rating: number; stats: { played: number; wins: number; losses: number; draws: number } };
+  tic_tac_toe: { rating: number; stats: { played: number; wins: number; losses: number; draws: number } };
 }
+
+export const GAME_TYPE_OPTIONS: { type: GameType; label: string }[] = [
+  { type: 'chess', label: 'chess' },
+  { type: 'checkers', label: 'checkers' },
+  { type: 'tic_tac_toe', label: 'tic-tac-toe' },
+];
 
 export const TIME_CONTROL_OPTIONS: { preset: string; label: string; category: GameTimeControl['category'] }[] = [
   { preset: 'bullet_1_0', label: '1+0 Bullet', category: 'bullet' },
@@ -161,8 +176,15 @@ export const TERMINATION_LABELS: Record<string, string> = {
   fifty_move_rule: 'fifty-move rule',
   forty_move_rule: 'forty-move rule',
   no_legal_moves: 'no legal moves',
-  timeout: 'time',
+  line_complete: 'three in a row',
+  board_full: 'full board',
+  timeout: 'timeout',
   resignation: 'resignation',
   agreed_draw: 'agreement',
   invalid_position: 'agreement',
+  draw: 'draw',
 };
+
+/** Human label for a game termination code (falls back to de-underscored code). */
+export const terminationLabel = (code?: string | null): string =>
+  !code ? '' : TERMINATION_LABELS[code] ?? code.replace(/_/g, ' ');

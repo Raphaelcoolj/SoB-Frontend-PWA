@@ -35,11 +35,18 @@ serwist.addEventListeners();
 self.addEventListener('push', (event: PushEvent) => {
   const data = event.data ? event.data.json() : {};
 
+  // Preserve nested payload fields (type/challengeId/gameId/gameType) alongside
+  // url so notificationclick / future handlers can branch without re-fetching.
+  const notificationData: Record<string, unknown> = {
+    url: data.url,
+    ...(data.data && typeof data.data === 'object' ? data.data : {}),
+  };
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'SoB Notification', {
       body: data.body || 'You have a new update!',
       icon: '/favicon-32x32.png',
-      data: { url: data.url },
+      data: notificationData,
     })
   );
 });
@@ -48,7 +55,35 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close();
   const url = event.notification.data?.url || '/home';
   event.waitUntil(
-    self.clients.openWindow(url)
+    (async () => {
+      // Prefer focusing an already-open app window over spawning a new tab.
+      const windows = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+      for (const client of windows) {
+        if ('focus' in client) {
+          await client.focus();
+          // Same-origin navigate when available (client.navigate is non-standard
+          // but present in Chromium; ignore failures and fall through).
+          try {
+            if ('navigate' in client) {
+              await (client as WindowClient).navigate(url);
+              return;
+            }
+          } catch {
+            /* fall through to openWindow */
+          }
+          // Focused a matching origin window — if it's already on the target
+          // path, done; otherwise open a new window for the deep link.
+          if (new URL(client.url).pathname === new URL(url, self.location.origin).pathname) {
+            return;
+          }
+          break;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
   );
 });
 

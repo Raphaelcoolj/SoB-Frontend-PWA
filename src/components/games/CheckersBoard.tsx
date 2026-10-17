@@ -50,7 +50,9 @@ export default function CheckersBoard({
   const movableFrom = useMemo(() => {
     const set = new Set<string>();
     if (!parsed || parsed.turn !== myColor) return set;
-    for (const m of legalMoves) set.add(m.from);
+    for (const m of legalMoves) {
+      if (m.from != null) set.add(m.from);
+    }
     return set;
   }, [legalMoves, myColor, parsed]);
 
@@ -59,7 +61,7 @@ export default function CheckersBoard({
     if (selected) {
       const move = targets.get(square);
       if (move) {
-        onMove?.(move.from, move.to, move.captures?.length ? move.captures : undefined);
+        onMove?.(move.from ?? '', move.to, move.captures?.length ? move.captures : undefined);
         setSelected(null);
         return;
       }

@@ -10,6 +10,7 @@ import useSWR from 'swr';
 import {
   Crown,
   Swords,
+  Grid3X3,
   Clock,
   Trophy,
   Users,
@@ -26,6 +27,19 @@ import { cn } from '../../../lib/utils';
 import { useAuthStore } from '../../../store/authStore';
 import * as gameService from '../../../services/game';
 import type { Game, GameInvitation, GameType, LeaderboardRow } from '../../../types/game';
+import { gameTypeLabel, terminationLabel } from '../../../types/game';
+
+const GAME_TYPES: GameType[] = ['chess', 'checkers', 'tic_tac_toe'];
+const TYPE_ICONS: Record<GameType, typeof Crown> = {
+  chess: Crown,
+  checkers: Swords,
+  tic_tac_toe: Grid3X3,
+};
+const LB_LABELS: Record<GameType, string> = {
+  chess: 'chess',
+  checkers: 'checkers',
+  tic_tac_toe: 'tic-tac-toe',
+};
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -86,12 +100,11 @@ function InviteRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{other?.name || 'Unknown user'}</p>
         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-          {invite.gameType === 'chess' ? (
-            <Crown className="w-3 h-3" />
-          ) : (
-            <Swords className="w-3 h-3" />
-          )}
-          {invite.gameType} · {timeControlLabel(invite.timeControl)}
+          {(() => {
+            const TypeIcon = TYPE_ICONS[invite.gameType] ?? Swords;
+            return <TypeIcon className="w-3 h-3" />;
+          })()}
+          {gameTypeLabel(invite.gameType)} · {timeControlLabel(invite.timeControl)}
         </p>
       </div>
       <div className="flex gap-1.5 shrink-0">
@@ -147,7 +160,7 @@ function ActiveGameRow({ game }: { game: Game }) {
         </p>
         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
           <Clock className="w-3 h-3" />
-          {game.gameType} · {timeControlLabel(game.timeControl)} · {game.moveCount} moves
+          {gameTypeLabel(game.gameType)} · {timeControlLabel(game.timeControl)} · {game.moveCount} moves
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -260,20 +273,23 @@ export default function GamesPage() {
 
       {/* Ratings summary */}
       {ratings && (
-        <div className="grid grid-cols-2 gap-3">
-          {(['chess', 'checkers'] as const).map((t) => (
-            <div key={t} className="p-3 rounded-xl bg-card border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                {t === 'chess' ? <Crown className="w-3 h-3" /> : <Swords className="w-3 h-3" />}
-                {t}
-              </p>
-              <p className="text-2xl font-bold mt-1">{ratings[t].rating}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {ratings[t].stats.played} played · {ratings[t].stats.wins}W{' '}
-                {ratings[t].stats.losses}L {ratings[t].stats.draws}D
-              </p>
-            </div>
-          ))}
+        <div className="grid grid-cols-3 gap-3">
+          {GAME_TYPES.map((t) => {
+            const TypeIcon = TYPE_ICONS[t];
+            return (
+              <div key={t} className="p-3 rounded-xl bg-card border border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <TypeIcon className="w-3 h-3" />
+                  {t === 'tic_tac_toe' ? 'TTT' : t}
+                </p>
+                <p className="text-2xl font-bold mt-1">{ratings[t].rating}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {ratings[t].stats.played} played · {ratings[t].stats.wins}W{' '}
+                  {ratings[t].stats.losses}L {ratings[t].stats.draws}D
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -365,11 +381,14 @@ export default function GamesPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate">
                           vs {opp?.user.name}
-                          <span className="text-muted-foreground font-normal"> ({g.gameType})</span>
+                          <span className="text-muted-foreground font-normal">
+                            {' '}
+                            ({gameTypeLabel(g.gameType)})
+                          </span>
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {draw ? 'Draw' : won ? 'Won' : 'Lost'} ·{' '}
-                          {g.termination?.replace(/_/g, ' ')}
+                          {terminationLabel(g.termination)}
                         </p>
                       </div>
                       <span
@@ -396,7 +415,7 @@ export default function GamesPage() {
       {tab === 'leaderboard' && (
         <div className="space-y-3">
           <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
-            {(['chess', 'checkers'] as const).map((t) => (
+            {GAME_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => setLbType(t)}
@@ -405,7 +424,7 @@ export default function GamesPage() {
                   lbType === t ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                 )}
               >
-                {t}
+                {LB_LABELS[t]}
               </button>
             ))}
           </div>

@@ -1510,7 +1510,7 @@ function ChatConversation() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-semibold text-foreground">Games</p>
-                  <p className="text-[11px] text-muted-foreground/70">Chess &amp; checkers</p>
+                  <p className="text-[11px] text-muted-foreground/70">Chess, checkers &amp; tic-tac-toe</p>
                 </div>
               </button>
             </div>

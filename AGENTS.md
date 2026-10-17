@@ -13,6 +13,28 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Tic-Tac-Toe — third multiplayer game (2026-10-16)
+
+Full TTT alongside chess & checkers on the same games architecture (backend contract: `sob-backend/AGENTS.md` "Tic-Tac-Toe"). White = X (moves first), black = O — clients map `color` → mark via `markForColor`.
+
+- **Types/service (`src/types/game.ts`, `src/services/game.ts`)** — `GameType` gained `'tic_tac_toe'`; `gameTypeLabel()` (displays `tic-tac-toe`, raw id for others); `markForColor()`; `TERMINATION_LABELS` + `terminationLabel()` (falls back to de-underscored code; adds `line_complete: 'three in a row'`, `board_full: 'full board'`, `draw: 'draw'`); `LegalMove.from` is now **optional (`string | null`)** with optional `cell`; `RatingsSummary.tic_tac_toe`; `GAME_TYPE_OPTIONS` (3 options, TTT icon `Grid3X3`); `makeMove` accepts `{ from: null, to }`.
+- **Board — `src/components/games/TicTacToeBoard.tsx`** (new) — 3×3 grid (max 360px), reads legal moves from `m.to ?? m.cell`, legal-cell hints, last-move highlight, `onMove(cell)` tap. `CheckersBoard` guards the now-optional `m.from != null`.
+- **Play page (`games/play/[gameId]/page.tsx`)** — `isTicTacToe` branch renders TicTacToeBoard (after chess, before checkers); header `Grid3X3` icon + `gameTypeLabel`; player rows show `(X)`/`(O)` suffix via `markForColor`; `handleCellMove(cell)` sends `{ from: null, to: String(cell) }`. **Lint gotcha**: `handleMove` was converted from `useCallback` to a plain async function — the React Compiler's `react-hooks/preserve-manual-memoization` rule errors (`busy` dep "may be modified later") once the component grows past manual memoization it can't preserve. **All play-page handlers are plain functions — do not reintroduce `useCallback` there.** MoveList pairs white/black by index and renders server notation (`X@4`); `ClockDisplay` shows `∞` for null clocks (untimed).
+- **Surfaces** — `InviteModal`: 3-column type picker incl. tic-tac-toe, sends `gameType` through `createInvitation`. `games/page.tsx`: 3-column ratings cards (TTT labelled "TTT"), leaderboard tabs (`gameTypeLabel`), invitation/active/history rows via `gameTypeLabel` + `terminationLabel`. `GameBubble`: `TYPE_META` gained tic-tac-toe (`Grid3X3`), result text via `terminationLabel`. Chats attach tile: "Games / Chess, checkers & tic-tac-toe". Deep link accept pages (`/games/invite/[id]/accept`) and hub accept are game-type agnostic — no changes needed.
+- **Terminations** — result overlays/history use `terminationLabel()` everywhere (was raw `replace(/_/g,' ')`): e.g. "You won · three in a row", "Draw · full board"; draw results with termination `draw` render a plain "Draw".
+- Verified: `tsc --noEmit` clean; eslint touched files 0 errors (chats page 10 warnings pre-existing); `vitest run` **270/270**; `npm run build` clean.
+
+## Challenge-accepted push tap handling (2026-10-16)
+
+Backend sends a **device-only** push to the original challenger on accept (`url: /games/play/<gameId>`, nested `data: { type: 'challenge_accepted', challengeId, gameId, gameType }` — see `sob-backend/AGENTS.md`). No in-app Notification row exists for this event.
+
+- **Service worker (`src/sw.ts`, live at `/serwist/sw.js`; `public/sw.js` orphaned-but-synced)** —
+  - `push` now stores `data: { url, ...payload.data }` on the notification so nested fields (`type`/`gameId`/`challengeId`/`gameType`) survive for click handlers (previously only `url` was kept).
+  - `notificationclick` prefers focusing an already-open same-origin window (Chromium `client.navigate` when available; else focus + open only if path differs) instead of always spawning a new tab. Falls back to `clients.openWindow(url)`.
+- **Routes already exist** — `/games`, `/games/play/[gameId]`, `/games/invite/[id]/{accept,decline,cancel}`. No page changes needed.
+- **No in-app `challenge_accepted` type** — correct; backend never persists a Notification for this event.
+- Verified: `tsc --noEmit` clean; eslint on `src/sw.ts` clean; `vitest run` green; build clean.
+
 ## Chess & Checkers — real-time play + invitations + shareable links (2026-10-16)
 
 Full chess/checkers UI integrated with chat. Backend contract: `sob-backend/AGENTS.md` "Chess & Checkers". Mobile parity: `sob-mobile/AGENTS.md`.

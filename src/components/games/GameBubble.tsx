@@ -5,11 +5,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Crown, Swords, Check, X, Trophy, Handshake, Share2 } from 'lucide-react';
+import { Crown, Swords, Check, X, Trophy, Handshake, Share2, Grid3X3 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { toast } from 'sonner';
 import type { GameBubbleData, GameType, InviteStatus } from '../../types/game';
+import { terminationLabel } from '../../types/game';
 
 interface GameBubbleProps {
   data: GameBubbleData;
@@ -21,6 +22,7 @@ interface GameBubbleProps {
 const TYPE_META: Record<GameType, { label: string; icon: typeof Crown }> = {
   chess: { label: 'Chess', icon: Crown },
   checkers: { label: 'Checkers', icon: Swords },
+  tic_tac_toe: { label: 'Tic-tac-toe', icon: Grid3X3 },
 };
 
 const INVITE_STATUS_LABEL: Record<InviteStatus, string> = {
@@ -75,7 +77,7 @@ export default function GameBubble({ data, mine, onInvitationHandled }: GameBubb
   const resultText = (() => {
     if (data.kind !== 'result') return null;
     const winnerName = data.result === 'draw' ? null : data.result === 'white' ? 'White' : 'Black';
-    const term = data.termination ? ` · ${data.termination.replace(/_/g, ' ')}` : '';
+    const term = data.termination ? ` · ${terminationLabel(data.termination)}` : '';
     if (data.result === 'draw') return `Draw${term}`;
     const isWinner = user && data.winner === user._id;
     return isWinner ? `You won${term}` : `${winnerName} won${term}`;

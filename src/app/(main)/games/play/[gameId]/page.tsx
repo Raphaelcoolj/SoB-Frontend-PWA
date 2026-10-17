@@ -1,9 +1,9 @@
 'use client';
 
-// Live chess/checkers game page: board, clocks, move list, draw/resign,
+// Live chess/checkers/tic-tac-toe game page: board, clocks, move list, draw/resign,
 // real-time socket updates. Server is the rule authority.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Crown,
   Swords,
+  Grid3X3,
   Flag,
   Handshake,
   Check,
@@ -23,12 +24,14 @@ import { Button } from '../../../../../components/ui/Button';
 import { UserAvatar } from '../../../../../components/user/UserAvatar';
 import ChessBoard from '../../../../../components/games/ChessBoard';
 import CheckersBoard from '../../../../../components/games/CheckersBoard';
+import TicTacToeBoard from '../../../../../components/games/TicTacToeBoard';
 import ClockDisplay from '../../../../../components/games/ClockDisplay';
 import MoveList from '../../../../../components/games/MoveList';
 import { socket, connectSocket } from '../../../../../lib/socket';
 import { useAuthStore } from '../../../../../store/authStore';
 import * as gameService from '../../../../../services/game';
 import type { Game, GameColor, LegalMove } from '../../../../../types/game';
+import { gameTypeLabel, markForColor, terminationLabel } from '../../../../../types/game';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -100,26 +103,23 @@ export default function PlayPage() {
   const [busy, setBusy] = useState(false);
   const [drawResponse, setDrawResponse] = useState<'accept' | 'decline' | null>(null);
 
-  const handleMove = useCallback(
-    async (from: string, to: string, promotion?: string, captures?: string[]) => {
-      if (!game || busy || !myTurn) return;
-      setBusy(true);
-      try {
-        const updated = await gameService.makeMove(
-          game.gameId,
-          { from, to, promotion, captures },
-          game.version
-        );
-        mutate({ ...updated }, { revalidate: false });
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Move failed');
-        mutate(); // re-sync in case the server state diverged
-      } finally {
-        setBusy(false);
-      }
-    },
-    [game, busy, myTurn, mutate]
-  );
+  const handleMove = async (from: string, to: string, promotion?: string, captures?: string[]) => {
+    if (!game || busy || !myTurn) return;
+    setBusy(true);
+    try {
+      const updated = await gameService.makeMove(
+        game.gameId,
+        { from, to, promotion, captures },
+        game.version
+      );
+      mutate({ ...updated }, { revalidate: false });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Move failed');
+      mutate(); // re-sync in case the server state diverged
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleResign = async () => {
     if (!game) return;
@@ -170,6 +170,24 @@ export default function PlayPage() {
     toast.success('Link copied');
   };
 
+  const handleCellMove = async (cell: number) => {
+    if (!game || busy || !myTurn) return;
+    setBusy(true);
+    try {
+      const updated = await gameService.makeMove(
+        game.gameId,
+        { from: null, to: String(cell) },
+        game.version
+      );
+      mutate({ ...updated }, { revalidate: false });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Move failed');
+      mutate();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!gameId) {
     return (
       <div className="p-6 text-center text-muted-foreground">Missing game ID</div>
@@ -187,7 +205,8 @@ export default function PlayPage() {
 
   const orientation: 'white' | 'black' = myColor ?? 'white';
   const isChess = game.gameType === 'chess';
-  const TypeIcon = isChess ? Crown : Swords;
+  const isTicTacToe = game.gameType === 'tic_tac_toe';
+  const TypeIcon = isChess ? Crown : isTicTacToe ? Grid3X3 : Swords;
 
   // Draw offer pending for me?
   const drawOfferForMe =
@@ -195,10 +214,14 @@ export default function PlayPage() {
 
   const resultText = (() => {
     if (game.status !== 'completed') return null;
-    if (game.result === 'draw') return `Draw · ${game.termination?.replace(/_/g, ' ')}`;
+    if (game.result === 'draw') {
+      const t = terminationLabel(game.termination);
+      return `Draw${t && t !== 'draw' ? ` · ${t}` : ''}`;
+    }
     const winner = game.players.find((p) => p.user._id === game.winner);
     const won = game.winner === user?._id;
-    return `${won ? 'You won' : `${winner?.user.name || 'Opponent'} won`} · ${game.termination?.replace(/_/g, ' ')}`;
+    const t = terminationLabel(game.termination);
+    return `${won ? 'You won' : `${winner?.user.name || 'Opponent'} won`}${t ? ` · ${t}` : ''}`;
   })();
 
   return (
@@ -215,7 +238,7 @@ export default function PlayPage() {
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold flex items-center gap-1.5">
-            <TypeIcon className="w-4 h-4" /> {game.gameType}
+            <TypeIcon className="w-4 h-4" /> {gameTypeLabel(game.gameType)}
             {game.timeControl && (
               <span className="text-muted-foreground font-normal">
                 {' · '}
@@ -256,6 +279,7 @@ export default function PlayPage() {
             </p>
             <p className="text-[11px] text-muted-foreground capitalize">
               {opponent.color}
+              {isTicTacToe ? ` (${markForColor(opponent.color)})` : ''}
             </p>
           </div>
           <ClockDisplay
@@ -278,6 +302,15 @@ export default function PlayPage() {
             check={game.check}
             interactive={!!myTurn && !busy}
             onMove={(from, to, promotion) => handleMove(from, to, promotion)}
+          />
+        ) : isTicTacToe ? (
+          <TicTacToeBoard
+            position={game.position}
+            legalMoves={legalMoves}
+            orientation={orientation}
+            lastMove={game.lastMove ? { from: game.lastMove.from, to: game.lastMove.to } : null}
+            interactive={!!myTurn && !busy}
+            onMove={(cell) => handleCellMove(cell)}
           />
         ) : (
           <CheckersBoard
@@ -317,7 +350,10 @@ export default function PlayPage() {
                 ({myPlayer.ratingAfter ?? myPlayer.ratingBefore ?? 1200})
               </span>
             </p>
-            <p className="text-[11px] text-muted-foreground capitalize">{myPlayer.color}</p>
+            <p className="text-[11px] text-muted-foreground capitalize">
+              {myPlayer.color}
+              {isTicTacToe ? ` (${markForColor(myPlayer.color)})` : ''}
+            </p>
           </div>
           <ClockDisplay
             clocks={game.clocks}
