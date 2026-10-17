@@ -10,6 +10,7 @@ import { Button } from '../ui/Button';
 import { UserAvatar } from '../user/UserAvatar';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
+import { fetchWithAuth } from '../../lib/api';
 import { createInvitation } from '../../services/game';
 import { TIME_CONTROL_OPTIONS, GAME_TYPE_OPTIONS, type GameType } from '../../types/game';
 
@@ -37,7 +38,7 @@ interface InviteModalProps {
 }
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url, { credentials: 'include' });
+  const res = await fetchWithAuth(url, { method: 'GET' });
   const json = await res.json();
   if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to load');
   return json.data;
@@ -47,6 +48,7 @@ export default function InviteModal({ open, onClose, onSent, conversationId }: I
   const user = useAuthStore((s) => s.user);
   const [gameType, setGameType] = useState<GameType>('chess');
   const [timePreset, setTimePreset] = useState('blitz_3_0');
+  const isTTT = gameType === 'tic_tac_toe';
   const [selectedUser, setSelectedUser] = useState<Connection | null>(null);
   const [search, setSearch] = useState('');
   const [sending, setSending] = useState(false);
@@ -84,7 +86,7 @@ export default function InviteModal({ open, onClose, onSent, conversationId }: I
       await createInvitation({
         to: selectedUser._id,
         gameType,
-        timeControl: timePreset,
+        timeControl: isTTT ? 'untimed' : timePreset,
         conversationId,
       });
       toast.success(`Invitation sent to ${selectedUser.name}`);
@@ -146,29 +148,38 @@ export default function InviteModal({ open, onClose, onSent, conversationId }: I
             </div>
           </div>
 
-          {/* Time control */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-              Time control
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {TIME_CONTROL_OPTIONS.map((tc) => (
-                <button
-                  key={tc.preset}
-                  type="button"
-                  onClick={() => setTimePreset(tc.preset)}
-                  className={cn(
-                    'px-3 py-2 rounded-lg border text-sm transition-colors',
-                    timePreset === tc.preset
-                      ? 'border-accent bg-accent/10 text-accent font-medium'
-                      : 'border-border/60 text-muted-foreground hover:border-border'
-                  )}
-                >
-                  {tc.label}
-                </button>
-              ))}
+          {/* Time control — tic-tac-toe has no clock */}
+          {isTTT ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Time control
+              </p>
+              <p className="text-sm text-muted-foreground">Tic-tac-toe is untimed — no clock.</p>
             </div>
-          </div>
+          ) : (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Time control
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_CONTROL_OPTIONS.map((tc) => (
+                  <button
+                    key={tc.preset}
+                    type="button"
+                    onClick={() => setTimePreset(tc.preset)}
+                    className={cn(
+                      'px-3 py-2 rounded-lg border text-sm transition-colors',
+                      timePreset === tc.preset
+                        ? 'border-accent bg-accent/10 text-accent font-medium'
+                        : 'border-border/60 text-muted-foreground hover:border-border'
+                    )}
+                  >
+                    {tc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Opponent */}
           <div>
