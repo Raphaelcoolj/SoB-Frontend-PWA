@@ -4,14 +4,20 @@
 // time control, and (optionally) a conversation to post the bubble into.
 
 import { useState } from 'react';
-import { Crown, Swords, X } from 'lucide-react';
+import { Crown, Swords, X, Grid3X3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../ui/Button';
 import { UserAvatar } from '../user/UserAvatar';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { createInvitation } from '../../services/game';
-import { TIME_CONTROL_OPTIONS, type GameType } from '../../types/game';
+import { TIME_CONTROL_OPTIONS, GAME_TYPE_OPTIONS, type GameType } from '../../types/game';
+
+const TYPE_ICONS: Record<GameType, typeof Crown> = {
+  chess: Crown,
+  checkers: Swords,
+  tic_tac_toe: Grid3X3,
+};
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -118,22 +124,22 @@ export default function InviteModal({ open, onClose, onSent, conversationId }: I
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
               Game
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              {(['chess', 'checkers'] as const).map((t) => {
-                const Icon = t === 'chess' ? Crown : Swords;
+            <div className="grid grid-cols-3 gap-2">
+              {GAME_TYPE_OPTIONS.map((opt) => {
+                const Icon = TYPE_ICONS[opt.type];
                 return (
                   <button
-                    key={t}
+                    key={opt.type}
                     type="button"
-                    onClick={() => setGameType(t)}
+                    onClick={() => setGameType(opt.type)}
                     className={cn(
-                      'flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium capitalize transition-colors',
-                      gameType === t
+                      'flex items-center justify-center gap-2 px-3 py-3 rounded-xl border font-medium capitalize transition-colors',
+                      gameType === opt.type
                         ? 'border-accent bg-accent/10 text-accent'
                         : 'border-border/60 text-muted-foreground hover:border-border'
                     )}
                   >
-                    <Icon className="w-4 h-4" /> {t}
+                    <Icon className="w-4 h-4" /> {opt.label}
                   </button>
                 );
               })}

@@ -1,4 +1,4 @@
-// Game (chess & checkers) API service — mirrors SoB-Backend-API /api/games.
+// Game (chess, checkers, tic-tac-toe) API service — mirrors SoB-Backend-API /api/games.
 import { fetchWithAuth } from '../lib/api';
 import type {
   Game,
@@ -73,7 +73,7 @@ export const listMyGames = async (params: { gameType?: GameType; status?: 'activ
 
 export const makeMove = async (
   gameId: string,
-  move: { from: string; to: string; promotion?: string; captures?: string[] },
+  move: { from?: string | null; to: string; promotion?: string; captures?: string[]; cell?: number },
   expectedVersion?: number
 ) =>
   unwrap<{ game: Game }>(
