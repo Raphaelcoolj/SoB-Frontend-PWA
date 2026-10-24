@@ -13,6 +13,11 @@ Key breaking changes noted in the bundled docs:
 
 # SoB Frontend — Agent Quick Reference
 
+## Android App Links — Play App Signing SHA-256 added (2026-10-24)
+
+- **`public/.well-known/assetlinks.json`** — added the Play Console app-signing certificate SHA-256 `E4:A1:39:C4:96:D4:51:7A:97:22:07:16:C7:B6:F1:7C:66:F6:8E:19:67:02:F4:37:96:59:98:79:B5:15:56:F8` as a second value in `sha256_cert_fingerprints` (the existing EAS upload-key fingerprint `0F:B9:…:44:54` is kept). This covers Play-installed Android builds, which verify against the Play signing key — no native build needed. Deploy the PWA for verification (`https://spherebrilliq.online/.well-known/assetlinks.json`, `application/json`, no redirects); on-device re-verify with `adb shell pm verify-app-links --re-verify com.sob.app`.
+- Scope note: Android App Links hand only the paths declared in the native `intentFilters` (`/post`, `/profile`, `/digest`, `/chats`, `/home`, `/search`, `/create`, `/bookmarks`, `/notifications`, `/games`, `/oauth-callback`) to the app. iOS Universal Links are separate (`apple-app-site-association`).
+
 ## Tic-Tac-Toe — third multiplayer game (2026-10-16)
 
 Full TTT alongside chess & checkers on the same games architecture (backend contract: `sob-backend/AGENTS.md` "Tic-Tac-Toe"). White = X (moves first), black = O — clients map `color` → mark via `markForColor`.
