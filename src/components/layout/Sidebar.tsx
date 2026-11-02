@@ -21,7 +21,9 @@ import { useChatUnread } from '../../hooks/useChatUnread';
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuthStore();
-  const { unreadCount } = useNotificationStore();
+  // Narrow selector — see BottomNav.tsx for why the default subscription is
+  // avoided on global chrome.
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
   const chatUnread = useChatUnread();
   const { logout } = useAuth();
 

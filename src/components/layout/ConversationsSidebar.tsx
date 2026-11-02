@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWithAuth } from '../../lib/api';
 import { socket, connectSocket } from '../../lib/socket';
+import { useSocketConnected } from '../../hooks/useSocketConnected';
 import UserAvatar from '../user/UserAvatar';
 import VerificationBadge from '../shared/VerificationBadge';
 import InviteModal from '../games/InviteModal';
@@ -62,10 +63,13 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // `chat:message` already triggers a revalidation below, so the 5s interval is
+  // only a reconnect safety net and is suspended while realtime is healthy.
+  const socketHealthy = useSocketConnected();
   const { data, isLoading, mutate: mutateConversations } = useSWR<{ conversations: Conversation[] }>(
     `${BASE}/api/chats`,
     fetcher,
-    { refreshInterval: 5000, dedupingInterval: 5000 }
+    { refreshInterval: socketHealthy ? 0 : 5000, dedupingInterval: 5000 }
   );
 
   const { data: connectionsData } = useSWR<{ users: Connection[] }>(

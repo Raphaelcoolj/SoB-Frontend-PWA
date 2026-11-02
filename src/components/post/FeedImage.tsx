@@ -10,9 +10,9 @@
 
 import { useState } from 'react';
 
-const getFeedImageUrl = (url: string) =>
+const getFeedImageUrl = (url: string, width = 400) =>
   url.includes('/upload/')
-    ? url.replace('/upload/', '/upload/w_400,c_fill,f_auto,q_auto/')
+    ? url.replace('/upload/', `/upload/w_${width},c_fill,f_auto,q_auto/`)
     : url;
 
 interface FeedImageProps {
@@ -20,18 +20,22 @@ interface FeedImageProps {
   alt?: string;
   className?: string;
   loading?: 'lazy' | 'eager';
+  /** Delivery width (px) for the Cloudinary transform. Defaults to 400. */
+  width?: number;
 }
 
-export default function FeedImage({ src, alt = '', className = '', loading = 'lazy' }: FeedImageProps) {
+export default function FeedImage({ src, alt = '', className = '', loading = 'lazy', width = 400 }: FeedImageProps) {
   const [loaded, setLoaded] = useState(false);
 
   return (
     <div className={`relative overflow-hidden ${loaded ? '' : 'shimmer'} ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={getFeedImageUrl(src)}
+        src={getFeedImageUrl(src, width)}
         alt={alt}
         loading={loading}
+        decoding="async"
+        fetchPriority={loading === 'eager' ? 'high' : 'auto'}
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
         className="w-full h-full object-cover"

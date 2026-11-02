@@ -21,13 +21,24 @@ const muxStreamRule: RuntimeCaching = {
   handler: new NetworkOnly(),
 };
 
+// Authenticated / personalised API GETs must never be served from a service-worker
+// cache. Service-worker caches are shared per origin across accounts on a device, so
+// caching personalised responses can leak one user's data to another after an account
+// switch or logout. API traffic is low-volume and personalised reads are realtime-driven
+// via Socket.IO, so bypassing the cache costs nothing.
+const authenticatedApiRule: RuntimeCaching = {
+  matcher: ({ sameOrigin, url, request }) =>
+    sameOrigin && request.method === 'GET' && url.pathname.startsWith('/api/'),
+  handler: new NetworkOnly({ networkTimeoutSeconds: 10 }),
+};
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
   disableDevLogs: true,
-  runtimeCaching: [muxStreamRule, ...defaultCache],
+  runtimeCaching: [muxStreamRule, authenticatedApiRule, ...defaultCache],
 });
 
 serwist.addEventListeners();

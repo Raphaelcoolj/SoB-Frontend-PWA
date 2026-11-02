@@ -65,10 +65,22 @@ export function stripGifUrls(text: string): string {
  * upload. Giphy's media CDN sends permissive CORS headers so a plain fetch
  * works from the browser.
  */
+const gifFilePromises = new Map<string, Promise<File>>();
+
 export async function fetchGifFile(url: string, idHint = 'gif'): Promise<File> {
-  const res = await fetch(url, { referrerPolicy: 'no-referrer', mode: 'cors' });
-  if (!res.ok) throw new Error(`GIF download failed (HTTP ${res.status})`);
-  const blob = await res.blob();
-  const safeHint = idHint.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) || 'gif';
-  return new File([blob], `${safeHint}.gif`, { type: 'image/gif' });
+  const inFlight = gifFilePromises.get(url);
+  if (inFlight) return inFlight;
+  const promise = (async () => {
+    const res = await fetch(url, { referrerPolicy: 'no-referrer', mode: 'cors' });
+    if (!res.ok) throw new Error(`GIF download failed (HTTP ${res.status})`);
+    const blob = await res.blob();
+    const safeHint = idHint.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) || 'gif';
+    return new File([blob], `${safeHint}.gif`, { type: 'image/gif' });
+  })();
+  gifFilePromises.set(url, promise);
+  try {
+    return await promise;
+  } finally {
+    gifFilePromises.delete(url);
+  }
 }

@@ -9,7 +9,7 @@
  * Tracks and displays unread notification badges dynamically.
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, Bell, Shield, MessageCircle } from 'lucide-react';
@@ -20,8 +20,51 @@ import { useChatUnread } from '../../hooks/useChatUnread';
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuthStore();
-  const { unreadCount: notifUnread } = useNotificationStore();
+  // Narrow selector: this bar is mounted on every authenticated route, so a
+  // whole-store subscription would re-render it on every notification payload.
+  const notifUnread = useNotificationStore((s) => s.unreadCount);
   const chatUnread = useChatUnread();
+  const [hidden, setHidden] = useState(false);
+  // The pathname `hidden` was last computed against. Comparing it during render
+  // is React's supported way to reset state when a prop changes, and it avoids
+  // a setState-inside-effect (which cascades an extra render on navigation).
+  const [hiddenOnPath, setHiddenOnPath] = useState(pathname);
+  if (hiddenOnPath !== pathname) {
+    setHiddenOnPath(pathname);
+    setHidden(false);
+  }
+  const lastScrollYRef = useRef(0);
+
+  // X-style behaviour: hide on sustained downward scroll, reveal on upward
+  // scroll, always visible at the top of the page. Passive listener + transform
+  // only, so no layout thrash or per-frame JS state churn.
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastScrollYRef.current;
+      lastScrollYRef.current = y;
+      if (y <= 0) {
+        setHidden(false);
+        return;
+      }
+      if (delta > 80 && y > 80) {
+        setHidden(true);
+      } else if (delta < -80) {
+        setHidden(false);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // A new route always starts with the bar revealed (handled above during
+  // render) and needs a fresh scroll baseline: without re-seeding, the first
+  // scroll event of the new page is read as a jump against the old page's
+  // offset and would immediately hide the bar again. No state is written here,
+  // so this is a plain passive effect.
+  useEffect(() => {
+    lastScrollYRef.current = window.scrollY;
+  }, [pathname]);
 
   // Navigation items mapping paths to icons
   const navItems = [
@@ -33,7 +76,10 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background/80 backdrop-blur-md border-t border-border flex items-center justify-around pb-[env(safe-area-inset-bottom,0px)]">
+    <nav
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background/80 backdrop-blur-md border-t border-border flex items-center justify-around pb-[env(safe-area-inset-bottom,0px)] transition-transform duration-300 ease-out will-change-transform"
+      style={{ transform: hidden ? 'translateY(100%)' : 'translateY(0%)' }}
+    >
       {navItems.map((item) => {
         const IconComponent = item.icon;
         // Determine active matching path
