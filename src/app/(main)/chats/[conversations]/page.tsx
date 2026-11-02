@@ -21,7 +21,8 @@ import MentionText from '../../../../components/shared/MentionText';
 import GifPicker from '../../../../components/shared/GifPicker';
 import GameBubble from '../../../../components/games/GameBubble';
 import InviteModal from '../../../../components/games/InviteModal';
-import { fetchGifFile, isGifUrl, type GifResult } from '../../../../lib/gif';
+import { isGifUrl, type GifResult } from '../../../../lib/gif';
+import { mutateChatUnread } from '../../../../hooks/useChatUnread';
 import type { GameBubbleData } from '../../../../types/game';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
@@ -114,7 +115,7 @@ function VoiceBubble({ url, duration, isMine }: { url: string; duration?: number
   };
 
   useEffect(() => {
-    return () => { audioRef.current?.pause(); if (audioRef.current) audioRef.current.src = ''; };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); audioRef.current?.pause(); if (audioRef.current) audioRef.current.src = ''; };
   }, []);
 
   const toggle = () => {
@@ -206,30 +207,102 @@ function ChatConversation() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Leaving the thread mid-recording must release the microphone and the
+  // tick timer, otherwise the capture stream (and the OS mic indicator) stays
+  // live for as long as the tab is open. `onstop` is detached first because it
+  // would otherwise mint a blob URL for a draft we are about to discard.
+  useEffect(() => () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    // A touch cancelled by navigation must not fire the long-press handler
+    // against an unmounted tree.
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.onstop = null;
+      recorder.stream.getTracks().forEach((track) => track.stop());
+      try {
+        recorder.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+    recorderRef.current = null;
+  }, []);
+
   const convKey = otherUserId ? `${BASE}/api/chats/with/${otherUserId}` : null;
   const { data: convData, isLoading: convLoading, error: convError, mutate: mutateConv } = useSWR<ConversationData>(convKey, fetcher);
   const conversationId = convData?.conversation?._id;
 
   const msgKey = conversationId ? `${BASE}/api/chats/${conversationId}/messages` : null;
-  const { data: msgData, isLoading: msgLoading, mutate: mutateMessages, error: msgError } = useSWR<{ messages: Message[] }>(
-    msgKey, fetcher, { dedupingInterval: 5000 }
-  );
+  const { data: msgData, isLoading: msgLoading, mutate: mutateMessages, error: msgError } = useSWR<{
+    messages: Message[];
+    pagination?: { page: number; limit: number; total: number; pages: number };
+  }>(msgKey, fetcher, { dedupingInterval: 5000 });
 
   const messages = msgData?.messages || [];
+  // Older pages fetched on demand. `olderPage` mirrors the page SWR holds (1)
+  // so `hasMoreOlder` stays derived and self-corrects on revalidation.
+  const [olderMessages, setOlderMessages] = useState<Message[]>([]);
+  const [olderPage, setOlderPage] = useState(1);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const serverPages = msgData?.pagination?.pages ?? 1;
+  const hasMoreOlder = olderPage < serverPages;
 
   const isOwnMessage = useCallback((senderId: string) => {
     return currentUser?._id ? senderId === currentUser._id : false;
   }, [currentUser]);
 
-  const displayedMessages = React.useMemo(() => {
-    return [...messages, ...localMessages].filter(
-      (msg, i, arr) => i === arr.findIndex((m) => m._id === msg._id)
-    );
-  }, [messages, localMessages]);
+  // Socket-driven deletions and edits are applied locally through tombstones
+  // and overrides so `chat:message-deleted` / `chat:message-updated` no longer
+  // need a full message-list refetch (the server list can stay stale until the
+  // next natural revalidation without the user seeing ghost messages).
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
+  const [messageOverrides, setMessageOverrides] = useState<Map<string, Partial<Message>>>(() => new Map());
 
-  // Single scroll trigger on the combined deduplicated list
+  const displayedMessages = React.useMemo(() => {
+    const byId = new Map<string, Message>();
+    const ordered: Message[] = [];
+    const append = (list: Message[] | undefined) => {
+      for (const msg of list || []) {
+        if (deletedIds.has(msg._id)) continue;
+        if (byId.has(msg._id)) continue;
+        const override = messageOverrides.get(msg._id);
+        const resolved = override ? { ...msg, ...override } : msg;
+        byId.set(msg._id, resolved);
+        ordered.push(resolved);
+      }
+    };
+    append(olderMessages);
+    append(messages);
+    append(localMessages);
+    // Older pages are fetched separately from the live page, so ordering has to
+    // be re-established here (stable on _id for identical timestamps).
+    ordered.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (ta !== tb) return ta - tb;
+      return String(a._id).localeCompare(String(b._id));
+    });
+    return ordered;
+  }, [messages, localMessages, olderMessages, deletedIds, messageOverrides]);
+
+  // Single scroll trigger on the combined deduplicated list — only auto-scrolls
+  // when the user is near the bottom so reading history is never hijacked.
+  const isNearBottomRef = useRef(true);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleMessagesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight);
+    isNearBottomRef.current = distanceFromBottom < 80;
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [displayedMessages]);
 
   useEffect(() => {
@@ -246,32 +319,35 @@ function ChatConversation() {
       socket.once('connect', joinRoom);
     }
 
-    fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
+    fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' })
+      .then((res) => { if (res.ok) mutateChatUnread(); })
+      .catch(() => {});
 
     const onMessage = (data: { conversationId: string; message: Message }) => {
       if (data.conversationId !== conversationId) return;
       if (data.message.deleted) {
         setLocalMessages((prev) => prev.filter((m) => m._id !== data.message._id));
-        mutateMessages();
         return;
       }
       const senderId = data.message.sender?._id;
       if (!senderId) return;
-      if (!isOwnMessage(senderId)) {
-        setLocalMessages((prev) => {
-          const exists = prev.some((m) => m._id === data.message._id);
-          if (!exists) return [...prev, data.message];
+      // Own messages are reconciled locally via the send acknowledgement
+      // (`onSent`); never trigger a full message-list refetch for them.
+      if (isOwnMessage(senderId)) return;
+      setLocalMessages((prev) => {
+        const exists = prev.some((m) => m._id === data.message._id);
+        if (exists) {
           // Merge socket-updated messages (reactions, edits) instead of dropping them
           return prev.map((m) => (m._id === data.message._id ? { ...m, ...data.message } : m));
-        });
-        fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
-      }
-      mutateMessages();
+        }
+        return [...prev, data.message];
+      });
+      fetchWithAuth(`${BASE}/api/chats/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
     };
     const onMessageDeleted = (data: { conversationId: string; messageId: string }) => {
       if (data.conversationId !== conversationId) return;
       setLocalMessages((prev) => prev.filter((m) => m._id !== data.messageId));
-      mutateMessages();
+      setDeletedIds((prev) => { const next = new Set(prev); next.add(data.messageId); return next; });
     };
     const onConversationDeleted = (data: { conversationId: string }) => {
       if (data.conversationId !== conversationId) return;
@@ -281,7 +357,6 @@ function ChatConversation() {
       if (data.conversationId !== conversationId) return;
       const readAt = data.readAt;
       setLocalMessages((prev) => prev.map((m) => (m.sender._id === currentUser?._id && !m.readAt ? { ...m, readAt } : m)));
-      mutateMessages();
     };
     const onMessageUpdated = (data: {
       conversationId: string;
@@ -296,7 +371,14 @@ function ChatConversation() {
           return { ...m, ...(data.game !== undefined ? { game: data.game } : {}), ...(data.text !== undefined ? { text: data.text } : {}) };
         })
       );
-      mutateMessages();
+      setMessageOverrides((prev) => {
+        const next = new Map(prev);
+        const patch: Partial<Message> = {};
+        if (data.game !== undefined) patch.game = data.game;
+        if (data.text !== undefined) patch.text = data.text;
+        next.set(data.messageId, { ...(prev.get(data.messageId) || {}), ...patch });
+        return next;
+      });
     };
     socket.on('chat:message', onMessage);
     socket.on('chat:message-deleted', onMessageDeleted);
@@ -553,7 +635,11 @@ function ChatConversation() {
           })
         )
       );
-      mutateMessages();
+      setDeletedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of messageIds) next.add(id);
+        return next;
+      });
     } catch (err) {
       console.error('Delete failed:', err);
     }
@@ -612,30 +698,16 @@ function ChatConversation() {
     if (!conversationId) return;
     setPreviewImage(gif.url);
     setSelectedFile(null);
-    setPreparingGif(true);
-    try {
-      const file = await fetchGifFile(gif.url, gif.id);
-      setSelectedFile(file);
-    } catch {
-      toast.error('Could not prepare GIF. Press send to retry.');
-    } finally {
-      setPreparingGif(false);
-    }
+    // The remote GIF URL is already displayable, so it is sent straight through
+    // as `mediaUrl`. Downloading it to a File and re-uploading through Cloudinary
+    // cost a round trip per send without improving reliability or ownership.
+    setPreparingGif(false);
   };
 
   const handleUploadMedia = async () => {
     if (!conversationId || uploadingMedia || preparingGif) return;
-    let fileToUpload = selectedFile;
-    if (!fileToUpload && previewImage && isGifUrl(previewImage)) {
-      setUploadingMedia(true);
-      try {
-        fileToUpload = await fetchGifFile(previewImage);
-        setSelectedFile(fileToUpload);
-      } catch {
-        // Fallback: send as direct mediaUrl so user is never blocked
-        fileToUpload = null;
-      }
-    }
+    const fileToUpload = selectedFile;
+    // Remote GIFs are intentionally sent as `mediaUrl` (no download/re-upload).
     if (!fileToUpload && !previewImage) return;
     setUploadingMedia(true);
     try {
@@ -657,7 +729,7 @@ function ChatConversation() {
         resetTextarea();
         setReplyTo(null);
         clearMediaPreview();
-        mutateMessages();
+        setLocalMessages((prev) => (prev.some((m) => m._id === json.data.message._id) ? prev : [...prev, json.data.message]));
         track({ event: 'message_sent', properties: { type: 'media' } });
       } else {
         toast.error(json?.message || 'Failed to send media. Please try again.');
@@ -750,6 +822,33 @@ function ChatConversation() {
       day: 'numeric',
       year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
     });
+  };
+
+  const loadOlderMessages = async () => {
+    if (!msgKey || loadingOlder || !hasMoreOlder) return;
+    setLoadingOlder(true);
+    try {
+      const next = olderPage + 1;
+      const res = await fetchWithAuth(`${msgKey}?page=${next}&limit=30`);
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        const older: Message[] = json.data?.messages || [];
+        const prevScrollHeight = messagesScrollRef.current?.scrollHeight ?? 0;
+        const prevScrollTop = messagesScrollRef.current?.scrollTop ?? 0;
+        setOlderMessages((prev) => [...prev, ...older]);
+        setOlderPage(next);
+        // Growing the list above the viewport would jump the reader; restore
+        // the exact visual offset once the new rows have been painted.
+        requestAnimationFrame(() => {
+          const el = messagesScrollRef.current;
+          if (!el) return;
+          const delta = el.scrollHeight - prevScrollHeight;
+          el.scrollTop = prevScrollTop + delta;
+        });
+      }
+    } finally {
+      setLoadingOlder(false);
+    }
   };
 
   const groupedMessages = displayedMessages.reduce<{ date: string; messages: Message[] }[]>((acc, msg) => {
@@ -915,7 +1014,7 @@ function ChatConversation() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-4 py-3 scroll-smooth">
+      <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-4 py-3 scroll-smooth">
         {msgLoading && messages.length === 0 && localMessages.length === 0 ? (
           <div className="space-y-4 pt-4">
             {[70, 50, 80, 40, 65].map((w, i) => (
@@ -1062,10 +1161,15 @@ function ChatConversation() {
 
                         {!msg.game && mediaItem?.type === 'image' && (
                           <div className={`${mine ? 'bg-accent/20' : 'bg-muted'} rounded-2xl overflow-hidden p-0.5 relative ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
+                            {/* Fixed box + object-cover: the message payload carries no
+                                width/height, so a reserved box is what keeps the bubble
+                                from reflowing the thread as each image resolves. */}
                             <img
                               src={mediaItem.url}
                               alt="Image"
-                              className="w-full max-h-[350px] object-cover cursor-pointer rounded-xl"
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-[240px] sm:h-[300px] object-cover cursor-pointer rounded-xl"
                               onClick={() => { setLightboxUrl(mediaItem.url); setLightboxOpen(true); }}
                             />
                             {isGifUrl(mediaItem.url) && (
@@ -1274,6 +1378,17 @@ function ChatConversation() {
             </div>
           ))
         )}
+        {hasMoreOlder && (
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={loadOlderMessages}
+              disabled={loadingOlder}
+              className="px-4 py-1.5 rounded-full bg-muted text-xs font-semibold text-foreground hover:bg-accent/20 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {loadingOlder ? 'Loading…' : 'Load earlier messages'}
+            </button>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -1391,7 +1506,7 @@ function ChatConversation() {
                     const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, { method: 'POST', body: formData, headers: {} });
                     const json = await res.json();
                     if (json?.data?.message) {
-                      mutateMessages();
+                      setLocalMessages((prev) => (prev.some((m) => m._id === json.data.message._id) ? prev : [...prev, json.data.message]));
                       track({ event: 'message_sent', properties: { type: 'voice' } });
                     }
                   } catch { } finally { setSending(false); textareaRef.current?.focus(); }
