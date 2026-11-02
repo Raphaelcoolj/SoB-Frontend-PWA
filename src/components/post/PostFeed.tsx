@@ -70,6 +70,13 @@ export default function PostFeed({
   variant = 'default'
 }: PostFeedProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // `loadMore` is re-created on every parent render; keeping it out of the
+  // effect deps stops the observer being torn down and re-armed (which re-fires
+  // its initial callback) on each render, and avoids duplicate page requests.
+  const loadMoreRef = useRef(loadMore);
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
 
   useEffect(() => {
     if (!sentinelRef.current || !hasMore || isLoadingInitial || isLoadingMore) return;
@@ -77,7 +84,7 @@ export default function PostFeed({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          loadMore();
+          loadMoreRef.current();
         }
       },
       { rootMargin: '400px' }
@@ -85,7 +92,7 @@ export default function PostFeed({
 
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingInitial, isLoadingMore, loadMore]);
+  }, [hasMore, isLoadingInitial, isLoadingMore]);
 
   if (isLoadingInitial) {
     return (

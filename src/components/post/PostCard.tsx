@@ -27,6 +27,7 @@ import MentionText from '../shared/MentionText';
 import LinkPreviewCard from '../shared/LinkPreviewCard';
 import PollBlock from './PollBlock';
 import { safeHtml } from '../../lib/sanitize';
+import { feedCardVirtualization } from '../../lib/feedVirtualization';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -179,7 +180,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
 
   if (variant === 'flat') {
     return (
-      <article className="border-b border-border py-4 px-4 transition-colors duration-200 group bg-background">
+      <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="border-b border-border py-4 px-4 transition-colors duration-200 group bg-background">
         <div className="flex gap-3">
           <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">
             <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
@@ -340,7 +341,7 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
   }
 
   return (
-    <article className="bg-card border border-border rounded-xl overflow-hidden transition-colors duration-200 group">
+    <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="bg-card border border-border rounded-xl overflow-hidden transition-colors duration-200 group">
       {/* Author header */}
       <div className="flex items-start gap-3 p-4 pb-3">
         <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">

@@ -23,6 +23,7 @@ import LinkPreviewCard from '../shared/LinkPreviewCard';
 import PollBlock from './PollBlock';
 import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
+import { feedCardVirtualization } from '../../lib/feedVirtualization';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -156,7 +157,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
 
   if (variant === 'flat') {
     return (
-      <article className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent [backface-visibility:hidden]">
+      <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent [backface-visibility:hidden]">
         <div className="flex gap-3">
           {/* Avatar on the left */}
           <Link href={`/profile/${article.author.username}`} className="flex-shrink-0">
@@ -300,7 +301,7 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
   }
 
   return (
-    <article className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300 group shadow-sm hover:shadow-md">
+    <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300 group shadow-sm hover:shadow-md">
       {/* Cover Image or Video */}
       {article.mediaUrls.length > 0 && !article.muxPlaybackId && (
         // NEW: Wrap article cover image in a button to open image lightbox on tap
