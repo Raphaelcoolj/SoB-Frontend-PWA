@@ -10,7 +10,7 @@ import React, { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, BookOpen, MoreHorizontal, Trash2, Edit, Flag, Repeat2 } from 'lucide-react';
 import VerificationBadge from '../shared/VerificationBadge';
 import { Post } from '../../types/post';
 import { useAuthStore } from '../../store/authStore';
@@ -24,6 +24,7 @@ import PollBlock from './PollBlock';
 import { formatDistanceToNow } from '../../lib/utils';
 import { toast } from 'sonner';
 import { feedCardVirtualization } from '../../lib/feedVirtualization';
+import PostShareDialog from './PostShareDialog';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -81,6 +82,10 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [repostCount, setRepostCount] = useState(article.repostsCount || 0);
+  const [isReposted, setIsReposted] = useState(!!article.isRepostedByMe);
+  const [reposting, setReposting] = useState(false);
 
   const handleDelete = async () => {
     if (!accessToken || !isAuthor) return;
@@ -155,9 +160,41 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
     } catch { /* silent */ }
   };
 
+  const handleRepost = async () => {
+    if (!accessToken || isAuthor || reposting) return;
+    const wasReposted = isReposted;
+    setReposting(true);
+    setIsReposted(!wasReposted);
+    setRepostCount((count) => Math.max(0, count + (wasReposted ? -1 : 1)));
+    try {
+      const response = await fetchWithAuth(`/api/posts/${article._id}/repost`, {
+        method: wasReposted ? 'DELETE' : 'POST',
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Could not update repost.');
+      setIsReposted(payload.data.isReposted);
+      setRepostCount(payload.data.repostsCount);
+    } catch (error) {
+      setIsReposted(wasReposted);
+      setRepostCount((count) => Math.max(0, count + (wasReposted ? 1 : -1)));
+      toast.error(error instanceof Error ? error.message : 'Could not update repost.');
+    } finally {
+      setReposting(false);
+    }
+  };
+
   if (variant === 'flat') {
     return (
       <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="border-b border-border/40 py-4 px-4 transition-colors duration-200 group bg-transparent [backface-visibility:hidden]">
+        {article.repostedBy && (
+          <div className="mb-2 flex items-center gap-1.5 pl-12 text-xs text-muted-foreground">
+            <Repeat2 className="h-3.5 w-3.5" />
+            <Link href={`/profile/${article.repostedBy.username}`} className="font-semibold hover:underline">
+              @{article.repostedBy.username}
+            </Link>
+            <span>reposted</span>
+          </div>
+        )}
         <div className="flex gap-3">
           {/* Avatar on the left */}
           <Link href={`/profile/${article.author.username}`} className="flex-shrink-0">
@@ -269,8 +306,20 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
                 <span className="text-xs">{likeCount}</span>
               </button>
 
+              {!isAuthor && (
+                <button
+                  onClick={handleRepost}
+                  disabled={reposting}
+                  aria-label={isReposted ? 'Undo repost' : 'Repost'}
+                  className={`flex items-center gap-1.5 p-2 rounded-full transition-colors cursor-pointer disabled:opacity-50 ${isReposted ? 'text-emerald-500' : 'hover:text-emerald-500 hover:bg-emerald-500/10'}`}
+                >
+                  <Repeat2 className="w-[17px] h-[17px]" />
+                  <span className="text-xs">{repostCount}</span>
+                </button>
+              )}
+
               <button
-                onClick={handleShare}
+                onClick={() => setShowShareDialog(true)}
                 className="flex items-center gap-1.5 p-2 rounded-full hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
               >
                 <Share2 className="w-[17px] h-[17px]" />
@@ -296,12 +345,28 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
         {showReportModal && (
           <ReportModal postId={article._id} onClose={() => setShowReportModal(false)} />
         )}
+        {showShareDialog && (
+          <PostShareDialog
+            postId={article._id}
+            onClose={() => setShowShareDialog(false)}
+            onShareLink={handleShare}
+          />
+        )}
       </article>
     );
   }
 
   return (
     <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300 group shadow-sm hover:shadow-md">
+      {article.repostedBy && (
+        <div className="flex items-center gap-1.5 px-4 pt-3 text-xs text-muted-foreground">
+          <Repeat2 className="h-3.5 w-3.5" />
+          <Link href={`/profile/${article.repostedBy.username}`} className="font-semibold hover:underline">
+            @{article.repostedBy.username}
+          </Link>
+          <span>reposted</span>
+        </div>
+      )}
       {/* Cover Image or Video */}
       {article.mediaUrls.length > 0 && !article.muxPlaybackId && (
         // NEW: Wrap article cover image in a button to open image lightbox on tap
@@ -429,11 +494,22 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
               <span className="text-xs font-medium">{likeCount}</span>
             </button>
             <button
-              onClick={handleShare}
+              onClick={() => setShowShareDialog(true)}
               className="flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
             >
               <Share2 className="w-[17px] h-[17px]" />
             </button>
+            {!isAuthor && (
+              <button
+                onClick={handleRepost}
+                disabled={reposting}
+                aria-label={isReposted ? 'Undo repost' : 'Repost'}
+                className={`flex items-center gap-1 p-2 rounded-lg transition-colors hover:bg-muted disabled:opacity-50 ${isReposted ? 'text-emerald-500' : 'text-muted-foreground hover:text-emerald-500'}`}
+              >
+                <Repeat2 className="w-[17px] h-[17px]" />
+                <span className="text-xs font-medium">{repostCount}</span>
+              </button>
+            )}
             <button
               onClick={handleBookmark}
               className={`p-2 rounded-lg transition-colors hover:bg-muted ${
@@ -456,6 +532,13 @@ function ArticleCard({ article, onCommentClick, variant = 'default' }: ArticleCa
       )}
       {showReportModal && (
         <ReportModal postId={article._id} onClose={() => setShowReportModal(false)} />
+      )}
+      {showShareDialog && (
+        <PostShareDialog
+          postId={article._id}
+          onClose={() => setShowShareDialog(false)}
+          onShareLink={handleShare}
+        />
       )}
     </article>
   );

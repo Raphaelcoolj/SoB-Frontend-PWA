@@ -32,6 +32,13 @@ interface Conversation {
   unreadCount: number;
   updatedAt: string;
   isBlocked?: boolean;
+  connectionStreak?: {
+    pairId: string | null;
+    currentStreak: number;
+    state: 'pending' | 'active' | 'expired';
+    pendingParticipantIds: string[];
+    expiresAt: string | null;
+  };
 }
 
 interface Connection {
@@ -58,6 +65,7 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
   const [newMessageQuery, setNewMessageQuery] = useState('');
   const [composeMenuOpen, setComposeMenuOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [streakNow, setStreakNow] = useState(0);
   const composeMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -78,6 +86,21 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
   );
 
   const conversations = data?.conversations || [];
+  const nextStreakExpiry = conversations
+    .map((conversation) => conversation.connectionStreak?.expiresAt)
+    .filter((expiresAt): expiresAt is string => !!expiresAt)
+    .map((expiresAt) => new Date(expiresAt).getTime())
+    .filter((expiresAt) => expiresAt >= streakNow)
+    .sort((a, b) => a - b)[0];
+
+  useEffect(() => {
+    if (nextStreakExpiry === undefined) return;
+    const timer = setTimeout(
+      () => setStreakNow(Date.now()),
+      Math.max(0, nextStreakExpiry - Date.now() + 1)
+    );
+    return () => clearTimeout(timer);
+  }, [nextStreakExpiry]);
   const connections = connectionsData?.users?.filter(
     (c) => c._id !== currentUser?._id
   ) || [];
@@ -128,17 +151,30 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
     const handleMessage = () => {
       mutateConversations();
     };
+    const handleStreakUpdate = (update: NonNullable<Conversation['connectionStreak']>) => {
+      mutateConversations((current) => current ? {
+        ...current,
+        conversations: current.conversations.map((conversation) => {
+          const pairId = [currentUser?._id, conversation.otherUser._id].sort().join(':');
+          return pairId === update.pairId
+            ? { ...conversation, connectionStreak: update }
+            : conversation;
+        }),
+      } : current, { revalidate: false });
+    };
 
     socket.on('user:online', handleOnline);
     socket.on('user:offline', handleOffline);
     socket.on('chat:message', handleMessage);
+    socket.on('connection:streak', handleStreakUpdate);
 
     return () => {
       socket.off('user:online', handleOnline);
       socket.off('user:offline', handleOffline);
       socket.off('chat:message', handleMessage);
+      socket.off('connection:streak', handleStreakUpdate);
     };
-  }, [accessToken, mutateConversations]);
+  }, [accessToken, currentUser?._id, mutateConversations]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -429,8 +465,21 @@ export default function ConversationsSidebar({ activeConversationId, variant = '
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <span className={`text-[13px] font-semibold truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>
-                            {conv.otherUser.name}
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className={`truncate text-[13px] font-semibold ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>
+                              {conv.otherUser.name}
+                            </span>
+                            {conv.connectionStreak
+                              && conv.connectionStreak.state !== 'expired'
+                              && (!conv.connectionStreak.expiresAt || streakNow <= new Date(conv.connectionStreak.expiresAt).getTime())
+                              && (
+                              <span
+                                className={`flex-shrink-0 text-[11px] font-semibold ${conv.connectionStreak.state === 'active' ? 'text-orange-500' : 'text-muted-foreground'}`}
+                                title={conv.connectionStreak.state === 'pending' ? 'Waiting for a reply' : 'Active connection streak'}
+                              >
+                                🔥 {conv.connectionStreak.currentStreak}
+                              </span>
+                            )}
                           </span>
                           {conv.lastMessage?.createdAt && (
                             <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 font-medium">
