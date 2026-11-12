@@ -11,7 +11,7 @@ import React, { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Trash2, Edit, Flag, Repeat2 } from 'lucide-react';
 import VerificationBadge from '../shared/VerificationBadge';
 import { toast } from 'sonner';
 import { Post } from '../../types/post';
@@ -28,6 +28,7 @@ import LinkPreviewCard from '../shared/LinkPreviewCard';
 import PollBlock from './PollBlock';
 import { safeHtml } from '../../lib/sanitize';
 import { feedCardVirtualization } from '../../lib/feedVirtualization';
+import PostShareDialog from './PostShareDialog';
 
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false });
 const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
@@ -86,6 +87,10 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [repostCount, setRepostCount] = useState(post.repostsCount || 0);
+  const [isReposted, setIsReposted] = useState(!!post.isRepostedByMe);
+  const [reposting, setReposting] = useState(false);
 
   const handleCommentClick = () => {
     if (onCommentClick) {
@@ -162,6 +167,29 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
     }
   };
 
+  const handleRepost = async () => {
+    if (!accessToken || isAuthor || reposting) return;
+    const wasReposted = isReposted;
+    setReposting(true);
+    setIsReposted(!wasReposted);
+    setRepostCount((count) => Math.max(0, count + (wasReposted ? -1 : 1)));
+    try {
+      const response = await fetchWithAuth(`/api/posts/${post._id}/repost`, {
+        method: wasReposted ? 'DELETE' : 'POST',
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Could not update repost.');
+      setIsReposted(payload.data.isReposted);
+      setRepostCount(payload.data.repostsCount);
+    } catch (error) {
+      setIsReposted(wasReposted);
+      setRepostCount((count) => Math.max(0, count + (wasReposted ? 1 : -1)));
+      toast.error(error instanceof Error ? error.message : 'Could not update repost.');
+    } finally {
+      setReposting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!accessToken || !isAuthor) return;
     try {
@@ -181,6 +209,15 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
   if (variant === 'flat') {
     return (
       <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="border-b border-border py-4 px-4 transition-colors duration-200 group bg-background">
+        {post.repostedBy && (
+          <div className="mb-2 flex items-center gap-1.5 pl-12 text-xs text-muted-foreground">
+            <Repeat2 className="h-3.5 w-3.5" />
+            <Link href={`/profile/${post.repostedBy.username}`} className="font-semibold hover:underline">
+              @{post.repostedBy.username}
+            </Link>
+            <span>reposted</span>
+          </div>
+        )}
         <div className="flex gap-3">
           <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">
             <UserAvatar avatar={post.author.avatar} name={post.author.name} size="md" />
@@ -308,8 +345,20 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
                 <span className="text-xs">{likeCount}</span>
               </button>
 
+              {!isAuthor && (
+                <button
+                  onClick={handleRepost}
+                  disabled={reposting}
+                  aria-label={isReposted ? 'Undo repost' : 'Repost'}
+                  className={`flex items-center gap-1.5 p-2 rounded-full transition-colors cursor-pointer disabled:opacity-50 ${isReposted ? 'text-emerald-500' : 'hover:text-emerald-500 hover:bg-emerald-500/10'}`}
+                >
+                  <Repeat2 className="w-[17px] h-[17px]" />
+                  <span className="text-xs">{repostCount}</span>
+                </button>
+              )}
+
               <button
-                onClick={handleShare}
+                onClick={() => setShowShareDialog(true)}
                 className="flex items-center gap-1.5 p-2 rounded-full hover:text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"
               >
                 <Share2 className="w-[17px] h-[17px]" />
@@ -336,12 +385,28 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
         {showReportModal && (
           <ReportModal postId={post._id} onClose={() => setShowReportModal(false)} />
         )}
+        {showShareDialog && (
+          <PostShareDialog
+            postId={post._id}
+            onClose={() => setShowShareDialog(false)}
+            onShareLink={handleShare}
+          />
+        )}
       </article>
     );
   }
 
   return (
     <article style={feedCardVirtualization(lightboxOpen || showReportModal)} className="bg-card border border-border rounded-xl overflow-hidden transition-colors duration-200 group">
+      {post.repostedBy && (
+        <div className="flex items-center gap-1.5 px-4 pt-3 text-xs text-muted-foreground">
+          <Repeat2 className="h-3.5 w-3.5" />
+          <Link href={`/profile/${post.repostedBy.username}`} className="font-semibold hover:underline">
+            @{post.repostedBy.username}
+          </Link>
+          <span>reposted</span>
+        </div>
+      )}
       {/* Author header */}
       <div className="flex items-start gap-3 p-4 pb-3">
         <Link href={`/profile/${post.author.username}`} className="flex-shrink-0">
@@ -514,12 +579,24 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
         </button>
 
         <button
-          onClick={handleShare}
+          onClick={() => setShowShareDialog(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95 cursor-pointer"
         >
           <Share2 className="w-[17px] h-[17px]" />
           <span className="text-xs font-medium">{post.shares}</span>
         </button>
+
+        {!isAuthor && (
+          <button
+            onClick={handleRepost}
+            disabled={reposting}
+            aria-label={isReposted ? 'Undo repost' : 'Repost'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 hover:bg-muted active:scale-95 cursor-pointer disabled:opacity-50 ${isReposted ? 'text-emerald-500' : 'text-muted-foreground hover:text-emerald-500'}`}
+          >
+            <Repeat2 className="w-[17px] h-[17px]" />
+            <span className="text-xs font-medium">{repostCount}</span>
+          </button>
+        )}
 
         <div className="flex-1" />
 
@@ -542,6 +619,13 @@ function PostCard({ post, onCommentClick, fullView = false, onDelete, variant = 
       )}
       {showReportModal && (
         <ReportModal postId={post._id} onClose={() => setShowReportModal(false)} />
+      )}
+      {showShareDialog && (
+        <PostShareDialog
+          postId={post._id}
+          onClose={() => setShowShareDialog(false)}
+          onShareLink={handleShare}
+        />
       )}
     </article>
   );

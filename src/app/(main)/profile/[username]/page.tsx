@@ -61,12 +61,13 @@ export default function ProfilePage() {
 
   // Honour ?tab=articles deep-link (used by the create page after publishing).
   const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<'articles' | 'posts'>(
+  const [activeTab, setActiveTab] = useState<'articles' | 'posts' | 'research'>(
     tabParam === 'articles' ? 'articles' : 'posts'
   );
   const [followersCount, setFollowersCount] = useState<number | null>(null);
   const [isBlockedByViewer, setIsBlockedByViewer] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showStreakInfo, setShowStreakInfo] = useState(false);
 
   const isOwnProfile = currentUser?.username === username;
 
@@ -79,6 +80,12 @@ export default function ProfilePage() {
 
   const profile = profileData?.user;
   const stats = profileData?.stats;
+  const canSeePersonalStreak = isOwnProfile && profile?._id === currentUser?._id;
+  const { data: personalStreak } = useSWR(
+    canSeePersonalStreak ? [`${BASE}/api/users/me/streak`, currentUser?._id] : null,
+    ([url]) => profileFetcher(url, accessToken || undefined),
+    { revalidateOnFocus: true }
+  );
 
   // Sync block state from profile data
   const [prevProfile, setPrevProfile] = useState<typeof profile>(undefined);
@@ -93,16 +100,19 @@ export default function ProfilePage() {
   const canViewContent = profile?.canViewContent ?? true;
   const hasBlockedMe = profile?.hasBlockedMe ?? false;
 
-  const getPostKey = (pageIndex: number, prev: { posts: Post[] } | null) => {
+  const getPostKey = (pageIndex: number, prev: { posts: Post[]; hasMore?: boolean } | null) => {
     if (!profile?._id) return null;
     if (!canViewContent) return null;
     if (isBlockedByViewer) return null;
     if (hasBlockedMe) return null;
-    if (prev && prev.posts.length === 0) return null;
-    return [`${BASE}/api/posts/user/${profile._id}?page=${pageIndex + 1}&limit=10&contentType=${activeTab === 'articles' ? 'article' : 'post'}`, accessToken || undefined];
+    if (prev && (prev.hasMore === false || (prev.hasMore === undefined && prev.posts.length === 0))) return null;
+    const url = activeTab === 'research'
+      ? `${BASE}/api/posts/user/${profile._id}/research?page=${pageIndex + 1}&limit=10`
+      : `${BASE}/api/posts/user/${profile._id}?page=${pageIndex + 1}&limit=10&contentType=${activeTab === 'articles' ? 'article' : 'post'}`;
+    return [url, accessToken || undefined];
   };
 
-  const { data: postsPages, size, setSize, isValidating, error: postsError, mutate: mutatePosts } = useSWRInfinite<{ posts: Post[] }>(
+  const { data: postsPages, size, setSize, isValidating, error: postsError, mutate: mutatePosts } = useSWRInfinite<{ posts: Post[]; hasMore?: boolean }>(
     getPostKey,
     ([url, token]) => postsFetcher(url, token),
     { revalidateOnFocus: true, revalidateOnMount: true, revalidateFirstPage: true }
@@ -110,7 +120,10 @@ export default function ProfilePage() {
 
   const posts = postsPages ? postsPages.flatMap(p => p.posts) : [];
   const isLoadingPosts = !postsPages && isValidating && canViewContent && !isBlockedByViewer && !hasBlockedMe;
-  const hasMorePosts = postsPages?.[postsPages.length - 1]?.posts.length === 10;
+  const lastPostsPage = postsPages?.[postsPages.length - 1];
+  const hasMorePosts = activeTab === 'research'
+    ? lastPostsPage?.hasMore === true
+    : lastPostsPage?.posts.length === 10;
 
   const displayFollowers = followersCount ?? stats?.followersCount ?? 0;
 
@@ -154,15 +167,7 @@ export default function ProfilePage() {
         </div>
         <div className="flex gap-6">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 flex-1 rounded-lg" />)}
-      </div>
-
-      {showReportModal && profile && (
-        <ReportUserModal
-          userId={profile._id}
-          username={profile.username}
-          onClose={() => setShowReportModal(false)}
-        />
-      )}
+        </div>
     </div>
   );
 }
@@ -251,6 +256,18 @@ export default function ProfilePage() {
             className="block text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap"
             validMentions={(profile.bioMentions ?? []).map((m: { username: string }) => m.username)}
           />
+        )}
+
+        {canSeePersonalStreak && (
+          <button
+            type="button"
+            onClick={() => setShowStreakInfo(true)}
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-semibold text-foreground hover:bg-muted"
+            aria-label="View your SoB streak information"
+          >
+            <span aria-hidden="true">🔥</span>
+            <span>{personalStreak?.currentStreak ?? 0}</span>
+          </button>
         )}
 
         {/* Priority Fields badges */}
@@ -376,7 +393,7 @@ export default function ProfilePage() {
         <div className="pt-2">
           {/* Tabs header */}
           <div className="flex border-b border-border/40 -mx-4">
-            {(['posts', 'articles'] as const).map((tab) => {
+            {(['posts', 'articles', 'research'] as const).map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
@@ -410,7 +427,11 @@ export default function ProfilePage() {
             ) : posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 px-4">
                 <div className="text-3xl">📝</div>
-                <p className="text-sm text-muted-foreground">No {activeTab === 'articles' ? 'stories' : 'posts'} yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === 'research'
+                    ? 'No Research yet.'
+                    : `No ${activeTab === 'articles' ? 'stories' : 'posts'} yet.`}
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-border/30 pb-20">
@@ -449,6 +470,36 @@ export default function ProfilePage() {
           username={profile.username}
           onClose={() => setShowReportModal(false)}
         />
+      )}
+      {showStreakInfo && canSeePersonalStreak && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 sm:items-center"
+          onMouseDown={() => setShowStreakInfo(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="personal-streak-title"
+            className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="personal-streak-title" className="mb-2 text-base font-bold text-foreground">Your SoB Streak 🔥</h2>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              Keep your personal streak alive by staying active on SoB!{'\n\n'}
+              Publish posts and articles, comment on discussions, or like content you find interesting.{'\n\n'}
+              Complete at least one qualifying activity within every 24-hour period to keep your streak going.{'\n\n'}
+              Miss 24 hours without qualifying activity, and your streak resets.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-foreground">Current streak: 🔥 {personalStreak?.currentStreak ?? 0}</p>
+            <button
+              type="button"
+              onClick={() => setShowStreakInfo(false)}
+              className="mt-4 w-full rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
+            >
+              Close
+            </button>
+          </section>
+        </div>
       )}
     </div>
   );

@@ -26,6 +26,10 @@ export interface Post {
   tags: string[];
   likes: string[]; // User IDs
   shares: number;
+  repostsCount?: number;
+  isRepostedByMe?: boolean;
+  repostedBy?: Pick<User, '_id' | 'name' | 'username'> & Partial<Pick<User, 'avatar'>>;
+  repostedAt?: string;
   bookmarks: string[]; // User IDs
   comments: string[]; // Comment IDs
   isPublished: boolean;

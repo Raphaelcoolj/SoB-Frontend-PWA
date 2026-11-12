@@ -78,6 +78,16 @@ interface Message {
   deleted?: boolean;
   deletedFor?: string[];
   game?: GameBubbleData;
+  sharedPost?: {
+    post: string;
+    contentType: 'post' | 'article';
+    title: string;
+    body: string;
+    mediaUrls: string[];
+    muxPlaybackId?: string;
+    author: { _id: string; name: string; username: string; avatar?: string };
+    unavailable?: boolean;
+  };
 }
 
 type MediaItem = {
@@ -202,6 +212,7 @@ function ChatConversation() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const mediaClientMessageIdRef = useRef<string | null>(null);
   const touchStartXRef = useRef(0);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -544,7 +555,8 @@ function ChatConversation() {
     setText('');
     resetTextarea();
 
-    const tempId = `temp-${Date.now()}`;
+    const clientMessageId = crypto.randomUUID();
+    const tempId = `temp-${clientMessageId}`;
     const optimistic: Message = {
       _id: tempId,
       sender: { _id: currentUser._id, name: currentUser.name, username: currentUser.username, avatar: currentUser.avatar },
@@ -559,6 +571,7 @@ function ChatConversation() {
         method: 'POST',
         body: JSON.stringify({
           text: sendText,
+          clientMessageId,
           replyTo: replyTo ? { _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType } : undefined,
         }),
       });
@@ -648,6 +661,7 @@ function ChatConversation() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    mediaClientMessageIdRef.current = null;
     setSelectedFile(file);
     if (file.type.startsWith('video/')) {
       setIsVideoTrimmerOpen(true);
@@ -660,6 +674,7 @@ function ChatConversation() {
   const handleDocumentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !conversationId) return;
+    mediaClientMessageIdRef.current = null;
     setSelectedFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
@@ -673,6 +688,7 @@ function ChatConversation() {
 
   const handleCropComplete = (croppedFile: File) => {
     setIsCropperOpen(false);
+    mediaClientMessageIdRef.current = null;
     setSelectedFile(croppedFile);
     if (croppedFile.type.startsWith('video/')) {
       setPreviewImage(URL.createObjectURL(croppedFile));
@@ -688,6 +704,7 @@ function ChatConversation() {
     if (previewImage?.startsWith('blob:')) URL.revokeObjectURL(previewImage);
     setPreviewImage(null);
     setSelectedFile(null);
+    mediaClientMessageIdRef.current = null;
   };
 
   // GIF pick → show the preview immediately from the Giphy URL, then fetch
@@ -696,6 +713,7 @@ function ChatConversation() {
   const handleGifSelect = async (gif: GifResult) => {
     setShowGifPicker(false);
     if (!conversationId) return;
+    mediaClientMessageIdRef.current = null;
     setPreviewImage(gif.url);
     setSelectedFile(null);
     // The remote GIF URL is already displayable, so it is sent straight through
@@ -711,6 +729,8 @@ function ChatConversation() {
     if (!fileToUpload && !previewImage) return;
     setUploadingMedia(true);
     try {
+      const clientMessageId = mediaClientMessageIdRef.current ?? crypto.randomUUID();
+      mediaClientMessageIdRef.current = clientMessageId;
       const formData = new FormData();
       if (fileToUpload) {
         formData.append('media', fileToUpload);
@@ -718,6 +738,7 @@ function ChatConversation() {
         formData.append('mediaUrl', previewImage);
         formData.append('mediaType', 'image');
       }
+      formData.append('clientMessageId', clientMessageId);
       if (text.trim()) formData.append('text', text.trim());
       if (replyTo) formData.append('replyTo', JSON.stringify({ _id: replyTo._id, text: replyTo.text, sender: replyTo.sender, mediaUrl: replyTo.mediaUrl, mediaType: replyTo.mediaType }));
       const res = await fetchWithAuth(`${BASE}/api/chats/${conversationId}/messages`, {
@@ -1128,7 +1149,7 @@ function ChatConversation() {
 
                       <div
                         className={`max-w-[80%] min-w-0 w-fit relative ${
-                          msg.game
+                          msg.game || msg.sharedPost
                             ? ''
                             : (mediaItem?.type === 'image' || mediaItem?.type === 'video') && !msg.text
                             ? ''
@@ -1153,13 +1174,60 @@ function ChatConversation() {
                           </>
                         )}
 
-                        {!msg.game && mediaItem?.type === 'voice' && (
+                        {msg.sharedPost && (
+                          msg.sharedPost.unavailable ? (
+                            <div className="w-[min(280px,70vw)] rounded-xl border border-border/70 bg-card px-3 py-3 text-sm text-muted-foreground">
+                              This post is no longer available.
+                            </div>
+                          ) : (
+                            <Link
+                              href={`/post/${msg.sharedPost.post}`}
+                              className="block w-[min(280px,70vw)] overflow-hidden rounded-xl border border-border/70 bg-card text-foreground hover:bg-muted/50"
+                            >
+                              <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2">
+                                <UserAvatar avatar={msg.sharedPost.author.avatar} name={msg.sharedPost.author.name} size="xs" />
+                                <span className="min-w-0 truncate text-xs font-semibold">
+                                  {msg.sharedPost.author.name} <span className="font-normal text-muted-foreground">@{msg.sharedPost.author.username}</span>
+                                </span>
+                              </div>
+                              {(msg.sharedPost.mediaUrls?.[0] || msg.sharedPost.muxPlaybackId) && (
+                                <img
+                                  src={msg.sharedPost.mediaUrls?.[0] || `https://image.mux.com/${msg.sharedPost.muxPlaybackId}/thumbnail.jpg`}
+                                  alt=""
+                                  loading="lazy"
+                                  className="max-h-36 w-full object-cover"
+                                />
+                              )}
+                              <div className="px-3 py-2">
+                                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-accent">
+                                  Shared {msg.sharedPost.contentType === 'article' ? 'article' : 'post'}
+                                </span>
+                                {msg.sharedPost.title && (
+                                  <span className="mb-1 block line-clamp-1 text-sm font-bold">{msg.sharedPost.title}</span>
+                                )}
+                                {msg.sharedPost.body && (
+                                  <span className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                                    {msg.sharedPost.body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
+                                  </span>
+                                )}
+                                {!msg.text && (
+                                  <span className="mt-2 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+                                    {formatTime(msg.createdAt)}
+                                    {mine && <CheckCheck className={`h-3 w-3 ${msg.readAt ? 'text-blue-400' : 'text-muted-foreground/50'}`} />}
+                                  </span>
+                                )}
+                              </div>
+                            </Link>
+                          )
+                        )}
+
+                        {!msg.game && !msg.sharedPost && mediaItem?.type === 'voice' && (
                           <div className="px-3 py-2">
                             <VoiceBubble url={mediaItem.url} duration={mediaItem.duration} isMine={mine} />
                           </div>
                         )}
 
-                        {!msg.game && mediaItem?.type === 'image' && (
+                        {!msg.game && !msg.sharedPost && mediaItem?.type === 'image' && (
                           <div className={`${mine ? 'bg-accent/20' : 'bg-muted'} rounded-2xl overflow-hidden p-0.5 relative ${msg.text || msg.replyTo ? '' : 'shadow-sm'}`}>
                             {/* Fixed box + object-cover: the message payload carries no
                                 width/height, so a reserved box is what keeps the bubble
@@ -1208,7 +1276,7 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {!msg.game && mediaItem?.type === 'video' && (
+                        {!msg.game && !msg.sharedPost && mediaItem?.type === 'video' && (
                           <div className="relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
                             <VideoPlayer
                               url={mediaItem.url}
@@ -1237,7 +1305,7 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {!msg.game && mediaItem?.type === 'document' && (
+                        {!msg.game && !msg.sharedPost && mediaItem?.type === 'document' && (
                           <div className="border border-accent/40 rounded-2xl overflow-hidden w-full max-w-[280px] flex flex-col shadow-sm">
                             {/* PDF first-page preview (when available) */}
                             {isPdf(mediaItem) && (() => {
@@ -1302,7 +1370,7 @@ function ChatConversation() {
                           </div>
                         )}
 
-                        {!msg.game && (msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && mediaItem?.type !== 'document' && (
+                        {!msg.game && (!msg.sharedPost || !!msg.text) && (msg.text || msg.replyTo || (mediaItem?.type !== 'image' && mediaItem?.type !== 'video')) && mediaItem?.type !== 'document' && (
                           <div>
                             {isRealReply && msg.replyTo && (
                               <ReplyPreview
@@ -1497,6 +1565,7 @@ function ChatConversation() {
                   try {
                     const blob = await fetch(recordedAudioUrl).then(r => r.blob());
                     const formData = new FormData();
+                    formData.append('clientMessageId', crypto.randomUUID());
                     formData.append('media', blob, 'voice.mp3');
                     formData.append('text', '');
                     if (recordingDuration > 0) formData.append('duration', String(recordingDuration * 1000));
@@ -1726,7 +1795,7 @@ function ChatConversation() {
             </div>
             <div className="flex gap-2 p-3">
               <button
-                onClick={() => { setPreviewImage(null); setSelectedFile(null); }}
+                onClick={() => { setPreviewImage(null); setSelectedFile(null); mediaClientMessageIdRef.current = null; }}
                 className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-all cursor-pointer"
               >
                 Cancel
